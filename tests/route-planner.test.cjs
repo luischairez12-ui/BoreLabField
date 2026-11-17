@@ -29,7 +29,8 @@ assert(Number.isFinite(plan('drive',true).estimate));
 const partial=shots.map((s,i)=>i===1?{...s,lat:'',lon:''}:s);
 assert(!plan('drive',true,partial).allGeo);
 assert.equal(plan('drive',true,partial).order.at(-1).id,'b','Missing GPS shots stay unoptimized');
-assert(source.includes('Active plan: '),'UI must label selected mode');
+assert(source.includes('data-action="toggle-route-menu"'),'Route selector must remain accessible');
+assert(source.includes('esc(modeName)'),'UI must show the active route preference');
 console.log('BoreLab route planner checks passed.');
 
 const planner=source.slice(source.indexOf('function renderPlanner()'),source.indexOf('function renderPhotos()'));
