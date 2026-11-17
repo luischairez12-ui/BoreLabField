@@ -515,6 +515,32 @@ public class BoreLabActivity extends Activity {
             }
         }
 
+
+        /** Open allowlisted manufacturer/manual sources in a real Android browser. */
+        @JavascriptInterface public void openManualLink(String url) {
+            try {
+                Uri uri = Uri.parse(url);
+                String host = uri.getHost();
+                String[] allowed = {
+                    "www.scribd.com", "manuals.plus", "www.ditchwitchmidwest.com",
+                    "manualmachine.com", "www.manualslib.com", "sc-journal.com",
+                    "diyrepairmanuals.com", "www.vermeer.com", "www.ditchwitch.com",
+                    "ditchwitch.box.com", "data.ntsb.gov"
+                };
+                if (!"https".equalsIgnoreCase(uri.getScheme()) || host == null ||
+                    !java.util.Arrays.asList(allowed).contains(host.toLowerCase(java.util.Locale.ROOT)))
+                    throw new IllegalArgumentException("Unsupported manual link.");
+                runOnUiThread(() -> {
+                    Intent external = new Intent(Intent.ACTION_VIEW, uri);
+                    external.addCategory(Intent.CATEGORY_BROWSABLE);
+                    try { startActivity(external); }
+                    catch (Exception e) { toast("Cannot open manual link in a browser."); }
+                });
+            } catch (Exception e) {
+                toast("Invalid manual link: " + e.getMessage());
+            }
+        }
+
         @JavascriptInterface public void listManuals() {
             sendManualStatus(null);
         }
