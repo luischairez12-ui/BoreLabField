@@ -37,7 +37,7 @@ assert(js.includes('openManualLink(item.url)'));
 assert(js.includes('MANUAL_ALTERNATES'));
 assert(js.includes('manualAlternatives(machine.id,type).map'));
 assert(js.includes("case 'manual-alternate':openManualAlternative(id,Number(btn.dataset.index))"));
-assert(js.includes('2001–4000')&&js.includes('381–2000'));
+assert(js.includes('2001–4000')&&js.includes('381+'), 'Series II links must show serial restrictions');
 assert(js.includes('www.ditchwitchmidwest.com'));
 assert(!js.includes('window.BoreLabNative.downloadManual'),'No in-app paywall bypass or auto-download');
 const java=fs.readFileSync('app/src/main/java/com/borelab/field/BoreLabActivity.java','utf8');
