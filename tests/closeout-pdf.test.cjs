@@ -29,7 +29,7 @@ const state={
         {id:'b',name:'Shot B',feet:90,status:'planned',updatedAt:'2026-11-16T13:30:00.000Z'}],
  crew:[{id:'c',name:'Juan',start:'2026-11-17T12:00:00.000Z',end:'2026-11-17T20:00:00.000Z',lunch:60}],
  pipeMoves:[{id:'m',reelId:'r',shotId:'a',type:'installed',feet:185,at:'2026-11-17T13:30:00.000Z'}],
- reels:[],equipment:[],allowance:10
+ reels:[],equipment:[],mudLogs:[],allowance:10
 };
 const localDay=iso=>String(iso).slice(0,10);
 const pure=new Function('state','photos','localDay','uid','coordsText','shop','extra','pipeOnTruck','feet','hours',
