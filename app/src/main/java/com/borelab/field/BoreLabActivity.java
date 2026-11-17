@@ -20,6 +20,7 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
 import android.view.View;
+import androidx.core.content.FileProvider;
 import android.webkit.GeolocationPermissions;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -31,8 +32,13 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,6 +49,8 @@ public class BoreLabActivity extends Activity {
     private static final int REQ_LOCATION = 41;
     private static final int REQ_FILE = 42;
     private static final int REQ_SAVE = 43;
+    private static final int REQ_MANUAL = 44;
+    private static final long MAX_MANUAL_BYTES = 80L * 1024L * 1024L;
 
     private WebView webView;
     private ValueCallback<Uri[]> fileCallback;
@@ -50,6 +58,7 @@ public class BoreLabActivity extends Activity {
     private GeolocationPermissions.Callback pendingLocation;
     private String pendingLocationOrigin;
     private byte[] exportBytes;
+    private String pendingManualSlot;
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
@@ -204,6 +213,14 @@ public class BoreLabActivity extends Activity {
             fileCallback.onReceiveValue(selected);
             fileCallback = null;
             capturedPhotoUri = null;
+        } else if (code == REQ_MANUAL) {
+            final String slot = pendingManualSlot;
+            pendingManualSlot = null;
+            if (slot != null && resultCode == RESULT_OK && data != null && data.getData() != null) {
+                copyManualFromPicker(slot, data.getData());
+            } else {
+                sendManualStatus(null);
+            }
         } else if (code == REQ_SAVE) {
             if (resultCode == RESULT_OK && data != null && exportBytes != null) {
                 try (OutputStream stream = getContentResolver().openOutputStream(data.getData())) {
@@ -291,7 +308,147 @@ public class BoreLabActivity extends Activity {
         });
     }
 
+
+    /** Private /files/manuals contains explicitly imported PDFs, checked against disk. */
+    private File manualFolder() throws Exception {
+        File dir = new File(getFilesDir(), "manuals");
+        if (!dir.isDirectory() && !dir.mkdirs()) throw new IllegalStateException("Could not create manual folder");
+        return dir;
+    }
+
+    private String safeManualSlot(String slot) {
+        if (slot == null || !slot.matches("[a-z0-9-]{2,70}"))
+            throw new IllegalArgumentException("Invalid manual slot");
+        return slot;
+    }
+
+    private File manualFile(String slot) throws Exception {
+        return new File(manualFolder(), safeManualSlot(slot) + ".pdf");
+    }
+
+    private boolean isPdf(File pdf) {
+        if (pdf == null || !pdf.isFile() || pdf.length() < 5 || pdf.length() > MAX_MANUAL_BYTES) return false;
+        try (FileInputStream input = new FileInputStream(pdf)) {
+            byte[] prefix = new byte[5];
+            return input.read(prefix) == 5 &&
+                prefix[0] == '%' && prefix[1] == 'P' && prefix[2] == 'D' &&
+                prefix[3] == 'F' && prefix[4] == '-';
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    /** The saved checkmark is based on physical PDF files, not localStorage flags. */
+    private void sendManualStatus(String message) {
+        JSONObject found = new JSONObject();
+        try {
+            File[] files = manualFolder().listFiles();
+            if (files != null) for (File file : files) {
+                String name = file.getName();
+                if (name.endsWith(".pdf") && isPdf(file)) {
+                    String slot = name.substring(0, name.length() - 4);
+                    if (slot.matches("[a-z0-9-]{2,70}")) found.put(slot, true);
+                }
+            }
+        } catch (Exception e) {
+            message = "Could not scan saved manuals: " + e.getMessage();
+        }
+        String js = "window.borelabOnManuals && window.borelabOnManuals(" +
+            found.toString() + "," + (message == null ? "null" : JSONObject.quote(message)) + ");";
+        runOnUiThread(() -> {
+            if (webView != null) webView.evaluateJavascript(js, null);
+        });
+    }
+
+    private void copyManualFromPicker(String slot, Uri uri) {
+        new Thread(() -> {
+            File temp = null;
+            try {
+                File dest = manualFile(slot);
+                temp = new File(manualFolder(), slot + ".importing");
+                long total = 0;
+                try (InputStream source = getContentResolver().openInputStream(uri);
+                     FileOutputStream output = new FileOutputStream(temp)) {
+                    if (source == null) throw new IllegalStateException("Cannot read selected PDF");
+                    byte[] buffer = new byte[16384];
+                    int count;
+                    while ((count = source.read(buffer)) != -1) {
+                        total += count;
+                        if (total > MAX_MANUAL_BYTES) throw new IllegalArgumentException("PDF exceeds 80 MB limit");
+                        output.write(buffer, 0, count);
+                    }
+                    output.getFD().sync();
+                }
+                if (!isPdf(temp)) throw new IllegalArgumentException("Selected file is not a valid PDF");
+                Files.move(temp.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                sendManualStatus("Manual saved offline. Ready to open without signal.");
+            } catch (Exception e) {
+                sendManualStatus("Manual import failed: " + e.getMessage());
+            } finally {
+                if (temp != null && temp.exists()) temp.delete();
+            }
+        }, "BoreLab-Manual-Import").start();
+    }
+
+    private void openSavedManual(String slot) {
+        try {
+            File file = manualFile(slot);
+            if (!isPdf(file)) {
+                sendManualStatus("The PDF is missing. Import it again.");
+                return;
+            }
+            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".manuals", file);
+            Intent view = new Intent(Intent.ACTION_VIEW);
+            view.setDataAndType(uri, "application/pdf");
+            view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            try {
+                startActivity(Intent.createChooser(view, "Open saved rig manual"));
+            } catch (ActivityNotFoundException e) {
+                toast("Install a PDF viewer to open saved manuals.");
+            }
+        } catch (Exception e) {
+            sendManualStatus("Cannot open PDF: " + e.getMessage());
+        }
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (webView != null) sendManualStatus(null);
+    }
+
     final class FileExportBridge {
+
+        @JavascriptInterface public void listManuals() {
+            sendManualStatus(null);
+        }
+
+        @JavascriptInterface public void importManual(String slot) {
+            try { safeManualSlot(slot); }
+            catch (Exception e) { sendManualStatus("Unknown manual slot."); return; }
+            runOnUiThread(() -> {
+                if (pendingManualSlot != null) { toast("Complete the current PDF import first."); return; }
+                pendingManualSlot = slot;
+                Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                picker.addCategory(Intent.CATEGORY_OPENABLE);
+                picker.setType("application/pdf");
+                try { startActivityForResult(picker, REQ_MANUAL); }
+                catch (Exception e) { pendingManualSlot = null; sendManualStatus("Could not choose a PDF."); }
+            });
+        }
+
+        @JavascriptInterface public void openManual(String slot) {
+            runOnUiThread(() -> openSavedManual(slot));
+        }
+
+        @JavascriptInterface public void removeManual(String slot) {
+            new Thread(() -> {
+                try {
+                    File file = manualFile(slot);
+                    if (file.exists() && !file.delete()) throw new IllegalStateException("PDF could not be removed");
+                    sendManualStatus("Offline manual removed from BoreLab.");
+                } catch (Exception e) { sendManualStatus("Remove failed: " + e.getMessage()); }
+            }, "BoreLab-Manual-Remove").start();
+        }
         /** OCR text scanning runs on-device using the model bundled inside the APK. */
         @JavascriptInterface public void scanProductLabel(String dataUrl) {
             recognizeProductLabel(dataUrl);
