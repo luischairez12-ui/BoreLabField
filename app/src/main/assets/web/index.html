@@ -294,6 +294,7 @@ function dailyRecords(day,all=false){
   shots:state.shots.filter(x=>all||[x.startedAt,x.completedAt,x.updatedAt].some(inDay)),
   crew:state.crew.filter(x=>all||[x.start,x.end].some(inDay)),
   pipe:state.pipeMoves.filter(x=>all||inDay(x.at)),
+  mud:state.mudLogs.filter(x=>all||inDay(x.at)),
   photos:photos.filter(x=>all||inDay(x.addedAt)).map(({id,shotId,addedAt,lat,lon,accuracy,kind})=>({id,shotId,addedAt,lat,lon,accuracy,kind}))
  };
 }
@@ -302,8 +303,8 @@ function snapshotWork(kind,day,notes='',checks=[]){
  const done=r.shots.filter(x=>x.status==='complete');
  return {
   id:uid(),kind,day,createdAt:new Date().toISOString(),jobName:state.jobName,homeBase:state.shopAddress||coordsText(shop())||'',notes:String(notes).trim().slice(0,4000),
-  checks:copy(checks),shots:copy(r.shots),crew:copy(r.crew),pipe:copy(r.pipe),photos:copy(r.photos),reels:copy(state.reels),equipment:copy(state.equipment),allowance:extra(),truckPipe:pipeOnTruck(),
-  summary:{shots:r.shots.length,completed:done.length,completedFeet:done.reduce((a,x)=>a+feet(x),0),crewHours:r.crew.reduce((a,x)=>a+hours(x),0),installedPipe:r.pipe.filter(x=>x.type==='installed').reduce((a,x)=>a+Number(x.feet||0),0),photos:r.photos.length}
+  checks:copy(checks),shots:copy(r.shots),crew:copy(r.crew),pipe:copy(r.pipe),photos:copy(r.photos),mud:copy(r.mud),reels:copy(state.reels),equipment:copy(state.equipment),allowance:extra(),truckPipe:pipeOnTruck(),
+  summary:{shots:r.shots.length,completed:done.length,completedFeet:done.reduce((a,x)=>a+feet(x),0),crewHours:r.crew.reduce((a,x)=>a+hours(x),0),installedPipe:r.pipe.filter(x=>x.type==='installed').reduce((a,x)=>a+Number(x.feet||0),0),photos:r.photos.length,mudBatches:r.mud.length}
  };
 }
 function reviewIssues(r){
@@ -326,7 +327,7 @@ function renderCloseout(){
  <div class="card spaced"><label class="field">Work date<input type="date" data-closeout-day value="${esc(date)}"></label>
  <div class="closeout-stats">
  <div><strong>${r.shots.length}</strong><small>Bores updated</small></div><div><strong>${fmt(r.crew.reduce((n,x)=>n+hours(x),0),2)}</strong><small>Crew-hours</small></div>
- <div><strong>${r.photos.length}</strong><small>Photos</small></div><div><strong>${fmt(r.pipe.filter(x=>x.type==='installed').reduce((n,x)=>n+Number(x.feet||0),0),1)}'</strong><small>Pipe used</small></div></div>
+ <div><strong>${r.photos.length}</strong><small>Photos</small></div><div><strong>${r.mud.length}</strong><small>Mud batches</small></div><div><strong>${fmt(r.pipe.filter(x=>x.type==='installed').reduce((n,x)=>n+Number(x.feet||0),0),1)}'</strong><small>Pipe used</small></div></div>
  ${issues.length?`<div class="closeout-warning"><strong>Check before closing:</strong>${issues.map(x=>`<p>• ${esc(x)}</p>`).join('')}</div>`:'<div class="note good spaced">No obvious outstanding items detected.</div>'}
  </div>
  <form class="card spaced" data-form="closeout">
@@ -358,7 +359,7 @@ function historyDetail(id){
  showModal(`${modalHead((x.kind==='daily'?'Daily Closeout':'Job Snapshot')+' · '+x.day)}
  <div class="card"><h3>${esc(x.jobName)}</h3>
  ${kv('Saved',esc(fullDate(x.createdAt)))}${kv('Bores',x.summary?.shots||0)}${kv('Completed footage',fmt(x.summary?.completedFeet||0,1)+' ft')}
- ${kv('Crew-hours',fmt(x.summary?.crewHours||0,2))}${kv('Pipe installed',fmt(x.summary?.installedPipe||0,1)+' ft')}${kv('Photo records',x.summary?.photos||0)}
+ ${kv('Crew-hours',fmt(x.summary?.crewHours||0,2))}${kv('Pipe installed',fmt(x.summary?.installedPipe||0,1)+' ft')}${kv('Photo records',x.summary?.photos||0)}${kv('Mix batches',x.summary?.mudBatches||0)}
  ${x.notes?`<p class="smalltext muted spaced">${esc(x.notes)}</p>`:''}
  <div class="divider"></div><h3>Saved Bore Records</h3>
  ${(x.shots||[]).map(sh=>`<div class="closeout-item"><strong>${esc(sh.name)}</strong><small>${fmt(feet(sh),1)} ft · ${esc(sh.status)}</small></div>`).join('')||'<p>No bore records.</p>'}
@@ -370,7 +371,7 @@ function saveCloseout(form,values){
  const checks=labels.map((label,i)=>({label,checked:!!form.querySelector(`[name="check${i}"]:checked`)}));
  if(checks.some(x=>!x.checked))return notify('Review and check all four items first.');
  const date=closeoutDay||todayLocal(),r=dailyRecords(date),issues=reviewIssues(r);
- const n=r.shots.length+r.crew.length+r.pipe.length+r.photos.length;
+ const n=r.shots.length+r.crew.length+r.pipe.length+r.photos.length+r.mud.length;
  if(!n&&!confirm('No records found for this date. Save an empty closeout?'))return;
  if(issues.length&&!confirm('Unresolved items:\n'+issues.join('\n')+'\nSave the snapshot anyway?'))return;
  const entry=snapshotWork('daily',date,values.notes,checks);entry.warnings=issues;
@@ -1150,7 +1151,7 @@ async function importBackup(file){try{const obj=JSON.parse(await file.text());if
 function reportCSS(){return `body{font:13px/1.5 system-ui,Arial;color:#152535;margin:28px auto;max-width:900px;padding:0 18px}h1{color:#df7d1f;border-bottom:3px solid #df7d1f;padding-bottom:12px}h2{margin-top:30px;background:#e8eff3;padding:8px 12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #acbbc5;padding:8px;text-align:left}th{background:#e8eff3}img{max-width:290px;max-height:220px;object-fit:cover;margin:8px 14px 8px 0}small{color:#516274}.print{padding:12px;background:#eee;border:0;border-radius:8px;cursor:pointer}@media print{.print{display:none}}`}
 function buildPdfPayload(snapshot=null,requestedDay=''){
  const day=requestedDay||todayLocal(),scope=snapshot?(snapshot.kind==='job'?'job':'daily'):(requestedDay?'daily':state.reportScope==='job'?'job':'daily');
- const r=snapshot?{shots:snapshot.shots||[],crew:snapshot.crew||[],pipe:snapshot.pipe||[],photos:snapshot.photos||[]} :dailyRecords(day,scope==='job');
+ const r=snapshot?{shots:snapshot.shots||[],crew:snapshot.crew||[],pipe:snapshot.pipe||[],photos:snapshot.photos||[],mud:snapshot.mud||[]} :dailyRecords(day,scope==='job');
  const machines=snapshot?.equipment||state.equipment,reels=snapshot?.reels||state.reels;
  const title=snapshot?(snapshot.kind==='job'?'Saved Job Snapshot':'Saved Daily Closeout'):(scope==='job'?'Job Activity Report':'Daily Field Report');
  const shotPipe=sh=>{
@@ -1179,7 +1180,7 @@ function buildPdfPayload(snapshot=null,requestedDay=''){
    plannedPipe:`${fmt(r.shots.reduce((a,x)=>a+feet(x)+Number(snapshot?.allowance??extra()),0),1)} ft`,
    actualPipe:`${fmt(actualTotal,1)} ft (from records; check reel ledger)`,
    crewHours:`${fmt(r.crew.reduce((a,x)=>a+hours(x),0),2)} h`,
-   photos:String(r.photos.length)},
+   photos:String(r.photos.length),mudBatches:String(r.mud.length)},
   shots:r.shots.map(sh=>({
    name:sh.name||'Unnamed bore',status:sh.status||'',feet:fmt(sh.feet,1),
    plannedPipe:fmt(Number(sh.feet||0)+Number(snapshot?.allowance??extra()),1),
@@ -1191,6 +1192,7 @@ function buildPdfPayload(snapshot=null,requestedDay=''){
   })),
   crew:r.crew.map(x=>({name:x.name||'',start:formattedDate(x.start),end:x.end?formattedDate(x.end):'Still on the clock',
     lunch:String(x.lunch??0),hours:x.end?fmt(hours(x),2):'In progress',notes:x.notes||''})),
+  mud:r.mud.map(m=>({date:formattedDate(m.at),waterAdded:fmt(m.added,2),before:fmt(m.before,2),target:fmt(m.target,2),mode:m.mode||'topoff',soil:m.soil||'unknown',products:(m.products||[]).map(p=>({name:p.name||'',amount:fmt(p.dose,4),unit:p.unit||''})),notes:m.notes||''})),
   pipe:r.pipe.map(m=>({reel:reels.find(x=>x.id===m.reelId)?.name||'Reel',type:m.type||'',
     shot:r.shots.find(x=>x.id===m.shotId)?.name||'General',feet:fmt(m.feet,1),date:formattedDate(m.at),note:m.note||''})),
   photos:snapshotPhotos
@@ -1219,7 +1221,7 @@ async function exportRealPdf(snapshotId='',specificDay=''){
  ${Object.entries(payload.summary).map(([a,b])=>row(a,b)).join('')}
  <h2>Bore Logs</h2>${payload.shots.map(x=>`<h3>${esc(x.name)} — ${esc(x.status)}</h3>${['feet','plannedPipe','actualPipe','equipment','address','startedAt','completedAt','notes'].map(k=>row(k,x[k])).join('')}`).join('')}
  <h2>Crew</h2>${payload.crew.map(x=>row(x.name,`${x.start} – ${x.end}; ${x.hours} h`)).join('')}
- <h2>Pipe Movements</h2>${payload.pipe.map(x=>row(x.reel,`${x.type} ${x.feet} ft · ${x.shot}`)).join('')}
+ <h2>Pipe Movements</h2>${payload.pipe.map(x=>row(x.reel,`${x.type} ${x.feet} ft · ${x.shot}`)).join('')}<h2>Mud Mixing</h2>${payload.mud.map(x=>row(x.date,`${x.waterAdded} gal added · ${x.mode}; ${x.products.map(p=>p.amount+' '+p.unit+' '+p.name).join(', ')}`)).join('')}
  <h2>Photos</h2>${payload.photos.map(x=>`<div>${x.dataUrl?`<img src="${x.dataUrl}">`:''}${row(x.shot,x.date+' · '+x.location)}</div>`).join('')}
  ${payload.closeoutNote?row('Closeout notes',payload.closeoutNote):''}<p>Verify all records before submission.</p></body></html>`;
  downloadBlob(file.replace(/\.pdf$/,'.html'),html,'text/html');
