@@ -253,6 +253,7 @@ html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;borde
 .manual-highlight{background:#ffd46b;color:#27210e;border-radius:3px;padding:0 2px}
 .manual-alt-row{display:flex;align-items:flex-start;flex-wrap:wrap;gap:8px;padding:8px 0 0;margin-top:6px}
 .manual-alt-row .tiny{flex:1 1 160px;align-self:center}
+.manual-my-link{border-left:3px solid var(--cyan);padding-left:8px}
 .manual-ok{color:var(--mint);font-size:12px;font-weight:800}
 .manual-missing{color:var(--muted);font-size:12px;font-weight:700}
 @media(min-width:650px){.manual-machine-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -555,11 +556,11 @@ function renderManualLibrary(){
    ).join('')+'</div>';
  }).join('');
  return '<div class="page"><div class="between"><div><span class="eyebrow">FIELD / EQUIPMENT</span>'+
-  '<h1>Manual Library</h1></div><button class="btn micro ghost" data-action="manual-refresh">↻ Check Files</button></div>'+
+  '<h1>Manual Library</h1></div><div class="action-row"><button class="btn micro primary" data-action="manual-add-link">+ My Link</button><button class="btn micro ghost" data-action="manual-refresh">↻ Check Files</button></div></div>'+
   '<p class="smalltext muted spaced">Find official manuals or alternate sources when manufacturer access is restricted. A green checkmark appears only when BoreLab confirms a PDF is stored in its private offline folder.</p>'+((machine.id==='vermeer-d24x40'||machine.id==='vermeer-d24x40-series-ii')?
   '<div class="note spaced"><strong>Manual you shared</strong><p class="tiny muted">Vermeer D24×40 Series II operator manual · serial 2001–4000. Scribd preview; downloading may require an account.</p><button class="btn primary" type="button" data-action="manual-alternate" data-id="vermeer-d24x40-series-ii-operator" data-index="0">↗ Open your Scribd manual</button></div>':'')+
   (native?'':'<div class="note spaced">Offline PDF importing and file detection require the Android APK. This browser preview only has the manufacturer links.</div>')+
-  section('Select Rig','<span class="hint">'+MANUAL_MACHINES.length+' rig models</span>')+
+  '<div class="note spaced"><strong>Find more HDD manuals</strong><p class="tiny muted">Browse the independent Elite Underground Tools manual library for other rigs. Check the exact model and document before using it.</p><button class="btn micro ghost" data-action="manual-more">↗ More Manuals</button></div>'+section('Select Rig','<span class="hint">'+MANUAL_MACHINES.length+' rig models</span>')+
   '<div class="manual-machine-grid spaced">'+choices+'</div>'+
   section(machine.make+' '+machine.model,'<span class="hint">'+countFor(machine)+'/3 saved</span>')+
   '<div class="card spaced"><p class="tiny muted">Verify the correct manual against your exact model, year, and machine serial number before following instructions or ordering parts.</p>'+slots+'</div>'+
