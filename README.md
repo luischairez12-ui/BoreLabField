@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.7.1 (debug/test build)
+**Current version:** v0.7.2 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.7.1-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.7.2-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,16 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.7.2 — Quick Fractional Tank Levels for Premixed Mud
+
+- In MixLab and in **Set Level**, choose **Empty (0%), ¼ full (25%), ½ full (50%), ¾ full (75%), Full (100%)**, or **Custom gallons**.
+- A selected fraction computes and displays **approximate current gallons** from the saved/entered tank capacity; for example, ¾ of a 1,000-gallon tank ≈ 750 gallons. Custom mode remains editable.
+- If tank capacity changes while a fraction is selected in the MixLab form, the estimate recalculates without starting a new batch.
+- Saving a plan records both the chosen fill-level preset and its derived gallon estimate; tank calculations continue using volume in gallons.
+- **Set Level** saves the fraction directly without logging any additives or changing the saved mud-product rates. Actual-mix logging moves the fluid level to the known final volume and resets the level selector to Custom.
+- The previous `currentGallons` field remains intact for data migration. Older versions' exact gallons use **Custom** until the user picks a fraction.
+- These selections are **approximate visual estimates**, not measured tank readings. An existing premix's composition must be verified before using product quantities suggested for top-offs.
 
 ## New in v0.7.1 — Scan a Product Label Once, Reuse in MixLab
 

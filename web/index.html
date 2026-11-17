@@ -214,6 +214,16 @@ html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;borde
 .mud-rate-check{display:flex;gap:10px;padding:12px;background:var(--surface2);border-radius:11px;align-items:flex-start;font-size:12px}
 .mud-rate-check input{margin-top:1px;flex-shrink:0;width:20px;height:20px;accent-color:var(--accent)}
 
+.mud-level-control{grid-column:1/-1;min-width:0}
+.mud-level-heading{display:block;font-size:13px;font-weight:800;margin-bottom:9px}
+.mud-level-picks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.mud-level-choice{font:inherit;font-size:12px;font-weight:700;min-height:44px;padding:8px 5px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--text);cursor:pointer}
+.mud-level-choice.active{background:var(--accent);color:white;border-color:var(--accent)}
+.mud-level-choice:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.mud-level-control input[readonly]{background:var(--surface2);opacity:0.9}
+.mud-level-hint{margin-top:7px;line-height:1.45}
+@media(min-width:540px){.mud-level-picks{grid-template-columns:repeat(6,minmax(0,1fr))}}
+
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -290,7 +300,7 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.7.1 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.7.2 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
@@ -395,6 +405,61 @@ function archiveCurrentJob(){
  save();render();notify('Job snapshot saved.');
 }
 function mudConfig(){return Object.assign({capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'unknown',notes:''},state.mudTank||{})}
+const MUD_LEVEL_PRESETS=[["empty","Empty",0],["quarter","¼ full",0.25],["half","½ full",0.5],["threequarter","¾ full",0.75],["full","Full",1],["custom","Custom gallons",null]];
+function mudLevelChoice(value){return MUD_LEVEL_PRESETS.some(x=>x[0]===value)?value:'custom'}
+function mudLevelGallons(capacity,choice){
+ const p=MUD_LEVEL_PRESETS.find(x=>x[0]===choice);
+ const cap=Number(capacity);
+ if(!p||p[2]===null||String(capacity??'').trim()===''||!Number.isFinite(cap)||cap<=0)return null;
+ return Math.round(cap*p[2]*100)/100;
+}
+function mudLevelInputValues(values){
+ const levelChoice=mudLevelChoice(values.levelChoice);
+ const computed=mudLevelGallons(values.capacity,levelChoice);
+ return {levelChoice,currentGallons:levelChoice==='custom'?String(values.currentGallons??'').trim():(computed===null?'':String(computed))};
+}
+function mudLevelChoices(t,capacity){
+ const choice=mudLevelChoice(t.levelChoice);
+ const initial=mudLevelGallons(capacity,choice);
+ const gallons=choice==='custom'?String(t.currentGallons??''):initial===null?'':String(initial);
+ return `<div class="mud-level-control">
+  <span class="mud-level-heading">How full is the tank right now?</span>
+  <input type="hidden" name="levelChoice" value="${esc(choice)}" data-mud-level-code>
+  <div class="mud-level-picks" role="group" aria-label="Current tank fill level">
+    ${MUD_LEVEL_PRESETS.map(([key,label])=>`<button type="button" class="mud-level-choice ${choice===key?'active':''}"
+      data-action="mud-select-level" data-level="${key}" aria-pressed="${choice===key?'true':'false'}">${label}</button>`).join('')}
+  </div>
+  <label class="field spaced"><span data-mud-level-label>${choice==='custom'?'Current gallons (manual)':'Estimated gallons in tank'}</span>
+    <input data-mud-current name="currentGallons" type="number" required min="0" step="any" value="${esc(gallons)}"
+    ${choice==='custom'?'':'readonly'} placeholder="${choice==='custom'?'Type gallons':'Enter tank capacity first'}">
+  </label>
+  <p class="tiny muted mud-level-hint" data-mud-level-help>${choice==='custom'?'Enter the amount if you know it.':'Approximate amount based on tank capacity, not a measured volume.'}</p>
+ </div>`;
+}
+function updateMudLevelForm(form,chosen){
+ const field=form?.querySelector('[data-mud-level-code]');
+ const current=form?.querySelector('[data-mud-current]');
+ if(!field||!current)return;
+ const choice=mudLevelChoice(chosen??field.value);
+ field.value=choice;
+ const capacity=form.querySelector('[name="capacity"]')?.value??mudConfig().capacity;
+ const calc=mudLevelGallons(capacity,choice);
+ const manual=choice==='custom';
+ if(!manual)current.value=calc===null?'':String(calc);
+ current.readOnly=!manual;
+ current.placeholder=manual?'Type gallons':'Enter tank capacity first';
+ const label=form.querySelector('[data-mud-level-label]');
+ if(label)label.textContent=manual?'Current gallons (manual)':'Estimated gallons in tank';
+ const help=form.querySelector('[data-mud-level-help]');
+ if(help)help.textContent=manual?'Enter the amount if you know it.':
+   calc===null?'Enter tank capacity to calculate this approximate fill level.':
+   '≈ '+calc.toLocaleString(undefined,{maximumFractionDigits:2})+' gal based on '+Number(capacity).toLocaleString(undefined,{maximumFractionDigits:2})+' gal capacity; this is an estimate.';
+ for(const button of form.querySelectorAll('[data-action="mud-select-level"]')){
+   const active=button.dataset.level===choice;
+   button.classList.toggle('active',active);
+   button.setAttribute('aria-pressed',active?'true':'false');
+ }
+}
 function calculateMud(t=mudConfig(),selected=state.mudSelectedIds){
  const raw=(v)=>String(v??'').trim();
  const capacity=Number(t.capacity),current=Number(t.currentGallons),target=Number(t.targetGallons);
@@ -505,9 +570,12 @@ window.borelabOnLabelScan=function borelabOnLabelScan(text,error){
 };
 function mudLevelForm(){
  const t=mudConfig();
- showModal(`${modalHead('Update Current Tank Level')}<p class="smalltext muted">For pumping down or coming back with leftover fluid. This only changes the water/mixture level; it does not record an added chemical batch.</p>
- <form data-form="mud-level"><label class="field">Current contents (gal)<input name="currentGallons" required type="number" min="0" step="any" value="${esc(t.currentGallons)}"></label>
- <div class="modal-footer"><button class="btn ghost" type="button" data-action="close-modal">Cancel</button><button class="btn primary" type="submit">Update Level</button></div></form>`);
+ showModal(`${modalHead('Update Current Tank Level')}
+ <p class="smalltext muted">Already premixed? Choose roughly how full the tank is. This only updates the fluid level; it does not add any chemical to the mixing log.</p>
+ ${!Number(t.capacity)?'<div class="note spaced">First enter and save the tank capacity in MixLab.</div>':''}
+ <form data-form="mud-level">${mudLevelChoices(t,t.capacity)}
+ <div class="modal-footer"><button class="btn ghost" type="button" data-action="close-modal">Cancel</button>
+ <button class="btn primary" type="submit">Update Level</button></div></form>`);
 }
 function renderMudMixer(){
  const t=mudConfig(),plan=calculateMud(),products=state.mudProducts.filter(p=>!p.archived),logs=[...state.mudLogs].reverse().slice(0,15);
@@ -516,11 +584,11 @@ function renderMudMixer(){
  <div class="card spaced"><div class="between"><h2>Water & Tank</h2><button class="btn micro ghost" data-action="mud-level">Set Level</button></div>
  <form data-form="mud-batch"><div class="form-grid spaced">
  <label class="field">Tank capacity (gal)<input name="capacity" type="number" required min="0.1" step="any" value="${esc(t.capacity)}" placeholder="e.g., 1000"></label>
- <label class="field">Currently in tank (gal)<input name="currentGallons" type="number" required min="0" step="any" value="${esc(t.currentGallons)}"></label>
+ ${mudLevelChoices(t,t.capacity)}
  <label class="field">Final level wanted (gal)<input name="targetGallons" type="number" required min="0.1" step="any" value="${esc(t.targetGallons)}"></label>
  <label class="field">Mix type<select name="mode"><option value="topoff" ${t.mode==='topoff'?'selected':''}>Top off existing mix</option><option value="fresh" ${t.mode==='fresh'?'selected':''}>Fresh empty-tank batch</option></select></label>
  <label class="field wide">Ground conditions (notes only)<select name="soil">${[['unknown','Not recorded'],['sand','Sand'],['clay','Clay'],['mixed','Mixed'],['rock','Rock'],['other','Other']].map(([v,label])=>`<option value="${v}" ${t.soil===v?'selected':''}>${label}</option>`).join('')}</select></label></div>
- <p class="tiny muted spaced">Soil choice does not automatically alter treatment dosage. Check the actual ground, water quality and fluid program.</p>
+ <p class="tiny muted spaced">The tank fraction is an estimate. If it contains premixed mud, BoreLab assumes the existing mixture is correctly treated; verify its condition before choosing additives. Soil choice does not change chemical dosage.</p>
  <div class="divider"></div><div class="between"><h3>Products for This Batch</h3><button type="button" class="btn micro ghost" data-action="mud-add-product">+ Product</button></div>
  <div class="action-row"><button class="btn primary" type="button" data-action="scan-mud-label">▣ Scan Product Label</button></div>
  ${products.length?products.map(p=>{const usable=mudProductReady(p);return `<div class="mud-product-item">
@@ -572,8 +640,9 @@ function saveMudProduct(form,values){
  notify(mudProductReady(product)?'Product saved and ready to select in MixLab.':'Scanned product saved in MixLab. Tap Add Rate later to enable calculations.');
 }
 function saveMudPlan(form,values,record=false){
+ const level=mudLevelInputValues(values);
  const config={
-  capacity:String(values.capacity??'').trim(),currentGallons:String(values.currentGallons??'').trim(),
+  capacity:String(values.capacity??'').trim(),currentGallons:level.currentGallons,levelChoice:level.levelChoice,
   targetGallons:String(values.targetGallons??'').trim(),mode:values.mode==='fresh'?'fresh':'topoff',
   soil:['unknown','sand','clay','mixed','rock','other'].includes(values.soil)?values.soil:'unknown',
   notes:String(values.notes||'').trim().slice(0,1000)
@@ -590,15 +659,21 @@ function saveMudPlan(form,values,record=false){
    products:JSON.parse(JSON.stringify(plan.products)),notes:config.notes});
   config.currentGallons=String(plan.target);
   config.targetGallons=String(plan.target);
+  config.levelChoice='custom'; // Recorded final level is known, not the previous estimated fill percentage.
  }
  state.mudTank=config;state.mudSelectedIds=ids;save();render();
  notify(record?'Actual mix logged; current tank level updated.':'Mix plan saved. Check the label and preview before dosing.');
 }
 function saveMudLevel(values){
- const raw=String(values.currentGallons??'').trim(),g=Number(raw),tank=mudConfig(),cap=Number(tank.capacity);
- if(!raw||!Number.isFinite(g)||g<0||!Number.isFinite(cap)||cap<=0||g>cap)return notify('Set a tank capacity first, then enter a current level between zero and capacity.');
- state.mudTank={...tank,currentGallons:String(g),targetGallons:String(Math.max(g,Math.min(cap,Number(tank.targetGallons)||g)))};
- save();closeModal();render();notify('Tank level updated. No additives were logged.');
+ const tank=mudConfig(),capacity=Number(tank.capacity);
+ const level=mudLevelInputValues({...values,capacity:tank.capacity});
+ const raw=String(level.currentGallons??'').trim(),g=Number(raw);
+ if(!Number.isFinite(capacity)||capacity<=0)return notify('Enter and save tank capacity in MixLab first.');
+ if(!raw||!Number.isFinite(g)||g<0||g>capacity)return notify('Select a tank fraction or enter gallons between zero and tank capacity.');
+ state.mudTank={...tank,levelChoice:level.levelChoice,currentGallons:String(g),
+   targetGallons:String(Math.max(g,Math.min(capacity,Number(tank.targetGallons)||g)))};
+ save();closeModal();render();
+ notify(level.levelChoice==='custom'?'Current tank gallons updated.':'Approximate tank level saved: '+g+' gal.');
 }
 function archiveMudProduct(id){
  const product=state.mudProducts.find(p=>p.id===id);if(!product)return;
@@ -1443,6 +1518,7 @@ switch(action){
  case 'mud-edit-product':mudProductForm(id);break;
  case 'mud-archive-product':archiveMudProduct(id);break;
  case 'mud-level':mudLevelForm();break;
+ case 'mud-select-level':updateMudLevelForm(btn.closest('form'),btn.dataset.level);break;
  case 'mud-detail':mudLogDetail(id);break;
  case 'new-reel':reelForm();break;
  case 'reel-edit':reelForm(id);break;
@@ -1525,6 +1601,7 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
 }else if(form.dataset.form==='time'){
  const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);save();closeModal();render();notify('Crew time saved.');
 }});
+document.addEventListener('input',e=>{if(e.target.matches('form[data-form="mud-batch"] input[name="capacity"]'))updateMudLevelForm(e.target.closest('form'));});
 document.addEventListener('change',e=>{if(e.target.matches('[data-closeout-day]')){closeoutDay=e.target.value||todayLocal();render();return}if(e.target.matches('[data-equipment-type]')){const wrap=e.target.closest('form')?.querySelector('[data-truck-fields]');if(wrap)wrap.hidden=e.target.value!=='Truck';return}if(e.target.matches('[data-report-scope]')){state.reportScope=e.target.value==='job'?'job':'today';save();render();notify('Report scope saved.');return}if(e.target.matches('[data-theme-select]')){state.theme=e.target.value==='dark'?'dark':'daylight';applyTheme();save();render();notify(state.theme==='daylight'?'Daylight mode enabled.':'Night mode enabled.');return}if(e.target.matches('[data-lunch-enabled]')){state.autoLunchEnabled=e.target.checked;save();render();notify(state.autoLunchEnabled?'Automatic lunch enabled.':'Automatic lunch disabled.');return}if(e.target.matches('[data-lunch-minutes]')){state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(e.target.value)||0));save();render();notify('Lunch default saved.');return}if(e.target.matches('[data-roster-select]')){const id=e.target.dataset.rosterSelect;state.selectedCrewIds=e.target.checked?[...new Set([...state.selectedCrewIds,id])]:state.selectedCrewIds.filter(x=>x!==id);save();render();return}if(e.target.matches('[data-setting]')){const k=e.target.dataset.setting;state[k]=Math.max(0,Number(e.target.value)||0);save();render()}});
 $('#cameraFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#galleryFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
