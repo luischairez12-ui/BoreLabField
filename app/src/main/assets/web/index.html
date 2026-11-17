@@ -465,14 +465,6 @@ async function scanMudLabelFile(file){
   notify('Could not scan photo: '+String(error.message||error));
  }finally{if(url)URL.revokeObjectURL(url)}
 }
-window.borelabOnLabelScan=function borelabOnLabelScan(text,error){
- if(!pendingMudScan)return;
- pendingMudScan.text=String(text||'').slice(0,9000);
- pendingMudScan.name=guessMudProductName(pendingMudScan.text);
- if(error)notify('Text recognition failed. You can still save the label image and enter details manually.');
- else if(!pendingMudScan.text.trim())notify('No readable text was found. Try a clearer photo or enter details manually.');
- mudProductForm();
-};
 function mudProductReady(product){
  return !!product&&Number(product.rate)>0&&Number(product.perGallons)>0&&(!product.labelPhoto||product.rateVerified===true);
 }
@@ -503,6 +495,14 @@ function mudProductForm(id){
  <button class="btn primary" type="submit">${scanned?'Save to Product Library':'Save Product'}</button></div>
  </form>`);
 }
+window.borelabOnLabelScan=function borelabOnLabelScan(text,error){
+ if(!pendingMudScan)return;
+ pendingMudScan.text=String(text||'').slice(0,9000);
+ pendingMudScan.name=guessMudProductName(pendingMudScan.text);
+ if(error)notify('Text recognition failed. You can still save the label image and enter details manually.');
+ else if(!pendingMudScan.text.trim())notify('No readable text was found. Try a clearer photo or enter details manually.');
+ mudProductForm();
+};
 function mudLevelForm(){
  const t=mudConfig();
  showModal(`${modalHead('Update Current Tank Level')}<p class="smalltext muted">For pumping down or coming back with leftover fluid. This only changes the water/mixture level; it does not record an added chemical batch.</p>
