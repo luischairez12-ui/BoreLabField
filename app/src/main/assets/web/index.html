@@ -546,7 +546,13 @@ function renderManualLibrary(){
    '</div>'+manualAlternatives(machine.id,type).map((item,i)=>
      '<div class="manual-alt-row"><button type="button" class="btn micro '+(item.featured?'primary':'ghost')+'" data-action="manual-alternate" data-id="'+esc(slot)+'" data-index="'+i+'">↗ '+esc(item.label)+'</button>'+
      '<div class="tiny muted">'+esc(item.kind)+' · '+esc(item.note)+'</div></div>'
-    ).join('')+'</div>';
+    ).join('')+
+   manualUserLinks(machine.id,type).map(link=>
+    '<div class="manual-alt-row manual-my-link"><button type="button" class="btn micro ghost" data-action="manual-user-open" data-id="'+esc(link.id)+'">↗ '+esc(link.label)+'</button>'+
+    '<div class="tiny muted">My saved link'+(link.note?' · '+esc(link.note):'')+'</div>'+
+    '<button type="button" class="btn micro ghost" data-action="manual-user-edit" data-id="'+esc(link.id)+'">Edit</button>'+
+    '<button type="button" class="btn micro ghost" data-action="manual-user-remove" data-id="'+esc(link.id)+'">Remove</button></div>'
+   ).join('')+'</div>';
  }).join('');
  return '<div class="page"><div class="between"><div><span class="eyebrow">FIELD / EQUIPMENT</span>'+
   '<h1>Manual Library</h1></div><button class="btn micro ghost" data-action="manual-refresh">↻ Check Files</button></div>'+
