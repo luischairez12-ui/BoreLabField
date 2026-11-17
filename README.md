@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.9.2 (debug/test build)
+**Current version:** v0.9.3 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.9.2-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.9.3-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,15 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.9.3 — Manual Links for All Eight Rigs
+
+- **Your exact Scribd operator manual link** is now prominently visible under D24×40 and D24×40 Series II: https://www.scribd.com/document/780730040/24x40-36x50-Vermeer-operators-manual-Series-II. **Series II serial 2001–4000 only.**
+- Verified model-specific sources were added across all eight existing rig entries. Source labels distinguish *Direct PDF*, *online preview*, *model page*, *brochure (not a manual)*, or *paid physical manual (not a free PDF)*.
+- D7×11 has a Series II manual on ManualsLib; D23×30 has a paid Series III operator/parts listing; base D24×40 has its paid original manual listing and the separate shared Series II link; D24×40 S3 has a Scribd service manual; JT20 and JT24 have dealer-hosted direct operator PDFs; JT21 has its manufacturer manual page and a brochure clearly flagged as **not an operator manual**.
+- Fixed an important bug where selecting D24×40 Series II incorrectly matched D24×40's shorter identifier, stopping the shared Scribd link from opening. This also fixes series-specific offline search labels.
+- **Links open via Android's external browser** on approved HTTPS sites, rather than relying on the embedded app WebView. Offline green checkmarks still require importing a downloaded PDF into the app.
+- Availability and site access may change. Scribd may require sign-in/subscription and Vermeer may require a serial number. BoreLab does not bypass paid or restricted access.
 
 ## New in v0.9.2 — Search Downloaded Manuals Offline
 
