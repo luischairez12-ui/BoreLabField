@@ -203,6 +203,8 @@ html[data-theme="dark"] .route-result-warning{border-color:#75593a;background:#3
 .closeout-warning p{font-size:12px;line-height:1.4;margin:5px 0 0}
 html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;border-color:#6f5630}
 
+.mud-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.mud-stat-grid>div{border:1px solid var(--line);background:var(--surface2);padding:10px 8px;border-radius:10px;display:flex;flex-direction:column;gap:4px}.mud-stat-grid small{font-size:11px;color:var(--muted)}.mud-stat-grid strong{font-size:13px}
+.mud-product-item{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:10px 0}.mud-product-item label{display:flex;align-items:center;gap:9px;flex:1;min-width:0;font-size:12px}.mud-product-item input{width:18px;height:18px;flex-shrink:0;accent-color:#e57e20}.mud-product-item label span{min-width:0;overflow-wrap:anywhere}.mud-product-item small,.mud-dose-item small{display:block;color:var(--muted);font-size:11px;margin-top:4px;overflow-wrap:anywhere}.mud-dose-item{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:12px}.mud-dose-item>strong:last-child{color:var(--accent);text-align:right;flex-shrink:0}
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -378,6 +380,83 @@ function archiveCurrentJob(){
  if(!confirm('Save a dated snapshot of the current job? The active job will not change or close.'))return;
  state.history.push(snapshotWork('job',todayLocal(),'Saved job progress',[]));
  save();render();notify('Job snapshot saved.');
+}
+function mudConfig(){return Object.assign({capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'unknown',notes:''},state.mudTank||{})}
+function calculateMud(t=mudConfig(),selected=state.mudSelectedIds){
+ const raw=(v)=>String(v??'').trim();
+ const capacity=Number(t.capacity),current=Number(t.currentGallons),target=Number(t.targetGallons);
+ if(!raw(t.capacity)||!Number.isFinite(capacity)||capacity<=0)return{ok:false,error:'Enter a valid tank capacity in gallons.'};
+ if(!raw(t.currentGallons)||!Number.isFinite(current)||current<0)return{ok:false,error:'Enter current gallons (0 if empty).'};
+ if(!raw(t.targetGallons)||!Number.isFinite(target)||target<=0)return{ok:false,error:'Enter the desired final tank level.'};
+ if(current>capacity||target>capacity)return{ok:false,error:'The current or target level exceeds tank capacity.'};
+ if(target<current)return{ok:false,error:'Target level cannot be below the current tank level.'};
+ if(t.mode==='fresh'&&current>0)return{ok:false,error:'Fresh batch requires an empty tank. Use top-off for an existing mixture.'};
+ const added=Math.round((target-current)*1000)/1000;
+ if(!added)return{ok:false,error:'No new water to mix. Increase the target level or update the current tank level.'};
+ const doseBasis=t.mode==='fresh'?target:added;
+ const products=selected.map(id=>state.mudProducts.find(x=>x.id===id&&!x.archived)).filter(Boolean).map(p=>({
+  id:p.id,name:p.name,unit:p.unit,rate:Number(p.rate),perGallons:Number(p.perGallons),
+  manufacturer:p.manufacturer||'',source:p.source||'',instructions:p.instructions||'',
+  dose:doseBasis*Number(p.rate)/Number(p.perGallons)
+ }));
+ if(products.some(p=>!Number.isFinite(p.dose)||p.rate<=0||p.perGallons<=0))return{ok:false,error:'One of the selected products has an invalid rate.'};
+ return{ok:true,capacity,current,target,added,doseBasis,products,mode:t.mode,soil:t.soil||'unknown'};
+}
+function mudProductForm(id){
+ const p=state.mudProducts.find(x=>x.id===id)||{name:'',manufacturer:'',unit:'lb',rate:'',perGallons:100,source:'',instructions:''};
+ const units=['lb','oz (weight)','fl oz','qt','gal','kg','L','mL','bags'];
+ showModal(`${modalHead(id?'Edit Mud Product':'Add Mud Product')}
+ <p class="smalltext muted">Enter the actual mixing rate from the product label or approved fluid program. BoreLab will not invent additive ratios.</p>
+ <form data-form="mud-product" data-id="${esc(id||'')}">
+ <label class="field">Product name<input required name="name" maxlength="100" value="${esc(p.name)}" placeholder="Bentonite / polymer product name"></label>
+ <label class="field">Manufacturer<input name="manufacturer" maxlength="100" value="${esc(p.manufacturer||'')}"></label>
+ <div class="form-grid"><label class="field">Dose amount<input type="number" name="rate" required min="0.000001" step="any" value="${esc(p.rate)}"></label>
+ <label class="field">Units<select name="unit">${units.map(u=>`<option value="${esc(u)}" ${p.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select></label>
+ <label class="field wide">Per how many gallons of water?<input name="perGallons" type="number" min="0.01" step="any" required value="${esc(p.perGallons)}" placeholder="e.g., 100"></label></div>
+ <label class="field">Rate source / label reference<input name="source" maxlength="220" value="${esc(p.source||'')}" placeholder="Data sheet, approved plan, reference date"></label>
+ <label class="field">Manufacturer mixing notes<textarea name="instructions" rows="3" maxlength="2000">${esc(p.instructions||'')}</textarea></label>
+ <div class="modal-footer"><button class="btn ghost" type="button" data-action="close-modal">Cancel</button><button class="btn primary" type="submit">Save Product</button></div></form>`);
+}
+function mudLevelForm(){
+ const t=mudConfig();
+ showModal(`${modalHead('Update Current Tank Level')}<p class="smalltext muted">For pumping down or coming back with leftover fluid. This only changes the water/mixture level; it does not record an added chemical batch.</p>
+ <form data-form="mud-level"><label class="field">Current contents (gal)<input name="currentGallons" required type="number" min="0" step="any" value="${esc(t.currentGallons)}"></label>
+ <div class="modal-footer"><button class="btn ghost" type="button" data-action="close-modal">Cancel</button><button class="btn primary" type="submit">Update Level</button></div></form>`);
+}
+function renderMudMixer(){
+ const t=mudConfig(),plan=calculateMud(),products=state.mudProducts.filter(p=>!p.archived),logs=[...state.mudLogs].reverse().slice(0,15);
+ return `<div class="page"><div class="between"><div><span class="eyebrow">FIELD / DRILLING FLUID</span><h1>MixLab</h1></div><span class="status planned">Offline</span></div>
+ <p class="muted smalltext spaced">Calculate a fresh batch or tank top-off from your saved manufacturer label rates. Ground conditions are logged, not used to guess chemistry.</p>
+ <div class="card spaced"><div class="between"><h2>Water & Tank</h2><button class="btn micro ghost" data-action="mud-level">Set Level</button></div>
+ <form data-form="mud-batch"><div class="form-grid spaced">
+ <label class="field">Tank capacity (gal)<input name="capacity" type="number" required min="0.1" step="any" value="${esc(t.capacity)}" placeholder="e.g., 1000"></label>
+ <label class="field">Currently in tank (gal)<input name="currentGallons" type="number" required min="0" step="any" value="${esc(t.currentGallons)}"></label>
+ <label class="field">Final level wanted (gal)<input name="targetGallons" type="number" required min="0.1" step="any" value="${esc(t.targetGallons)}"></label>
+ <label class="field">Mix type<select name="mode"><option value="topoff" ${t.mode==='topoff'?'selected':''}>Top off existing mix</option><option value="fresh" ${t.mode==='fresh'?'selected':''}>Fresh empty-tank batch</option></select></label>
+ <label class="field wide">Ground conditions (notes only)<select name="soil">${[['unknown','Not recorded'],['sand','Sand'],['clay','Clay'],['mixed','Mixed'],['rock','Rock'],['other','Other']].map(([v,label])=>`<option value="${v}" ${t.soil===v?'selected':''}>${label}</option>`).join('')}</select></label></div>
+ <p class="tiny muted spaced">Soil choice does not automatically alter treatment dosage. Check the actual ground, water quality and fluid program.</p>
+ <div class="divider"></div><div class="between"><h3>Products for This Batch</h3><button type="button" class="btn micro ghost" data-action="mud-add-product">+ Product</button></div>
+ ${products.length?products.map(p=>`<div class="mud-product-item"><label><input name="mudSelected" type="checkbox" value="${esc(p.id)}" ${state.mudSelectedIds.includes(p.id)?'checked':''}><span><strong>${esc(p.name)}</strong><small>${fmt(p.rate,4)} ${esc(p.unit)} per ${fmt(p.perGallons,2)} gal · ${esc(p.manufacturer||'Custom label rate')}</small></span></label><button class="btn micro ghost" type="button" data-action="mud-edit-product" data-id="${esc(p.id)}">Edit</button></div>`).join(''):'<div class="empty spaced"><strong>No products saved</strong>Add a product and enter its actual manufacturer-approved mixing rate.</div>'}
+ <label class="field spaced">Mix notes<textarea name="notes" rows="2" maxlength="1000" placeholder="pH readings, mixing order, unusual conditions...">${esc(t.notes||'')}</textarea></label>
+ <div class="action-row"><button class="btn primary" type="submit">Calculate & Save Plan</button><button class="btn ghost" type="submit" data-mud-commit="yes">Record Actual Mix</button></div></form></div>
+ <div class="card spaced"><div class="between"><div><span class="eyebrow">SAVED PLAN</span><h2>Mix Preview</h2></div><span class="status ${plan.ok?'complete':'planned'}">${plan.ok?'Review doses':'Set inputs'}</span></div>
+ ${plan.ok?`<div class="mud-stat-grid"><div><small>In tank</small><strong>${fmt(plan.current,1)} gal</strong></div><div><small>Water to add</small><strong class="orange">${fmt(plan.added,1)} gal</strong></div><div><small>Final level</small><strong>${fmt(plan.target,1)} gal</strong></div></div>
+ <div class="divider"></div><h3>${plan.mode==='topoff'?'Additives for New Water Only':'Additives for Fresh Batch'}</h3>
+ ${plan.products.length?plan.products.map(p=>`<div class="mud-dose-item"><div><strong>${esc(p.name)}</strong><small>${fmt(p.rate,4)} ${esc(p.unit)} / ${fmt(p.perGallons,2)} gal · ${esc(p.source||'Source not entered')}</small></div><strong>${fmt(p.dose,4)} ${esc(p.unit)}</strong></div>`).join(''):'<p class="muted smalltext spaced">Select a saved product to calculate its dose.</p>'}
+ <p class="tiny muted spaced">${plan.mode==='topoff'?'This top-off assumes the existing tank contents already match the selected recipe. Only newly added water is dosed. If the old mix composition is unknown, this cannot determine the correct final treatment.':'Fresh batch requires an empty tank; no residual additives are assumed.'}</p>`:`<div class="note spaced">${esc(plan.error)}</div>`}
+ <p class="tiny muted spaced"><strong>Review with the product label.</strong> Calculated quantities are not a verified treatment recommendation. Mixing order, hydration, pH, viscosity, site conditions and product compatibility must be checked independently.</p></div>
+ ${section('Recent Mix History',`<span class="hint">${state.mudLogs.length} batches</span>`)}
+ ${logs.length?logs.map(x=>`<div class="card spaced"><div class="between"><div><strong>${esc(fullDate(x.at))}</strong><small class="muted">${fmt(x.added,1)} gal added · ${esc(x.soil||'unknown')} soil</small></div><button class="btn micro ghost" data-action="mud-detail" data-id="${esc(x.id)}">View</button></div><p class="tiny muted spaced">${x.products.map(p=>`${fmt(p.dose,4)} ${p.unit} ${p.name}`).map(esc).join(' · ')}</p></div>`).join(''):'<div class="empty spaced"><strong>No batches logged</strong>Record a mix after additives have actually been measured and mixed.</div>'}
+ ${footnote()}</div>`;
+}
+function mudLogDetail(id){
+ const x=state.mudLogs.find(m=>m.id===id);if(!x)return;
+ showModal(`${modalHead('Mud Mix · '+new Date(x.at).toLocaleDateString())}<div class="card"><h3>${esc(x.jobName||'Workday Mix')}</h3>${kv('Timestamp',esc(fullDate(x.at)))}
+ ${kv('Batch type',x.mode==='topoff'?'Top-off':'Fresh batch')}${kv('Starting contents',fmt(x.before,1)+' gal')}
+ ${kv('Water added',fmt(x.added,1)+' gal')}${kv('Final tank contents',fmt(x.target,1)+' gal')}
+ ${kv('Ground conditions',esc(x.soil||'Unknown'))}<div class="divider"></div><h3>Logged Product Amounts</h3>
+ ${(x.products||[]).map(p=>`<div class="mud-dose-item"><strong>${esc(p.name)}</strong><strong>${fmt(p.dose,4)} ${esc(p.unit)}</strong></div>`).join('')}
+ ${x.notes?`<p class="smalltext muted spaced">${esc(x.notes)}</p>`:''}</div>`);
 }
 function renderHome(){const pct=totalFeet()?Math.round(doneFeet()/totalFeet()*100):0;let hasDemo=state.demo?`<div class="note spaced">Sample shots are loaded so you can try the app. Add your real job or tap <b>Clear Demo</b> in Settings to start fresh.</div>`:'';
 return `<div class="page"><div class="hero"><span class="eyebrow">HDD FIELD OPERATIONS</span><h1>Ready for today's shots?</h1><p>Plan the route. Count your pipe. Capture the work. Keep your crew organized.</p><div class="hero-tags"><span class="tag teal">● Works offline</span><span class="tag">📍 GPS photo records</span></div></div>
