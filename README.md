@@ -2,13 +2,15 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.3.2 (debug/test build)
+**Current version:** v0.3.3 (debug/test build)
 
 ## Features
 
 - Daily job board with bore footage, progress and notes
 - Smart Shot Planner with selectable order preferences, partial GPS pin map and location-based distance estimates
 - Address geocoding when shop / shot addresses are saved, with an explicit fallback when unavailable
+- Per-mode Smart Shot Planner behavior: farthest-to-shop, shortest-last, straight-line-distance minimum, or short-last-near-shop
+- Partial-location mode: still orders what can be planned without pretending it knows missing shop/shot coordinates
 - Open address-based routes in Google Maps even before all internal GPS positions are confirmed
 - Configurable extra pipe allowance (default +10 ft per shot) and pipe stock calculations
 - GPS-tagged jobsite photos with timestamp, coordinates and optional address
@@ -27,7 +29,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.3.2-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.3.3-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
