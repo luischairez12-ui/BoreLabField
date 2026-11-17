@@ -356,36 +356,52 @@ const MANUAL_MACHINES=[
 
 /* Links are references to publicly viewable source pages; Scribd availability and rights vary. */
 const MANUAL_ALTERNATES={
+ 'vermeer-d7x11':{operator:[
+  {label:'D7×11 Series II Operator Manual',kind:'Online manual · ManualsLib',note:'Series II, serial 769+; verify your machine',url:'https://www.manualslib.com/manual/2054308/Vermeer-Navigator-D7-11-Series.html'},
+  {label:'D7×11 Series II manual preview',kind:'Online document · SC-Journal',note:'164-page operator manual preview',url:'https://sc-journal.com/view/2296423/vermeer-navigator-d7-11-series-operator-s-manual-164/'}]},
+ 'vermeer-d23x30':{
+  operator:[{label:'D23×30 Series III Operator Manual',kind:'Paid physical manual · NOT free PDF',note:'Series III only, verify machine version',url:'https://diyrepairmanuals.com/product/vermeer-navigator-d23x30-series-iii-drills-owner-operator-maintanance-manual/'}],
+  parts:[{label:'D23×30 Series III Parts Catalog',kind:'Paid physical manual · NOT free PDF',note:'Check series/serial number',url:'https://diyrepairmanuals.com/product/vermeer-navigator-d23x30-series-iii-drills-parts-catalog-manual/'}]
+ },
+ 'vermeer-d24x40':{operator:[
+  {label:'YOUR LINK · D24×40 Series II Operator Manual',kind:'Scribd preview · your exact link',note:'Series II ONLY, serial 2001–4000; not for every D24×40',url:'https://www.scribd.com/document/780730040/24x40-36x50-Vermeer-operators-manual-Series-II',featured:true},
+  {label:'Original D24×40 Operator Manual',kind:'Paid physical manual · NOT free PDF',note:'Original/base D24×40, not Series II/S3',url:'https://diyrepairmanuals.com/product/vermeer-navigator-d24x40-drills-owner-operator-maintanance-manual/'}]},
  'vermeer-d24x40-series-ii':{
-  operator:[{label:'Scribd operator preview',kind:'Online preview · Scribd',note:'D24×40 II serial 2001–4000 only',url:'https://www.scribd.com/document/780730040/24x40-36x50-Vermeer-operators-manual-Series-II'}],
-  maintenance:[{label:'Scribd maintenance preview',kind:'Online preview · Scribd',note:'D24×40 II serial 381–2000 only',url:'https://www.scribd.com/document/346989251/2440-Maintenance-Book'}],
-  parts:[
-   {label:'Manuals+ parts reference',kind:'Online document',note:'Check parts revision and serial number',url:'https://manuals.plus/m/8fc7922564c046f8eddba455aacf37159f853a6fbc1d5480677bd02f0d7db6f3'},
-   {label:'Scribd parts preview',kind:'Online preview · Scribd',note:'Parts P2.02, serial 324 and above; verify revision',url:'https://www.scribd.com/document/828892930/D24x40-Series-II-Navigator-Parts-Manual-P2-02'}
-  ]
- },
- 'ditchwitch-jt20':{
   operator:[
-   {label:'Dealer PDF (JT20/JT20XP)',kind:'Direct PDF · Ditch Witch dealer',note:'Issue 6.0, reference 053-2633; check equipment version',url:'https://www.ditchwitchmidwest.com/fckimages/pdfs/manuals/Directional%20Drills/JT20%20operator_s%20manual%20%28ID0318836_09_SVC%29.pdf'},
-   {label:'ManualMachine web preview',kind:'Online document',note:'Confirm manual edition',url:'https://manualmachine.com/ditchwitch/jt20/1496777-user-manual/'}
-  ]
+   {label:'YOUR LINK · D24×40 Series II Operator Manual',kind:'Scribd preview · your exact link',note:'Series II serial 2001–4000',url:'https://www.scribd.com/document/780730040/24x40-36x50-Vermeer-operators-manual-Series-II',featured:true},
+   {label:'Earlier D24×40 Series II Operator',kind:'Scribd preview',note:'Revision o3_06, serial 381+; verify revision',url:'https://www.scribd.com/document/561286274/2440-Operations-Book-4'}],
+  maintenance:[{label:'Series II Maintenance Manual',kind:'Scribd preview',note:'Check revision/serial number',url:'https://www.scribd.com/document/346989251/2440-Maintenance-Book'}],
+  parts:[
+   {label:'Series II Parts Manual',kind:'Online document · Manuals+',note:'Check parts revision/serial number',url:'https://manuals.plus/m/8fc7922564c046f8eddba455aacf37159f853a6fbc1d5480677bd02f0d7db6f3'},
+   {label:'Series II Parts P2.02',kind:'Scribd preview',note:'Verify serial applicability',url:'https://www.scribd.com/document/828892930/D24x40-Series-II-Navigator-Parts-Manual-P2-02'}]
  },
- 'ditchwitch-jt24':{
-  operator:[{label:'Dealer PDF (JT24)',kind:'Direct PDF · Ditch Witch dealer',note:'Issue 3.1, reference 053-3180; check equipment version',url:'https://www.ditchwitchmidwest.com/fckimages/pdfs/manuals/Directional%20Drills/JT24%20operator_s%20manual%20%28ID0578896_04_SVC%29.pdf'}]
- }
+ 'vermeer-d24x40-s3':{
+  maintenance:[{label:'D24×40 S3 Service Manual',kind:'Scribd preview · technician service',note:'D24×40 S3/D40×55 S3, serial 101+',url:'https://www.scribd.com/document/892966954/Manual-Servicio-DS3-d24x40s3-d40x55s3-sn101-s1-04'}],
+  operator:[{label:'D24×40 S3 Machine Literature',kind:'Manufacturer page · NOT operator PDF',note:'Check VermeerOne for actual operator PDF',url:'https://www.vermeer.com/na/directional-drills/d24x40-s3'}]
+ },
+ 'ditchwitch-jt20':{operator:[
+  {label:'JT20/JT20XP Operator PDF',kind:'Direct PDF · Ditch Witch dealer',note:'Revision 6.0; confirm model/edition',url:'https://www.ditchwitchmidwest.com/fckimages/pdfs/manuals/Directional%20Drills/JT20%20operator_s%20manual%20%28ID0318836_09_SVC%29.pdf',featured:true},
+  {label:'JT20 Operator PDF · NTSB',kind:'Direct PDF · government archive',note:'JT20/JT20XP version, check edition',url:'https://data.ntsb.gov/Docket/Document/docBLOB?FileExtension=pdf&FileName=JT20+Operations+Manual-Rel.pdf&ID=19673764'},
+  {label:'JT20 Operator Online',kind:'Online document · Manualzz',note:'Older edition 3.0',url:'https://manualzz.com/doc/22619210/ditch-witch-jt-20-horizontal-directional-drilling-unit-op...'}]},
+ 'ditchwitch-jt21':{operator:[
+  {label:'JT21 Manual Source',kind:'Manufacturer model page · Manual section',note:'May redirect to Box/login, not a confirmed direct PDF',url:'https://www.ditchwitch.com/directional-drills/directional-drills/jt21/'},
+  {label:'JT21 Brochure PDF (NOT manual)',kind:'Direct PDF · manufacturer brochure',note:'Specs only, not operating/safety instructions',url:'https://www.ditchwitch.com/wp-content/uploads/2024/11/JT21-Brochure.pdf'}]},
+ 'ditchwitch-jt24':{operator:[
+  {label:'JT24 Operator PDF',kind:'Direct PDF · Ditch Witch dealer',note:'Issue 3.1/OM-07/20, part 053-3180',url:'https://www.ditchwitchmidwest.com/fckimages/pdfs/manuals/Directional%20Drills/JT24%20operator_s%20manual%20%28ID0578896_04_SVC%29.pdf',featured:true}]}
 };
 const manualAlternatives=(machineId,type)=>MANUAL_ALTERNATES[machineId]?.[type]||[];
 function openManualAlternative(slot,index){
  if(!isManualSlot(slot)||!Number.isInteger(index)||index<0)return notify('Unknown manual link.');
- const match=MANUAL_MACHINES.find(m=>slot.startsWith(m.id+'-'));
+ const match=MANUAL_MACHINES.find(m=>MANUAL_TYPES.some(([type])=>manualSlot(m.id,type)===slot));
  if(!match)return notify('Unknown rig.');
  const type=slot.slice(match.id.length+1);
  const item=manualAlternatives(match.id,type)[index];
  if(!item)return notify('Manual link unavailable.');
  const uri=new URL(item.url);
- const hosts=['www.scribd.com','manuals.plus','www.ditchwitchmidwest.com','manualmachine.com'];
+ const hosts=['www.scribd.com','manuals.plus','www.ditchwitchmidwest.com','manualmachine.com','www.manualslib.com','sc-journal.com','diyrepairmanuals.com','www.vermeer.com','www.ditchwitch.com','data.ntsb.gov'];
  if(uri.protocol!=='https:'||!hosts.includes(uri.hostname))return notify('Untrusted manual source.');
- window.location.assign(item.url);
+ if(window.BoreLabNative?.openManualLink)window.BoreLabNative.openManualLink(item.url);
+ else window.location.assign(item.url);
 }
 const MANUAL_TYPES=[['operator','Operator / Safety'],['maintenance','Maintenance'],['parts','Parts']];
 const manualSlot=(machine,type)=>machine+'-'+type;
@@ -408,7 +424,7 @@ function highlightManualTerm(snippet,query){
 }
 function showManualSearch(slot,query='',payload=null,pending=false){
  if(!isManualSlot(slot)||manualFiles[slot]!==true)return notify('Import the PDF before searching.');
- const machine=MANUAL_MACHINES.find(m=>slot.startsWith(m.id+'-'));
+ const machine=MANUAL_MACHINES.find(m=>MANUAL_TYPES.some(([type])=>manualSlot(m.id,type)===slot));
  const type=machine?slot.slice(machine.id.length+1):'manual';
  const label=MANUAL_TYPES.find(([id])=>id===type)?.[1]||'Manual';
  const title=(machine?machine.make+' '+machine.model+' · ':'')+label;
@@ -459,19 +475,20 @@ function renderManualLibrary(){
    '<p class="tiny muted spaced">'+(saved?'Available offline without service.':'Not yet stored in BoreLab.')+'</p></div>'+
    '<span class="'+(saved?'manual-ok':'manual-missing')+'">'+
    (saved?'✓ Saved offline':(!manualStatusKnown&&native?'Checking...':'○ Not saved'))+'</span></div>'+
-   '<div class="action-row"><button type="button" class="btn micro primary" data-action="manual-source" data-id="'+esc(machine.id)+'">↗ Find PDF</button>'+
+   '<div class="action-row"><button type="button" class="btn micro primary" data-action="manual-source" data-id="'+esc(machine.id)+'">↗ Manufacturer</button>'+
    '<button type="button" class="btn micro ghost" data-action="manual-import" data-id="'+esc(slot)+'" '+(native?'':'disabled')+'>'+
    (saved?'Replace PDF':'Import PDF')+'</button>'+
    (saved?'<button type="button" class="btn micro ghost" data-action="manual-open" data-id="'+esc(slot)+'">Open PDF</button>'+'<button type="button" class="btn micro ghost" data-action="manual-search" data-id="'+esc(slot)+'">⌕ Search PDF</button>'+
       '<button type="button" class="btn micro ghost" data-action="manual-remove" data-id="'+esc(slot)+'">Remove</button>':'')+
    '</div>'+manualAlternatives(machine.id,type).map((item,i)=>
-     '<div class="manual-alt-row"><button type="button" class="btn micro ghost" data-action="manual-alternate" data-id="'+esc(slot)+'" data-index="'+i+'">↗ '+esc(item.label)+'</button>'+
+     '<div class="manual-alt-row"><button type="button" class="btn micro '+(item.featured?'primary':'ghost')+'" data-action="manual-alternate" data-id="'+esc(slot)+'" data-index="'+i+'">↗ '+esc(item.label)+'</button>'+
      '<div class="tiny muted">'+esc(item.kind)+' · '+esc(item.note)+'</div></div>'
     ).join('')+'</div>';
  }).join('');
  return '<div class="page"><div class="between"><div><span class="eyebrow">FIELD / EQUIPMENT</span>'+
   '<h1>Manual Library</h1></div><button class="btn micro ghost" data-action="manual-refresh">↻ Check Files</button></div>'+
-  '<p class="smalltext muted spaced">Find official manuals or alternate sources when manufacturer access is restricted. A green checkmark appears only when BoreLab confirms a PDF is stored in its private offline folder.</p>'+
+  '<p class="smalltext muted spaced">Find official manuals or alternate sources when manufacturer access is restricted. A green checkmark appears only when BoreLab confirms a PDF is stored in its private offline folder.</p>'+((machine.id==='vermeer-d24x40'||machine.id==='vermeer-d24x40-series-ii')?
+  '<div class="note spaced"><strong>Manual you shared</strong><p class="tiny muted">Vermeer D24×40 Series II operator manual · serial 2001–4000. Scribd preview; downloading may require an account.</p><button class="btn primary" type="button" data-action="manual-alternate" data-id="vermeer-d24x40-series-ii-operator" data-index="0">↗ Open your Scribd manual</button></div>':'')+
   (native?'':'<div class="note spaced">Offline PDF importing and file detection require the Android APK. This browser preview only has the manufacturer links.</div>')+
   section('Select Rig','<span class="hint">'+MANUAL_MACHINES.length+' rig models</span>')+
   '<div class="manual-machine-grid spaced">'+choices+'</div>'+
@@ -491,7 +508,8 @@ function openManualSource(machineId){
  if(!machine)return notify('Choose a rig model first.');
  if(!/^https:\/\/(?:www\.vermeer\.com|ditchwitch\.box\.com)\//.test(machine.source))
    return notify('Official manual source is unavailable.');
- window.location.assign(machine.source);
+ if(window.BoreLabNative?.openManualLink)window.BoreLabNative.openManualLink(machine.source);
+ else window.location.assign(machine.source);
 }
 
 function render(){document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,planner:renderPlanner,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();}
