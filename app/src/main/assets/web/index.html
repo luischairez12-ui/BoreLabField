@@ -541,16 +541,35 @@ function renderMudMixer(){
  ${footnote()}</div>`;
 }
 function saveMudProduct(form,values){
- const rate=Number(values.rate),perGallons=Number(values.perGallons),name=String(values.name||'').trim();
+ const name=String(values.name||'').trim(),unit=String(values.unit||'').trim();
  const units=['lb','oz (weight)','fl oz','qt','gal','kg','L','mL','bags'];
- if(!name||!units.includes(values.unit)||!Number.isFinite(rate)||rate<=0||!Number.isFinite(perGallons)||perGallons<=0)return notify('Enter a name, positive dose, units and gallons from the label.');
  const id=form.dataset.id,existing=state.mudProducts.find(p=>p.id===id);
+ const scan=!existing?pendingMudScan:null;
+ const photo=existing?.labelPhoto||scan?.photo||'';
+ const text=existing?.labelText||scan?.text||'';
+ const scanned=!!photo;
+ const rateRaw=String(values.rate??'').trim(),perRaw=String(values.perGallons??'').trim();
+ const rate=rateRaw===''?'':Number(rateRaw),perGallons=perRaw===''?'':Number(perRaw);
+ if(!name||!units.includes(unit))return notify('Enter the product name and choose its dose units.');
+ if(rate!==''&&(!Number.isFinite(rate)||rate<=0))return notify('Dose must be a positive number.');
+ if(perGallons!==''&&(!Number.isFinite(perGallons)||perGallons<=0))return notify('Gallons must be a positive number.');
+ if(!scanned&&(rate===''||perGallons===''))return notify('Manually entered products require a complete dose and gallons.');
+ const verified=!scanned||values.verifiedRate==='yes';
+ if(scanned&&verified&&(rate===''||perGallons===''))return notify('Enter the confirmed rate and gallons before checking verified.');
  const product={...existing,id:existing?.id||uid(),name:name.slice(0,100),
-  manufacturer:String(values.manufacturer||'').trim().slice(0,100),rate,unit:values.unit,perGallons,
-  source:String(values.source||'').trim().slice(0,220),instructions:String(values.instructions||'').trim().slice(0,2000),archived:false};
+  manufacturer:String(values.manufacturer||'').trim().slice(0,100),
+  rate,unit,perGallons,
+  source:String(values.source||'').trim().slice(0,220),instructions:String(values.instructions||'').trim().slice(0,2000),
+  labelPhoto:photo,labelText:text.slice(0,9000),scannedAt:existing?.scannedAt||scan?.at||'',
+  rateVerified:verified,archived:false};
  if(existing)state.mudProducts=state.mudProducts.map(p=>p.id===id?product:p);
- else{state.mudProducts.push(product);state.mudSelectedIds.push(product.id)}
- save();closeModal();render();notify('Product rate saved from your entry.');
+ else state.mudProducts.push(product);
+ if(mudProductReady(product)){
+  if(!state.mudSelectedIds.includes(product.id))state.mudSelectedIds.push(product.id);
+ }else state.mudSelectedIds=state.mudSelectedIds.filter(x=>x!==product.id);
+ pendingMudScan=null;
+ save();closeModal();render();
+ notify(mudProductReady(product)?'Product saved and ready to select in MixLab.':'Scanned product saved in MixLab. Tap Add Rate later to enable calculations.');
 }
 function saveMudPlan(form,values,record=false){
  const config={
