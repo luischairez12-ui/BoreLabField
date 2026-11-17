@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.9.3 (debug/test build)
+**Current version:** v0.9.4 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.9.3-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.9.4-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,17 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.9.4 — Working Manual Readers & My Links
+
+- Promoted user-confirmed links: **ManualsLib D7×11 Series II** and **ManualsDir JT20** are labeled "Read online" and appear as preferred manual sources. The existing Scribd **D24×40 Series II** link and JT24 Ditch Witch Midwest PDF remain available.
+- Added a **D24×40 S3 Parts Manual** direct PDF hosted by an independent archive (parts drawings only; not operator/safety instructions).
+- **Manufacturer** links are kept as alternate backup links, rather than the only prominent action. Each resource is labeled as online reader, direct PDF, paid listing, etc.
+- **Browse HDD Manual Library** opens the independent Elite Underground Tools manual index for other equipment.
+- New **+ My Link** button: enter a working HTTPS link, choose rig and Operator/Safety, Maintenance or Parts category, add a description and optional model/serial notes. **Open**, **Edit** and **Remove** it from the matching rig section at any time. Data is kept locally and included in the ordinary JSON backup/restore; no software update needed when another source is found.
+- New user-link URLs are validated as public HTTPS and opened in an external Android browser; not treated as downloaded PDFs. Green **Saved offline** checkmarks still require a valid PDF imported into the app's private manual folder.
+- Do not rely on parts catalogs, brochures, or manuals for a different series/serial range as operator instructions. Check manual revision and full safety guidance.
+- This is a debug APK intended for device testing, not a published store release.
 
 ## New in v0.9.3 — Manual Links for All Eight Rigs
 
