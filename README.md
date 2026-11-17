@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.9.1 (debug/test build)
+**Current version:** v0.9.2 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.9.1-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.9.2-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,16 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.9.2 — Search Downloaded Manuals Offline
+
+- **Search PDF** button appears only for manuals that BoreLab verifies are saved offline. Search words or short phrases inside a real text-based PDF (e.g., “hydraulic pressure,” “rotation,” or a fault code).
+- Powered by on-device PDFBox Android: no network calls, no cloud uploads, and no AI guesswork. Shows the **PDF page number and a short matching text excerpt**, with the keyword highlighted.
+- Tap **View page** to open the matching page directly in the new built-in offline PDF viewer. Use Prev, Next, page number Go, and zoom; the existing Open PDF action still works with external PDF apps.
+- The page number refers to the PDF's own pages, including cover sheets, so printed manual page numbering may differ.
+- Search checks up to 900 PDF pages and shows the first 100 matching pages, one excerpt per page. Search is case-insensitive and runs in a worker thread.
+- **Scanned/image-only PDFs** with no embedded text are not searchable in this version. The app explicitly says OCR is needed instead of pretending it found nothing. OCR is planned for later.
+- Existing manual files, checkmarks, other BoreLab records, and JSON backups are unchanged. Verify the model and serial number and consult the complete official safety procedure, not just excerpts.
 
 ## New in v0.9.1 — Alternative Manual Sources
 
