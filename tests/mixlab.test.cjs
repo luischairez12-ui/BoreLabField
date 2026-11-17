@@ -1,0 +1,53 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const source=fs.readFileSync('app/src/main/assets/web/index.html','utf8');
+const js=source.split('<script>')[1]?.split('</script>')[0];
+assert(js,'Embedded script missing');
+new Function(js);
+const pdf=fs.readFileSync('app/src/main/java/com/borelab/field/FieldPdfExporter.java','utf8');
+assert(pdf.includes('section("Drilling fluid / MixLab")'),'Native PDF must include MixLab records');
+assert(js.includes("case 'go-mud':setPage('mud')"),'Field Toolbox must open MixLab');
+assert(js.includes("mud:renderMudMixer"),'MixLab page missing');
+assert(js.includes("form.dataset.form==='mud-product'"),'Product saving handler missing');
+assert(js.includes("form.dataset.form==='mud-batch'"),'Mix recording handler missing');
+assert(js.includes("form.dataset.form==='mud-level'"),'Current tank update handler missing');
+assert(js.includes("mudProducts:[]")&&js.includes("mudLogs:[]"),'Seed data must not fabricate product recipes');
+assert(js.includes("if(!Array.isArray(state.mudLogs))state.mudLogs=[]"),'Legacy migration missing');
+assert(js.includes('mud:copy(r.mud)'),'Historical snapshots must include mixing records');
+assert(js.includes('mud:r.mud.map('),'Report payload must include mixing records');
+const begin=js.indexOf('function mudConfig(){'),end=js.indexOf('function mudProductForm(',begin);
+assert(begin>=0&&end>begin,'Pure MixLab calculation functions missing');
+const state={mudTank:{capacity:'1000',currentGallons:'200',targetGallons:'500',mode:'topoff',soil:'sand'},
+ mudProducts:[{id:'p1',name:'Test Label Product',rate:25,perGallons:500,unit:'lb',source:'Synthetic test label'}],
+ mudSelectedIds:['p1'],mudLogs:[]};
+const {mudConfig,calculateMud}=new Function('state',js.slice(begin,end)+'return {mudConfig,calculateMud};')(state);
+let plan=calculateMud();
+assert(plan.ok);assert.equal(plan.capacity,1000);assert.equal(plan.current,200);assert.equal(plan.target,500);
+assert.equal(plan.added,300);assert.equal(plan.products.length,1);
+assert.equal(plan.products[0].dose,15,'Top-off must dose only 300 new gallons');
+assert.equal(plan.products[0].unit,'lb');
+plan=calculateMud({...mudConfig(),mode:'fresh',currentGallons:'0'});
+assert(plan.ok);assert.equal(plan.added,500);assert.equal(plan.products[0].dose,25);
+assert.equal(calculateMud({...mudConfig(),mode:'fresh',currentGallons:'200'}).ok,false,'Fresh mode must reject existing fluid');
+assert.equal(calculateMud({...mudConfig(),targetGallons:'1100'}).ok,false,'Tank overflow must be rejected');
+assert.equal(calculateMud({...mudConfig(),targetGallons:'150'}).ok,false,'Target below contents must be rejected');
+assert.equal(calculateMud({...mudConfig(),targetGallons:'200'}).ok,false,'Empty addition must be rejected');
+const planStart=js.indexOf('function saveMudPlan('),planEnd=js.indexOf('function saveMudLevel(',planStart);
+assert(planStart>=0&&planEnd>planStart);
+const messages=[],saves=[];
+const saveMudPlan=new Function('state','calculateMud','fmt','confirm','uid','save','render','notify',
+ js.slice(planStart,planEnd)+'return saveMudPlan;')
+(state,calculateMud,(x)=>Number(x).toFixed(2),()=>true,()=>'log1',()=>saves.push(1),()=>{},x=>messages.push(x));
+const form={querySelectorAll:()=>[{value:'p1'}]};
+saveMudPlan(form,{capacity:'1000',currentGallons:'200',targetGallons:'500',mode:'topoff',soil:'sand',notes:'Test batch'},false);
+assert.equal(state.mudLogs.length,0,'Preview cannot create an actual mix log');
+saveMudPlan(form,{capacity:'1000',currentGallons:'200',targetGallons:'500',mode:'topoff',soil:'sand',notes:'Test batch'},true);
+assert.equal(state.mudLogs.length,1,'Logging actual batch should append record');
+assert.equal(state.mudLogs[0].added,300);
+assert.equal(state.mudLogs[0].products[0].dose,15);
+assert.equal(state.mudTank.currentGallons,'500','After actual mixing tank must update');
+state.mudProducts[0].rate=900;
+assert.equal(state.mudLogs[0].products[0].rate,25,'Past records retain product rate at time of mixing');
+assert(!calculateMud({...mudConfig(),targetGallons:'500'}).ok,'No more water should be added immediately after log');
+console.log('BoreLab MixLab v0.7 product dosing, top-off, history, and native PDF checks passed.');

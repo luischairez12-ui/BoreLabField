@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.6.0 (debug/test build)
+**Current version:** v0.7.0 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.6.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.7.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,20 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.7 — MixLab: Drilling Mud Calculator
+
+- **MixLab in Field Toolbox** works offline with a saved tank capacity, current volume and desired final tank level in US gallons
+- Choose a **fresh, empty-tank batch** or **top off an existing mix**; the calculator distinguishes all fresh water from only newly added water
+- Save additive products with their exact **user-entered manufacturer/approved rates and units per gallons**; select multiple products per batch, edit or archive them
+- Calculate each selected product's dose using the gallons of new water and the rate you entered; show the full rate basis and product source
+- Ground-condition notes (sand, clay, mixed, rock, other) are kept for records but **never automatically change chemical dosage**
+- Preview a plan without changing stock; explicitly **Record Actual Mix** after it is made, preserving the applied product quantities and updating the tank's current level
+- **Update Tank Level** separately for fluid used, returned or drained. No chemical consumption is inferred by merely changing water level.
+- Dated mixing records are saved locally, included in daily closeout/job snapshot records, and exported in **native PDF reports**
+- Existing v0.6 records and backups remain compatible. **Multiple jobs and real-road routing were not added.**
+
+**IMPORTANT MIXING SAFETY:** BoreLab has no built-in recommended polymer/bentonite/chemical doses. Every product rate must be manually entered from its manufacturer technical data sheet or the approved project fluid program. Top-off arithmetic assumes the existing fluid is already treated to the intended concentration; if that composition is unknown, additional-water calculations alone cannot establish a safe or effective final mix. Follow the product's mixing order, hydration, water-quality and PPE instructions; field verification remains essential.
 
 ## New in v0.6 — Native PDF, Daily Closeout, Job History
 

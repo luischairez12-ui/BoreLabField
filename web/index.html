@@ -203,6 +203,8 @@ html[data-theme="dark"] .route-result-warning{border-color:#75593a;background:#3
 .closeout-warning p{font-size:12px;line-height:1.4;margin:5px 0 0}
 html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;border-color:#6f5630}
 
+.mud-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.mud-stat-grid>div{border:1px solid var(--line);background:var(--surface2);padding:10px 8px;border-radius:10px;display:flex;flex-direction:column;gap:4px}.mud-stat-grid small{font-size:11px;color:var(--muted)}.mud-stat-grid strong{font-size:13px}
+.mud-product-item{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:10px 0}.mud-product-item label{display:flex;align-items:center;gap:9px;flex:1;min-width:0;font-size:12px}.mud-product-item input{width:18px;height:18px;flex-shrink:0;accent-color:#e57e20}.mud-product-item label span{min-width:0;overflow-wrap:anywhere}.mud-product-item small,.mud-dose-item small{display:block;color:var(--muted);font-size:11px;margin-top:4px;overflow-wrap:anywhere}.mud-dose-item{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:12px}.mud-dose-item>strong:last-child{color:var(--accent);text-align:right;flex-shrink:0}
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -233,7 +235,7 @@ html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;borde
 'use strict';
 const KEY='borelab-field-v0.1'; // retain existing data key across upgrades
 const uid=()=>globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`;
-const seed=()=>({version:1,demo:true,jobName:'Demo Job · South Glades',allowance:10,pipeAvailable:345,shopName:'',shopAddress:'',shopLat:'',shopLon:'',routeMode:'toward',shotDurationRate:45,setupMinutes:25,roster:[],selectedCrewIds:[],equipment:[],reels:[],pipeMoves:[],pipeReservations:[],history:[],reportScope:'today',shots:[{id:uid(),name:'Shot 01',feet:175,address:'',lat:'',lon:'',notes:'',status:'complete',completedAt:new Date().toISOString()},{id:uid(),name:'Shot 02',feet:155,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 03',feet:90,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 04',feet:80,address:'',lat:'',lon:'',notes:'',status:'planned'}],crew:[]});
+const seed=()=>({version:1,demo:true,jobName:'Demo Job · South Glades',allowance:10,pipeAvailable:345,shopName:'',shopAddress:'',shopLat:'',shopLon:'',routeMode:'toward',shotDurationRate:45,setupMinutes:25,roster:[],selectedCrewIds:[],equipment:[],reels:[],pipeMoves:[],pipeReservations:[],history:[],mudProducts:[],mudSelectedIds:[],mudLogs:[],mudTank:{capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'unknown',notes:''},reportScope:'today',shots:[{id:uid(),name:'Shot 01',feet:175,address:'',lat:'',lon:'',notes:'',status:'complete',completedAt:new Date().toISOString()},{id:uid(),name:'Shot 02',feet:155,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 03',feet:90,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 04',feet:80,address:'',lat:'',lon:'',notes:'',status:'planned'}],crew:[]});
 let state;
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');state=s&&Array.isArray(s.shots)?s:seed()}catch{state=seed()}
 if(!Array.isArray(state.roster))state.roster=[];
@@ -242,6 +244,10 @@ if(!Array.isArray(state.reels))state.reels=[];
 if(!Array.isArray(state.pipeMoves))state.pipeMoves=[];
 if(!Array.isArray(state.pipeReservations))state.pipeReservations=[];
 if(!Array.isArray(state.history))state.history=[];
+if(!Array.isArray(state.mudProducts))state.mudProducts=[];
+if(!Array.isArray(state.mudSelectedIds))state.mudSelectedIds=[];
+if(!Array.isArray(state.mudLogs))state.mudLogs=[];
+if(!state.mudTank||typeof state.mudTank!=='object')state.mudTank={capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'not-recorded',notes:''};
 if(!['today','job'].includes(state.reportScope))state.reportScope='today';
 if(!Array.isArray(state.selectedCrewIds))state.selectedCrewIds=state.roster.map(p=>p.id);
 if(typeof state.autoLunchEnabled!=='boolean')state.autoLunchEnabled=false;
@@ -272,13 +278,13 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.6.0 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.7.0 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
 async function refreshPhotos(){try{photos=(await photoDB('list')).sort((a,b)=>b.addedAt.localeCompare(a.addedAt))}catch(e){console.warn('Photo storage unavailable:',e);photos=[]}}
 function setPage(p){page=p;closeModal();render();window.scrollTo({top:0,behavior:'instant'});if(p==='planner'&&!attemptedAutoAddressLookup){attemptedAutoAddressLookup=true;resolveMissingAddresses(false)}}
-function render(){document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,planner:renderPlanner,pipe:pipeInventoryView,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();}
+function render(){document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,planner:renderPlanner,pipe:pipeInventoryView,mud:renderMudMixer,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();}
 function section(title,right=''){return `<div class="section-title"><h2><span class="accentbar"></span>${esc(title)}</h2>${right}</div>`}
 function quick(label,icon,sub,action){return `<button class="quick" data-action="${action}"><div class="qicon">${icon}</div><strong>${esc(label)}</strong><small>${esc(sub)}</small></button>`}
 function shotRow(s){return `<div class="shot"><div class="shot-icon">⌁</div><div><h3>${esc(s.name)} <span class="status ${s.status==='complete'?'complete':s.status==='progress'?'progress':'planned'}">${s.status==='complete'?'Complete':s.status==='progress'?'Drilling':'Pending'}</span></h3><small>${feet(s)} ft bore · ${pipeNeed(s)} ft with allowance<br>${esc(s.address||coordsText(s)||'No location set')}</small></div><div class="shot-actions"><span class="foot">${feet(s)}′</span><button data-action="shot-detail" data-id="${s.id}" aria-label="Open ${esc(s.name)}">›</button></div></div>`}
@@ -288,6 +294,7 @@ function dailyRecords(day,all=false){
   shots:state.shots.filter(x=>all||[x.startedAt,x.completedAt,x.updatedAt].some(inDay)),
   crew:state.crew.filter(x=>all||[x.start,x.end].some(inDay)),
   pipe:state.pipeMoves.filter(x=>all||inDay(x.at)),
+  mud:state.mudLogs.filter(x=>all||inDay(x.at)),
   photos:photos.filter(x=>all||inDay(x.addedAt)).map(({id,shotId,addedAt,lat,lon,accuracy,kind})=>({id,shotId,addedAt,lat,lon,accuracy,kind}))
  };
 }
@@ -296,8 +303,8 @@ function snapshotWork(kind,day,notes='',checks=[]){
  const done=r.shots.filter(x=>x.status==='complete');
  return {
   id:uid(),kind,day,createdAt:new Date().toISOString(),jobName:state.jobName,homeBase:state.shopAddress||coordsText(shop())||'',notes:String(notes).trim().slice(0,4000),
-  checks:copy(checks),shots:copy(r.shots),crew:copy(r.crew),pipe:copy(r.pipe),photos:copy(r.photos),reels:copy(state.reels),equipment:copy(state.equipment),allowance:extra(),truckPipe:pipeOnTruck(),
-  summary:{shots:r.shots.length,completed:done.length,completedFeet:done.reduce((a,x)=>a+feet(x),0),crewHours:r.crew.reduce((a,x)=>a+hours(x),0),installedPipe:r.pipe.filter(x=>x.type==='installed').reduce((a,x)=>a+Number(x.feet||0),0),photos:r.photos.length}
+  checks:copy(checks),shots:copy(r.shots),crew:copy(r.crew),pipe:copy(r.pipe),photos:copy(r.photos),mud:copy(r.mud),reels:copy(state.reels),equipment:copy(state.equipment),allowance:extra(),truckPipe:pipeOnTruck(),
+  summary:{shots:r.shots.length,completed:done.length,completedFeet:done.reduce((a,x)=>a+feet(x),0),crewHours:r.crew.reduce((a,x)=>a+hours(x),0),installedPipe:r.pipe.filter(x=>x.type==='installed').reduce((a,x)=>a+Number(x.feet||0),0),photos:r.photos.length,mudBatches:r.mud.length}
  };
 }
 function reviewIssues(r){
@@ -320,7 +327,7 @@ function renderCloseout(){
  <div class="card spaced"><label class="field">Work date<input type="date" data-closeout-day value="${esc(date)}"></label>
  <div class="closeout-stats">
  <div><strong>${r.shots.length}</strong><small>Bores updated</small></div><div><strong>${fmt(r.crew.reduce((n,x)=>n+hours(x),0),2)}</strong><small>Crew-hours</small></div>
- <div><strong>${r.photos.length}</strong><small>Photos</small></div><div><strong>${fmt(r.pipe.filter(x=>x.type==='installed').reduce((n,x)=>n+Number(x.feet||0),0),1)}'</strong><small>Pipe used</small></div></div>
+ <div><strong>${r.photos.length}</strong><small>Photos</small></div><div><strong>${r.mud.length}</strong><small>Mud batches</small></div><div><strong>${fmt(r.pipe.filter(x=>x.type==='installed').reduce((n,x)=>n+Number(x.feet||0),0),1)}'</strong><small>Pipe used</small></div></div>
  ${issues.length?`<div class="closeout-warning"><strong>Check before closing:</strong>${issues.map(x=>`<p>• ${esc(x)}</p>`).join('')}</div>`:'<div class="note good spaced">No obvious outstanding items detected.</div>'}
  </div>
  <form class="card spaced" data-form="closeout">
@@ -352,7 +359,7 @@ function historyDetail(id){
  showModal(`${modalHead((x.kind==='daily'?'Daily Closeout':'Job Snapshot')+' · '+x.day)}
  <div class="card"><h3>${esc(x.jobName)}</h3>
  ${kv('Saved',esc(fullDate(x.createdAt)))}${kv('Bores',x.summary?.shots||0)}${kv('Completed footage',fmt(x.summary?.completedFeet||0,1)+' ft')}
- ${kv('Crew-hours',fmt(x.summary?.crewHours||0,2))}${kv('Pipe installed',fmt(x.summary?.installedPipe||0,1)+' ft')}${kv('Photo records',x.summary?.photos||0)}
+ ${kv('Crew-hours',fmt(x.summary?.crewHours||0,2))}${kv('Pipe installed',fmt(x.summary?.installedPipe||0,1)+' ft')}${kv('Photo records',x.summary?.photos||0)}${kv('Mix batches',x.summary?.mudBatches||0)}
  ${x.notes?`<p class="smalltext muted spaced">${esc(x.notes)}</p>`:''}
  <div class="divider"></div><h3>Saved Bore Records</h3>
  ${(x.shots||[]).map(sh=>`<div class="closeout-item"><strong>${esc(sh.name)}</strong><small>${fmt(feet(sh),1)} ft · ${esc(sh.status)}</small></div>`).join('')||'<p>No bore records.</p>'}
@@ -364,7 +371,7 @@ function saveCloseout(form,values){
  const checks=labels.map((label,i)=>({label,checked:!!form.querySelector(`[name="check${i}"]:checked`)}));
  if(checks.some(x=>!x.checked))return notify('Review and check all four items first.');
  const date=closeoutDay||todayLocal(),r=dailyRecords(date),issues=reviewIssues(r);
- const n=r.shots.length+r.crew.length+r.pipe.length+r.photos.length;
+ const n=r.shots.length+r.crew.length+r.pipe.length+r.photos.length+r.mud.length;
  if(!n&&!confirm('No records found for this date. Save an empty closeout?'))return;
  if(issues.length&&!confirm('Unresolved items:\n'+issues.join('\n')+'\nSave the snapshot anyway?'))return;
  const entry=snapshotWork('daily',date,values.notes,checks);entry.warnings=issues;
@@ -375,11 +382,134 @@ function archiveCurrentJob(){
  state.history.push(snapshotWork('job',todayLocal(),'Saved job progress',[]));
  save();render();notify('Job snapshot saved.');
 }
+function mudConfig(){return Object.assign({capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'unknown',notes:''},state.mudTank||{})}
+function calculateMud(t=mudConfig(),selected=state.mudSelectedIds){
+ const raw=(v)=>String(v??'').trim();
+ const capacity=Number(t.capacity),current=Number(t.currentGallons),target=Number(t.targetGallons);
+ if(!raw(t.capacity)||!Number.isFinite(capacity)||capacity<=0)return{ok:false,error:'Enter a valid tank capacity in gallons.'};
+ if(!raw(t.currentGallons)||!Number.isFinite(current)||current<0)return{ok:false,error:'Enter current gallons (0 if empty).'};
+ if(!raw(t.targetGallons)||!Number.isFinite(target)||target<=0)return{ok:false,error:'Enter the desired final tank level.'};
+ if(current>capacity||target>capacity)return{ok:false,error:'The current or target level exceeds tank capacity.'};
+ if(target<current)return{ok:false,error:'Target level cannot be below the current tank level.'};
+ if(t.mode==='fresh'&&current>0)return{ok:false,error:'Fresh batch requires an empty tank. Use top-off for an existing mixture.'};
+ const added=Math.round((target-current)*1000)/1000;
+ if(!added)return{ok:false,error:'No new water to mix. Increase the target level or update the current tank level.'};
+ const doseBasis=t.mode==='fresh'?target:added;
+ const products=selected.map(id=>state.mudProducts.find(x=>x.id===id&&!x.archived)).filter(Boolean).map(p=>({
+  id:p.id,name:p.name,unit:p.unit,rate:Number(p.rate),perGallons:Number(p.perGallons),
+  manufacturer:p.manufacturer||'',source:p.source||'',instructions:p.instructions||'',
+  dose:doseBasis*Number(p.rate)/Number(p.perGallons)
+ }));
+ if(products.some(p=>!Number.isFinite(p.dose)||p.rate<=0||p.perGallons<=0))return{ok:false,error:'One of the selected products has an invalid rate.'};
+ return{ok:true,capacity,current,target,added,doseBasis,products,mode:t.mode,soil:t.soil||'unknown'};
+}
+function mudProductForm(id){
+ const p=state.mudProducts.find(x=>x.id===id)||{name:'',manufacturer:'',unit:'lb',rate:'',perGallons:100,source:'',instructions:''};
+ const units=['lb','oz (weight)','fl oz','qt','gal','kg','L','mL','bags'];
+ showModal(`${modalHead(id?'Edit Mud Product':'Add Mud Product')}
+ <p class="smalltext muted">Enter the actual mixing rate from the product label or approved fluid program. BoreLab will not invent additive ratios.</p>
+ <form data-form="mud-product" data-id="${esc(id||'')}">
+ <label class="field">Product name<input required name="name" maxlength="100" value="${esc(p.name)}" placeholder="Bentonite / polymer product name"></label>
+ <label class="field">Manufacturer<input name="manufacturer" maxlength="100" value="${esc(p.manufacturer||'')}"></label>
+ <div class="form-grid"><label class="field">Dose amount<input type="number" name="rate" required min="0.000001" step="any" value="${esc(p.rate)}"></label>
+ <label class="field">Units<select name="unit">${units.map(u=>`<option value="${esc(u)}" ${p.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select></label>
+ <label class="field wide">Per how many gallons of water?<input name="perGallons" type="number" min="0.01" step="any" required value="${esc(p.perGallons)}" placeholder="e.g., 100"></label></div>
+ <label class="field">Rate source / label reference<input name="source" maxlength="220" value="${esc(p.source||'')}" placeholder="Data sheet, approved plan, reference date"></label>
+ <label class="field">Manufacturer mixing notes<textarea name="instructions" rows="3" maxlength="2000">${esc(p.instructions||'')}</textarea></label>
+ <div class="modal-footer"><button class="btn ghost" type="button" data-action="close-modal">Cancel</button>${id?`<button class="btn micro danger" type="button" data-action="mud-archive-product" data-id="${esc(id)}">Archive</button>`:""}<button class="btn primary" type="submit">Save Product</button></div></form>`);
+}
+function mudLevelForm(){
+ const t=mudConfig();
+ showModal(`${modalHead('Update Current Tank Level')}<p class="smalltext muted">For pumping down or coming back with leftover fluid. This only changes the water/mixture level; it does not record an added chemical batch.</p>
+ <form data-form="mud-level"><label class="field">Current contents (gal)<input name="currentGallons" required type="number" min="0" step="any" value="${esc(t.currentGallons)}"></label>
+ <div class="modal-footer"><button class="btn ghost" type="button" data-action="close-modal">Cancel</button><button class="btn primary" type="submit">Update Level</button></div></form>`);
+}
+function renderMudMixer(){
+ const t=mudConfig(),plan=calculateMud(),products=state.mudProducts.filter(p=>!p.archived),logs=[...state.mudLogs].reverse().slice(0,15);
+ return `<div class="page"><div class="between"><div><span class="eyebrow">FIELD / DRILLING FLUID</span><h1>MixLab</h1></div><span class="status planned">Offline</span></div>
+ <p class="muted smalltext spaced">Calculate a fresh batch or tank top-off from your saved manufacturer label rates. Ground conditions are logged, not used to guess chemistry.</p>
+ <div class="card spaced"><div class="between"><h2>Water & Tank</h2><button class="btn micro ghost" data-action="mud-level">Set Level</button></div>
+ <form data-form="mud-batch"><div class="form-grid spaced">
+ <label class="field">Tank capacity (gal)<input name="capacity" type="number" required min="0.1" step="any" value="${esc(t.capacity)}" placeholder="e.g., 1000"></label>
+ <label class="field">Currently in tank (gal)<input name="currentGallons" type="number" required min="0" step="any" value="${esc(t.currentGallons)}"></label>
+ <label class="field">Final level wanted (gal)<input name="targetGallons" type="number" required min="0.1" step="any" value="${esc(t.targetGallons)}"></label>
+ <label class="field">Mix type<select name="mode"><option value="topoff" ${t.mode==='topoff'?'selected':''}>Top off existing mix</option><option value="fresh" ${t.mode==='fresh'?'selected':''}>Fresh empty-tank batch</option></select></label>
+ <label class="field wide">Ground conditions (notes only)<select name="soil">${[['unknown','Not recorded'],['sand','Sand'],['clay','Clay'],['mixed','Mixed'],['rock','Rock'],['other','Other']].map(([v,label])=>`<option value="${v}" ${t.soil===v?'selected':''}>${label}</option>`).join('')}</select></label></div>
+ <p class="tiny muted spaced">Soil choice does not automatically alter treatment dosage. Check the actual ground, water quality and fluid program.</p>
+ <div class="divider"></div><div class="between"><h3>Products for This Batch</h3><button type="button" class="btn micro ghost" data-action="mud-add-product">+ Product</button></div>
+ ${products.length?products.map(p=>`<div class="mud-product-item"><label><input name="mudSelected" type="checkbox" value="${esc(p.id)}" ${state.mudSelectedIds.includes(p.id)?'checked':''}><span><strong>${esc(p.name)}</strong><small>${fmt(p.rate,4)} ${esc(p.unit)} per ${fmt(p.perGallons,2)} gal · ${esc(p.manufacturer||'Custom label rate')}</small></span></label><button class="btn micro ghost" type="button" data-action="mud-edit-product" data-id="${esc(p.id)}">Edit</button></div>`).join(''):'<div class="empty spaced"><strong>No products saved</strong>Add a product and enter its actual manufacturer-approved mixing rate.</div>'}
+ <label class="field spaced">Mix notes<textarea name="notes" rows="2" maxlength="1000" placeholder="pH readings, mixing order, unusual conditions...">${esc(t.notes||'')}</textarea></label>
+ <div class="action-row"><button class="btn primary" type="submit">Calculate & Save Plan</button><button class="btn ghost" type="submit" data-mud-commit="yes">Record Actual Mix</button></div></form></div>
+ <div class="card spaced"><div class="between"><div><span class="eyebrow">SAVED PLAN</span><h2>Mix Preview</h2></div><span class="status ${plan.ok?'complete':'planned'}">${plan.ok?'Review doses':'Set inputs'}</span></div>
+ ${plan.ok?`<div class="mud-stat-grid"><div><small>In tank</small><strong>${fmt(plan.current,1)} gal</strong></div><div><small>Water to add</small><strong class="orange">${fmt(plan.added,1)} gal</strong></div><div><small>Final level</small><strong>${fmt(plan.target,1)} gal</strong></div></div>
+ <div class="divider"></div><h3>${plan.mode==='topoff'?'Additives for New Water Only':'Additives for Fresh Batch'}</h3>
+ ${plan.products.length?plan.products.map(p=>`<div class="mud-dose-item"><div><strong>${esc(p.name)}</strong><small>${fmt(p.rate,4)} ${esc(p.unit)} / ${fmt(p.perGallons,2)} gal · ${esc(p.source||'Source not entered')}</small></div><strong>${fmt(p.dose,4)} ${esc(p.unit)}</strong></div>`).join(''):'<p class="muted smalltext spaced">Select a saved product to calculate its dose.</p>'}
+ <p class="tiny muted spaced">${plan.mode==='topoff'?'This top-off assumes the existing tank contents already match the selected recipe. Only newly added water is dosed. If the old mix composition is unknown, this cannot determine the correct final treatment.':'Fresh batch requires an empty tank; no residual additives are assumed.'}</p>`:`<div class="note spaced">${esc(plan.error)}</div>`}
+ <p class="tiny muted spaced"><strong>Review with the product label.</strong> Calculated quantities are not a verified treatment recommendation. Mixing order, hydration, pH, viscosity, site conditions and product compatibility must be checked independently.</p></div>
+ ${section('Recent Mix History',`<span class="hint">${state.mudLogs.length} batches</span>`)}
+ ${logs.length?logs.map(x=>`<div class="card spaced"><div class="between"><div><strong>${esc(fullDate(x.at))}</strong><small class="muted">${fmt(x.added,1)} gal added · ${esc(x.soil||'unknown')} soil</small></div><button class="btn micro ghost" data-action="mud-detail" data-id="${esc(x.id)}">View</button></div><p class="tiny muted spaced">${x.products.map(p=>`${fmt(p.dose,4)} ${p.unit} ${p.name}`).map(esc).join(' · ')}</p></div>`).join(''):'<div class="empty spaced"><strong>No batches logged</strong>Record a mix after additives have actually been measured and mixed.</div>'}
+ ${footnote()}</div>`;
+}
+function saveMudProduct(form,values){
+ const rate=Number(values.rate),perGallons=Number(values.perGallons),name=String(values.name||'').trim();
+ const units=['lb','oz (weight)','fl oz','qt','gal','kg','L','mL','bags'];
+ if(!name||!units.includes(values.unit)||!Number.isFinite(rate)||rate<=0||!Number.isFinite(perGallons)||perGallons<=0)return notify('Enter a name, positive dose, units and gallons from the label.');
+ const id=form.dataset.id,existing=state.mudProducts.find(p=>p.id===id);
+ const product={...existing,id:existing?.id||uid(),name:name.slice(0,100),
+  manufacturer:String(values.manufacturer||'').trim().slice(0,100),rate,unit:values.unit,perGallons,
+  source:String(values.source||'').trim().slice(0,220),instructions:String(values.instructions||'').trim().slice(0,2000),archived:false};
+ if(existing)state.mudProducts=state.mudProducts.map(p=>p.id===id?product:p);
+ else{state.mudProducts.push(product);state.mudSelectedIds.push(product.id)}
+ save();closeModal();render();notify('Product rate saved from your entry.');
+}
+function saveMudPlan(form,values,record=false){
+ const config={
+  capacity:String(values.capacity??'').trim(),currentGallons:String(values.currentGallons??'').trim(),
+  targetGallons:String(values.targetGallons??'').trim(),mode:values.mode==='fresh'?'fresh':'topoff',
+  soil:['unknown','sand','clay','mixed','rock','other'].includes(values.soil)?values.soil:'unknown',
+  notes:String(values.notes||'').trim().slice(0,1000)
+ };
+ const ids=[...form.querySelectorAll('input[name="mudSelected"]:checked')].map(input=>input.value)
+  .filter(id=>state.mudProducts.some(p=>p.id===id&&!p.archived));
+ const plan=calculateMud(config,ids);
+ if(!plan.ok)return notify(plan.error);
+ if(record&&!plan.products.length)return notify('Select at least one product to record an actual mixed batch. A water-only calculation can still be previewed.');
+ if(record){
+  if(!confirm(`Record ${fmt(plan.added,2)} gallons of added water and ${plan.products.length} products as actually mixed? The tank level will become ${fmt(plan.target,2)} gallons.`))return;
+  state.mudLogs.push({id:uid(),at:new Date().toISOString(),jobName:state.jobName,
+   capacity:plan.capacity,before:plan.current,target:plan.target,added:plan.added,mode:plan.mode,soil:config.soil,
+   products:JSON.parse(JSON.stringify(plan.products)),notes:config.notes});
+  config.currentGallons=String(plan.target);
+  config.targetGallons=String(plan.target);
+ }
+ state.mudTank=config;state.mudSelectedIds=ids;save();render();
+ notify(record?'Actual mix logged; current tank level updated.':'Mix plan saved. Check the label and preview before dosing.');
+}
+function saveMudLevel(values){
+ const raw=String(values.currentGallons??'').trim(),g=Number(raw),tank=mudConfig(),cap=Number(tank.capacity);
+ if(!raw||!Number.isFinite(g)||g<0||!Number.isFinite(cap)||cap<=0||g>cap)return notify('Set a tank capacity first, then enter a current level between zero and capacity.');
+ state.mudTank={...tank,currentGallons:String(g),targetGallons:String(Math.max(g,Math.min(cap,Number(tank.targetGallons)||g)))};
+ save();closeModal();render();notify('Tank level updated. No additives were logged.');
+}
+function archiveMudProduct(id){
+ const product=state.mudProducts.find(p=>p.id===id);if(!product)return;
+ if(!confirm(`Archive ${product.name}? Saved mix logs remain unchanged.`))return;
+ product.archived=true;state.mudSelectedIds=state.mudSelectedIds.filter(x=>x!==id);save();closeModal();render();notify('Product archived.');
+}
+function mudLogDetail(id){
+ const x=state.mudLogs.find(m=>m.id===id);if(!x)return;
+ showModal(`${modalHead('Mud Mix · '+new Date(x.at).toLocaleDateString())}<div class="card"><h3>${esc(x.jobName||'Workday Mix')}</h3>${kv('Timestamp',esc(fullDate(x.at)))}
+ ${kv('Batch type',x.mode==='topoff'?'Top-off':'Fresh batch')}${kv('Starting contents',fmt(x.before,1)+' gal')}
+ ${kv('Water added',fmt(x.added,1)+' gal')}${kv('Final tank contents',fmt(x.target,1)+' gal')}
+ ${kv('Ground conditions',esc(x.soil||'Unknown'))}<div class="divider"></div><h3>Logged Product Amounts</h3>
+ ${(x.products||[]).map(p=>`<div class="mud-dose-item"><strong>${esc(p.name)}</strong><strong>${fmt(p.dose,4)} ${esc(p.unit)}</strong></div>`).join('')}
+ ${x.notes?`<p class="smalltext muted spaced">${esc(x.notes)}</p>`:''}</div>`);
+}
 function renderHome(){const pct=totalFeet()?Math.round(doneFeet()/totalFeet()*100):0;let hasDemo=state.demo?`<div class="note spaced">Sample shots are loaded so you can try the app. Add your real job or tap <b>Clear Demo</b> in Settings to start fresh.</div>`:'';
 return `<div class="page"><div class="hero"><span class="eyebrow">HDD FIELD OPERATIONS</span><h1>Ready for today's shots?</h1><p>Plan the route. Count your pipe. Capture the work. Keep your crew organized.</p><div class="hero-tags"><span class="tag teal">● Works offline</span><span class="tag">📍 GPS photo records</span></div></div>
 ${oilWarnings()}${section("Today's Job",`<button class="btn micro ghost" data-action="edit-job">Edit job</button>`)}<div class="card"><div class="card-head"><div><div class="eyebrow">ACTIVE JOB</div><h2 style="margin-top:5px">${esc(state.jobName)}</h2><p class="muted tiny">${state.shots.length} bore shots · ${state.shots.filter(s=>s.status==='complete').length} completed</p></div><span class="status ${pct===100?'complete':'progress'}">${pct}%</span></div><div class="progress"><div style="width:${pct}%"></div></div><div class="stats"><div class="stat"><span>Completed footage</span><strong class="teal">${fmt(doneFeet())}′</strong></div><div class="stat"><span>Planned footage</span><strong>${fmt(totalFeet())}′</strong></div><div class="stat"><span>Pipe required (+${extra()}′/shot)</span><strong class="orange">${fmt(totalNeed())}′</strong></div></div></div>${hasDemo}
 ${section('Daily Job Board',`<button class="btn micro" data-action="new-shot">+ Add shot</button>`)}<div class="shot-list">${state.shots.length?state.shots.map(shotRow).join(''):`<div class="empty"><div class="emptyicon">⌁</div><strong>No shots yet</strong>Tap Add shot to plan your first bore.</div>`}</div><div class="action-row"><button class="btn cyan" data-page="planner">⌁ Smart Shot Planner</button><button class="btn ghost" data-action="export-report">▤ Daily Report</button></div>
-${section('Field Toolbox')}<div class="quick-grid">${quick('Route Planner','⌁','Shot order & travel','go-planner')}${quick('Bore Logs','▤','Footage & notes','new-shot')}${quick('Pipe Inventory','◈','Reel-by-reel footage','go-pipe')}${quick('Job Photos','▣','GPS & timestamps','go-photos')}${quick('Crew Check-In','◷','Roster & timesheets','go-crew')}${quick('Daily Report','▧','PDF export','export-report')}${quick('Daily Closeout','✓','Review the day','open-closeout')}${quick('Job History','▤','Saved workdays','open-history')}${quick('Equipment','⚙','Trucks, service & drills','open-equipment')}${quick('Mud Mixer','◉','Coming in next build','roadmap')}${quick('Manual Library','▤','Coming in next build','roadmap')}</div>${footnote()}</div>`}
+${section('Field Toolbox')}<div class="quick-grid">${quick('Route Planner','⌁','Shot order & travel','go-planner')}${quick('Bore Logs','▤','Footage & notes','new-shot')}${quick('Pipe Inventory','◈','Reel-by-reel footage','go-pipe')}${quick('Job Photos','▣','GPS & timestamps','go-photos')}${quick('Crew Check-In','◷','Roster & timesheets','go-crew')}${quick('Daily Report','▧','PDF export','export-report')}${quick('Daily Closeout','✓','Review the day','open-closeout')}${quick('Job History','▤','Saved workdays','open-history')}${quick('Equipment','⚙','Trucks, service & drills','open-equipment')}${quick('MixLab','◉','Mixing & tank top-offs','go-mud')}${quick('Manual Library','▤','Coming in next build','roadmap')}</div>${footnote()}</div>`}
 function coordsValid(o){return o&&o.lat!==''&&o.lon!==''&&o.lat!=null&&o.lon!=null&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lon))&&Math.abs(Number(o.lat))<=90&&Math.abs(Number(o.lon))<=180}
 function coordsText(s){return coordsValid(s)?`${Number(s.lat).toFixed(5)}, ${Number(s.lon).toFixed(5)}`:''}
 function hav(a,b){if(!coordsValid(a)||!coordsValid(b))return NaN;const R=3958.7613,lat1=Number(a.lat)*Math.PI/180,lat2=Number(b.lat)*Math.PI/180,dlat=(Number(b.lat)-Number(a.lat))*Math.PI/180,dlon=(Number(b.lon)-Number(a.lon))*Math.PI/180,q=Math.sin(dlat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dlon/2)**2;return R*2*Math.asin(Math.sqrt(q))}
@@ -1017,11 +1147,11 @@ async function addPhoto(file){if(!file||!file.type.startsWith('image/'))return n
 function safeFile(s){return String(s).replace(/[^a-z0-9-_]/gi,'_').slice(0,60)}
 function downloadBlob(name,content,type){const blob=new Blob([content],{type});if(window.BoreLabNative?.saveBase64File){const reader=new FileReader();reader.onload=()=>{const base64=String(reader.result).split(',')[1];window.BoreLabNative.saveBase64File(name,type,base64)};reader.readAsDataURL(blob);return}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000)}
 async function exportBackup(){try{await refreshPhotos();downloadBlob(`BoreLab_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({type:'borelab-backup',version:2,createdAt:new Date().toISOString(),state,photos},null,2),'application/json');notify('Backup downloaded — keep it somewhere safe.')}catch(e){notify('Could not export: '+e.message)}}
-async function importBackup(file){try{const obj=JSON.parse(await file.text());if(obj.type!=='borelab-backup'||!obj.state||!Array.isArray(obj.state.shots)||!Array.isArray(obj.photos))throw new Error('This is not a valid BoreLab backup.');if(!confirm('Replace all current job data, photos and time entries with this backup?'))return;await photoDB('clear');for(const p of obj.photos){if(typeof p.dataUrl==='string'&&p.dataUrl.startsWith('data:image/'))await photoDB('put',p)}state=obj.state;if(!Array.isArray(state.roster))state.roster=[];if(!Array.isArray(state.equipment))state.equipment=[];if(!Array.isArray(state.reels))state.reels=[];if(!Array.isArray(state.pipeMoves))state.pipeMoves=[];if(!Array.isArray(state.pipeReservations))state.pipeReservations=[];if(!Array.isArray(state.history))state.history=[];if(!['today','job'].includes(state.reportScope))state.reportScope='today';if(!Array.isArray(state.selectedCrewIds))state.selectedCrewIds=[];save();await refreshPhotos();setPage('home');notify('Backup restored successfully.')}catch(e){notify(`Restore failed: ${e.message}`)}}
+async function importBackup(file){try{const obj=JSON.parse(await file.text());if(obj.type!=='borelab-backup'||!obj.state||!Array.isArray(obj.state.shots)||!Array.isArray(obj.photos))throw new Error('This is not a valid BoreLab backup.');if(!confirm('Replace all current job data, photos and time entries with this backup?'))return;await photoDB('clear');for(const p of obj.photos){if(typeof p.dataUrl==='string'&&p.dataUrl.startsWith('data:image/'))await photoDB('put',p)}state=obj.state;if(!Array.isArray(state.roster))state.roster=[];if(!Array.isArray(state.equipment))state.equipment=[];if(!Array.isArray(state.reels))state.reels=[];if(!Array.isArray(state.pipeMoves))state.pipeMoves=[];if(!Array.isArray(state.pipeReservations))state.pipeReservations=[];if(!Array.isArray(state.history))state.history=[];if(!Array.isArray(state.mudProducts))state.mudProducts=[];if(!Array.isArray(state.mudSelectedIds))state.mudSelectedIds=[];if(!Array.isArray(state.mudLogs))state.mudLogs=[];if(!state.mudTank||typeof state.mudTank!=='object')state.mudTank={capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'not-recorded',notes:''};if(!['today','job'].includes(state.reportScope))state.reportScope='today';if(!Array.isArray(state.selectedCrewIds))state.selectedCrewIds=[];save();await refreshPhotos();setPage('home');notify('Backup restored successfully.')}catch(e){notify(`Restore failed: ${e.message}`)}}
 function reportCSS(){return `body{font:13px/1.5 system-ui,Arial;color:#152535;margin:28px auto;max-width:900px;padding:0 18px}h1{color:#df7d1f;border-bottom:3px solid #df7d1f;padding-bottom:12px}h2{margin-top:30px;background:#e8eff3;padding:8px 12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #acbbc5;padding:8px;text-align:left}th{background:#e8eff3}img{max-width:290px;max-height:220px;object-fit:cover;margin:8px 14px 8px 0}small{color:#516274}.print{padding:12px;background:#eee;border:0;border-radius:8px;cursor:pointer}@media print{.print{display:none}}`}
 function buildPdfPayload(snapshot=null,requestedDay=''){
  const day=requestedDay||todayLocal(),scope=snapshot?(snapshot.kind==='job'?'job':'daily'):(requestedDay?'daily':state.reportScope==='job'?'job':'daily');
- const r=snapshot?{shots:snapshot.shots||[],crew:snapshot.crew||[],pipe:snapshot.pipe||[],photos:snapshot.photos||[]} :dailyRecords(day,scope==='job');
+ const r=snapshot?{shots:snapshot.shots||[],crew:snapshot.crew||[],pipe:snapshot.pipe||[],photos:snapshot.photos||[],mud:snapshot.mud||[]} :dailyRecords(day,scope==='job');
  const machines=snapshot?.equipment||state.equipment,reels=snapshot?.reels||state.reels;
  const title=snapshot?(snapshot.kind==='job'?'Saved Job Snapshot':'Saved Daily Closeout'):(scope==='job'?'Job Activity Report':'Daily Field Report');
  const shotPipe=sh=>{
@@ -1050,7 +1180,7 @@ function buildPdfPayload(snapshot=null,requestedDay=''){
    plannedPipe:`${fmt(r.shots.reduce((a,x)=>a+feet(x)+Number(snapshot?.allowance??extra()),0),1)} ft`,
    actualPipe:`${fmt(actualTotal,1)} ft (from records; check reel ledger)`,
    crewHours:`${fmt(r.crew.reduce((a,x)=>a+hours(x),0),2)} h`,
-   photos:String(r.photos.length)},
+   photos:String(r.photos.length),mudBatches:String(r.mud.length)},
   shots:r.shots.map(sh=>({
    name:sh.name||'Unnamed bore',status:sh.status||'',feet:fmt(sh.feet,1),
    plannedPipe:fmt(Number(sh.feet||0)+Number(snapshot?.allowance??extra()),1),
@@ -1062,6 +1192,7 @@ function buildPdfPayload(snapshot=null,requestedDay=''){
   })),
   crew:r.crew.map(x=>({name:x.name||'',start:formattedDate(x.start),end:x.end?formattedDate(x.end):'Still on the clock',
     lunch:String(x.lunch??0),hours:x.end?fmt(hours(x),2):'In progress',notes:x.notes||''})),
+  mud:r.mud.map(m=>({date:formattedDate(m.at),waterAdded:fmt(m.added,2),before:fmt(m.before,2),target:fmt(m.target,2),mode:m.mode||'topoff',soil:m.soil||'unknown',products:(m.products||[]).map(p=>({name:p.name||'',amount:fmt(p.dose,4),unit:p.unit||''})),notes:m.notes||''})),
   pipe:r.pipe.map(m=>({reel:reels.find(x=>x.id===m.reelId)?.name||'Reel',type:m.type||'',
     shot:r.shots.find(x=>x.id===m.shotId)?.name||'General',feet:fmt(m.feet,1),date:formattedDate(m.at),note:m.note||''})),
   photos:snapshotPhotos
@@ -1090,7 +1221,7 @@ async function exportRealPdf(snapshotId='',specificDay=''){
  ${Object.entries(payload.summary).map(([a,b])=>row(a,b)).join('')}
  <h2>Bore Logs</h2>${payload.shots.map(x=>`<h3>${esc(x.name)} — ${esc(x.status)}</h3>${['feet','plannedPipe','actualPipe','equipment','address','startedAt','completedAt','notes'].map(k=>row(k,x[k])).join('')}`).join('')}
  <h2>Crew</h2>${payload.crew.map(x=>row(x.name,`${x.start} – ${x.end}; ${x.hours} h`)).join('')}
- <h2>Pipe Movements</h2>${payload.pipe.map(x=>row(x.reel,`${x.type} ${x.feet} ft · ${x.shot}`)).join('')}
+ <h2>Pipe Movements</h2>${payload.pipe.map(x=>row(x.reel,`${x.type} ${x.feet} ft · ${x.shot}`)).join('')}<h2>Mud Mixing</h2>${payload.mud.map(x=>row(x.date,`${x.waterAdded} gal added · ${x.mode}; ${x.products.map(p=>p.amount+' '+p.unit+' '+p.name).join(', ')}`)).join('')}
  <h2>Photos</h2>${payload.photos.map(x=>`<div>${x.dataUrl?`<img src="${x.dataUrl}">`:''}${row(x.shot,x.date+' · '+x.location)}</div>`).join('')}
  ${payload.closeoutNote?row('Closeout notes',payload.closeoutNote):''}<p>Verify all records before submission.</p></body></html>`;
  downloadBlob(file.replace(/\.pdf$/,'.html'),html,'text/html');
@@ -1195,6 +1326,12 @@ switch(action){
  case 'history-pdf':await exportRealPdf(id);break;
  case 'export-daily-pdf':await exportRealPdf('',closeoutDay||todayLocal());break;
  case 'go-pipe':setPage('pipe');break;
+ case 'go-mud':setPage('mud');break;
+ case 'mud-add-product':mudProductForm();break;
+ case 'mud-edit-product':mudProductForm(id);break;
+ case 'mud-archive-product':archiveMudProduct(id);break;
+ case 'mud-level':mudLevelForm();break;
+ case 'mud-detail':mudLogDetail(id);break;
  case 'new-reel':reelForm();break;
  case 'reel-edit':reelForm(id);break;
  case 'reel-use':reelActionForm(id,'use');break;
@@ -1211,7 +1348,7 @@ switch(action){
  case 'edit-equipment':equipmentForm(id);break;
  case 'log-oil':serviceLogForm(id);break;
  case 'archive-equipment':{const gear=state.equipment.find(e=>e.id===id);if(gear&&confirm('Archive '+gear.name+'? Previous bore logs will keep its name.')){gear.archived=true;save();render();notify('Equipment archived.')}break;}
- case 'roadmap':showModal(`${modalHead('Coming in the Next Build')}<p class="smalltext muted">Equipment garage, manufacturer manual indexing, and manufacturer-verified mud mixing are on the BoreLab roadmap. They are not functional in v0.1.</p>`);break;
+ case 'roadmap':showModal(`${modalHead('Coming in the Next Build')}<p class="smalltext muted">Manufacturer manual indexing and future workflow improvements are still planned. MixLab is now available in the Field Toolbox.</p>`);break;
  case 'toggle-route-menu':routeMenuOpen=!routeMenuOpen;render();break;
  case 'route-mode':state.routeMode=btn.dataset.mode;routeMenuOpen=false;save();render();notify('Route preference: '+orderedShots().modeName);break;
  case 'edit-homebase':case 'scroll-shop':setPage('settings');document.querySelector('#homeBaseSettings')?.scrollIntoView({behavior:'smooth',block:'start'});break;
@@ -1244,7 +1381,7 @@ switch(action){
  default:break;
 }
 }catch(e){console.error(e);notify('Could not complete action: '+e.message)}});
-document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='closeout'){saveCloseout(form,values);return}else if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
+document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='mud-product'){saveMudProduct(form,values);return}else if(form.dataset.form==='mud-level'){saveMudLevel(values);return}else if(form.dataset.form==='mud-batch'){saveMudPlan(form,values,e.submitter?.dataset?.mudCommit==='yes');return}else if(form.dataset.form==='closeout'){saveCloseout(form,values);return}else if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
 }else if(form.dataset.form==='checkout'){const now=new Date().toISOString();const active=state.crew.filter(e=>!e.end);for(const entry of active){const lunch=Number(values['lunch_'+entry.id]);entry.lunch=Number.isFinite(lunch)?Math.max(0,Math.min(300,lunch)):0;entry.end=now}save();closeModal();render();notify(`${active.length} crew member${active.length===1?'':'s'} checked out.`);
 }else if(form.dataset.form==='shot'){
  const f=Number(values.feet);
