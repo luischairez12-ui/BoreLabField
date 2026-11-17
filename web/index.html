@@ -571,6 +571,49 @@ function updateMudLevelForm(form,chosen){
    button.setAttribute('aria-pressed',active?'true':'false');
  }
 }
+function mudTargetChoice(value){return value==='empty'?'custom':mudLevelChoice(value)}
+function mudTargetChoices(t,capacity){
+ const choice=mudTargetChoice(t.targetLevelChoice);
+ const computed=mudLevelGallons(capacity,choice);
+ const gallons=choice==='custom'?String(t.targetGallons??''):computed===null?'':String(computed);
+ const choices=MUD_LEVEL_PRESETS.filter(([key])=>key!=='empty');
+ return `<div class="mud-level-control">
+  <span class="mud-level-heading">How full should the tank be after mixing?</span>
+  <input type="hidden" name="targetLevelChoice" value="${esc(choice)}" data-mud-target-code>
+  <div class="mud-level-picks" role="group" aria-label="Desired final tank fill level">
+   ${choices.map(([key,label])=>`<button type="button" class="mud-level-choice ${choice===key?'active':''}" data-action="mud-select-target" data-level="${key}" aria-pressed="${choice===key?'true':'false'}">${label}</button>`).join('')}
+  </div>
+  <label class="field spaced"><span data-mud-target-label>${choice==='custom'?'Final gallons (manual)':'Estimated final gallons'}</span>
+   <input data-mud-target name="targetGallons" type="number" required min="0.1" step="any"
+    value="${esc(gallons)}" ${choice==='custom'?'':'readonly'} placeholder="${choice==='custom'?'Type final gallons':'Enter tank capacity first'}">
+  </label>
+  <p class="tiny muted mud-level-hint" data-mud-target-help>${choice==='custom'?'Enter the desired final volume in gallons.':'Approximate fraction of tank capacity. Confirm tank markings before mixing.'}</p>
+ </div>`;
+}
+function updateMudTargetForm(form,chosen){
+ const field=form?.querySelector('[data-mud-target-code]');
+ const target=form?.querySelector('[data-mud-target]');
+ if(!field||!target)return;
+ const choice=mudTargetChoice(chosen??field.value);
+ field.value=choice;
+ const capacity=form.querySelector('[name="capacity"]')?.value??mudConfig().capacity;
+ const gallons=mudLevelGallons(capacity,choice);
+ const manual=choice==='custom';
+ if(!manual)target.value=gallons===null?'':String(gallons);
+ target.readOnly=!manual;
+ target.placeholder=manual?'Type final gallons':'Enter tank capacity first';
+ const label=form.querySelector('[data-mud-target-label]');
+ if(label)label.textContent=manual?'Final gallons (manual)':'Estimated final gallons';
+ const help=form.querySelector('[data-mud-target-help]');
+ if(help)help.textContent=manual?'Enter the desired final volume in gallons.':
+  gallons===null?'Enter tank capacity to calculate the estimated target.':
+  '≈ '+gallons.toLocaleString(undefined,{maximumFractionDigits:2})+' gal. This is an estimate; verify the actual fluid level.';
+ for(const button of form.querySelectorAll('[data-action="mud-select-target"]')){
+  const active=button.dataset.level===choice;
+  button.classList.toggle('active',active);
+  button.setAttribute('aria-pressed',active?'true':'false');
+ }
+}
 function calculateMud(t=mudConfig(),selected=state.mudSelectedIds){
  const raw=(v)=>String(v??'').trim();
  const capacity=Number(t.capacity),current=Number(t.currentGallons),target=Number(t.targetGallons);
@@ -715,7 +758,7 @@ function renderMudMixer(){
  <form data-form="mud-batch"><div class="form-grid spaced">
  <label class="field">Tank capacity (gal)<input name="capacity" type="number" required min="0.1" step="any" value="${esc(t.capacity)}" placeholder="e.g., 1000"></label>
  ${mudLevelChoices(t,t.capacity)}
- <label class="field">Final level wanted (gal)<input name="targetGallons" type="number" required min="0.1" step="any" value="${esc(t.targetGallons)}"></label>
+ ${mudTargetChoices(t,t.capacity)}
  <label class="field">Mix type<select name="mode"><option value="topoff" ${t.mode==='topoff'?'selected':''}>Top off existing mix</option><option value="fresh" ${t.mode==='fresh'?'selected':''}>Fresh empty-tank batch</option></select></label>
  <label class="field wide">Ground conditions (notes only)<select name="soil">${[['unknown','Not recorded'],['sand','Sand'],['clay','Clay'],['mixed','Mixed'],['rock','Rock'],['other','Other']].map(([v,label])=>`<option value="${v}" ${t.soil===v?'selected':''}>${label}</option>`).join('')}</select></label></div>
  <p class="tiny muted spaced">The tank fraction is an estimate. If it contains premixed mud, BoreLab assumes the existing mixture is correctly treated; verify its condition before choosing additives. Soil choice does not change chemical dosage.</p>
@@ -781,9 +824,10 @@ function saveMudProduct(form,values){
 }
 function saveMudPlan(form,values,record=false){
  const level=mudLevelInputValues(values);
+ const target=mudLevelInputValues({capacity:values.capacity,levelChoice:values.targetLevelChoice==='empty'?'custom':values.targetLevelChoice,currentGallons:values.targetGallons});
  const config={
   capacity:String(values.capacity??'').trim(),currentGallons:level.currentGallons,levelChoice:level.levelChoice,
-  targetGallons:String(values.targetGallons??'').trim(),mode:values.mode==='fresh'?'fresh':'topoff',
+  targetGallons:target.currentGallons,targetLevelChoice:target.levelChoice,mode:values.mode==='fresh'?'fresh':'topoff',
   soil:['unknown','sand','clay','mixed','rock','other'].includes(values.soil)?values.soil:'unknown',
   notes:String(values.notes||'').trim().slice(0,1000),
   lastMixId:state.mudTank?.lastMixId||'',
@@ -822,6 +866,7 @@ function saveMudPlan(form,values,record=false){
   config.currentGallons=String(plan.target);
   config.targetGallons=String(plan.target);
   config.levelChoice='custom'; // Final volume logged, not the old estimated fraction.
+  config.targetLevelChoice='custom'; // Recorded volume is no longer just an estimated target.
  }
  state.mudTank=config;state.mudSelectedIds=ids;save();render();
  notify(record?'Mix recorded. Tracked product stock and tank contents updated.':'Mix plan saved. Previewing never changes inventory.');
@@ -1689,6 +1734,7 @@ switch(action){
  case 'mud-archive-product':archiveMudProduct(id);break;
  case 'mud-level':mudLevelForm();break;
  case 'mud-select-level':updateMudLevelForm(btn.closest('form'),btn.dataset.level);break;
+ case 'mud-select-target':updateMudTargetForm(btn.closest('form'),btn.dataset.level);break;
  case 'mud-detail':mudLogDetail(id);break;
  case 'new-reel':reelForm();break;
  case 'reel-edit':reelForm(id);break;
@@ -1771,7 +1817,7 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
 }else if(form.dataset.form==='time'){
  const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);save();closeModal();render();notify('Crew time saved.');
 }});
-document.addEventListener('input',e=>{if(e.target.matches('form[data-form="mud-batch"] input[name="capacity"]'))updateMudLevelForm(e.target.closest('form'));});
+document.addEventListener('input',e=>{if(e.target.matches('form[data-form="mud-batch"] input[name="capacity"]')){const form=e.target.closest('form');updateMudLevelForm(form);updateMudTargetForm(form);}});
 document.addEventListener('change',e=>{if(e.target.matches('[data-closeout-day]')){closeoutDay=e.target.value||todayLocal();render();return}if(e.target.matches('[data-equipment-type]')){const wrap=e.target.closest('form')?.querySelector('[data-truck-fields]');if(wrap)wrap.hidden=e.target.value!=='Truck';return}if(e.target.matches('[data-report-scope]')){state.reportScope=e.target.value==='job'?'job':'today';save();render();notify('Report scope saved.');return}if(e.target.matches('[data-theme-select]')){state.theme=e.target.value==='dark'?'dark':'daylight';applyTheme();save();render();notify(state.theme==='daylight'?'Daylight mode enabled.':'Night mode enabled.');return}if(e.target.matches('[data-lunch-enabled]')){state.autoLunchEnabled=e.target.checked;save();render();notify(state.autoLunchEnabled?'Automatic lunch enabled.':'Automatic lunch disabled.');return}if(e.target.matches('[data-lunch-minutes]')){state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(e.target.value)||0));save();render();notify('Lunch default saved.');return}if(e.target.matches('[data-roster-select]')){const id=e.target.dataset.rosterSelect;state.selectedCrewIds=e.target.checked?[...new Set([...state.selectedCrewIds,id])]:state.selectedCrewIds.filter(x=>x!==id);save();render();return}if(e.target.matches('[data-setting]')){const k=e.target.dataset.setting;state[k]=Math.max(0,Number(e.target.value)||0);save();render()}});
 $('#cameraFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#galleryFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});

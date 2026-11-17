@@ -40,6 +40,14 @@ Early debug APKs were signed with temporary GitHub runner keys. Android may reje
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
 
+## New in v0.8.1 — Quick Final Tank Targets
+
+- Choose **¼ full, ½ full, ¾ full, Full, or Custom gallons** as the desired final fill level in MixLab, alongside the existing current-level shortcuts.
+- A fraction derives an approximate target volume from tank capacity and recalculates when capacity changes. Custom gallons remain editable.
+- Saving a plan retains the selected final-level choice; recording an actual mix resets it to Custom because the final volume was logged.
+- Top-off calculations continue to use only newly added water, manufacturer/approved user-entered product rates, and the existing inventory shortage checks. No chemical amount is inferred from a fraction alone.
+- Old saved jobs continue to use their existing exact target gallons with Custom mode. Multiple jobs and real-road routing are still deferred.
+
 ## New in v0.8 — MixLab Pro: Product Inventory and Tank Mixing History
 
 - **Product Inventory** accessed from MixLab: track each saved mud product's stock in the same units used by its verified dosage. Existing saved products are treated as **untracked stock** until you enter a physical count; BoreLab never guesses how many bags or buckets you have.
