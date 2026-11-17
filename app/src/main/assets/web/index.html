@@ -1081,7 +1081,7 @@ function setShotStatus(id){
  save();closeModal();render();
  notify(`${shot.name} is now ${shot.status==='complete'?'complete':shot.status==='progress'?'in progress':'pending'}.`);
 }
-async function resetData(demo){if(!confirm('This will replace ALL locally saved shots, photos and time entries. Continue?'))return;await photoDB('clear');state=seed();if(!demo){state.demo=false;state.shots=[];state.jobName='My HDD Job'}save();await refreshPhotos();setPage('home');notify(demo?'Demo reloaded.':'Fresh job created.')}
+async function resetData(demo){if(!confirm('This will replace ALL locally saved shots, photos, time entries, and closeout history. Continue?'))return;await photoDB('clear');state=seed();if(!demo){state.demo=false;state.shots=[];state.jobName='My HDD Job'}save();await refreshPhotos();setPage('home');notify(demo?'Demo reloaded.':'Fresh job created.')}
 async function saveShop(){
  const address=document.querySelector('#shopAddress').value.trim();
  let lat=document.querySelector('#shopLat').value.trim(),lon=document.querySelector('#shopLon').value.trim();
@@ -1111,6 +1111,12 @@ switch(action){
  case 'next-status':setShotStatus(id);break;
  case 'delete-shot':if(confirm('Delete this shot? Its photos will remain saved as unassigned records.')){state.shots=state.shots.filter(s=>s.id!==id);for(const p of photos)if(p.shotId===id){p.shotId='';await photoDB('put',p)}state.demo=false;save();closeModal();render();notify('Shot deleted.')}break;
  case 'go-planner':setPage('planner');break;
+ case 'open-closeout':closeoutDay=todayLocal();setPage('closeout');break;
+ case 'open-history':setPage('history');break;
+ case 'archive-job-snapshot':archiveCurrentJob();break;
+ case 'history-detail':historyDetail(id);break;
+ case 'history-pdf':await exportRealPdf(id);break;
+ case 'export-daily-pdf':await exportRealPdf('',closeoutDay||todayLocal());break;
  case 'go-pipe':setPage('pipe');break;
  case 'new-reel':reelForm();break;
  case 'reel-edit':reelForm(id);break;
@@ -1153,7 +1159,7 @@ switch(action){
  case 'new-time':timeForm();break;
  case 'edit-time':timeForm(id);break;
  case 'delete-time':if(confirm('Delete this time entry?')){state.crew=state.crew.filter(e=>e.id!==id);save();closeModal();render();notify('Time entry deleted.')}break;
- case 'export-report':await exportReport();break;
+ case 'export-report':await exportRealPdf();break;
  case 'export-backup':await exportBackup();break;
  case 'import-backup':$('#importFile').click();break;
  case 'reset-demo':await resetData(true);break;
@@ -1161,7 +1167,7 @@ switch(action){
  default:break;
 }
 }catch(e){console.error(e);notify('Could not complete action: '+e.message)}});
-document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
+document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='closeout'){saveCloseout(form,values);return}else if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
 }else if(form.dataset.form==='checkout'){const now=new Date().toISOString();const active=state.crew.filter(e=>!e.end);for(const entry of active){const lunch=Number(values['lunch_'+entry.id]);entry.lunch=Number.isFinite(lunch)?Math.max(0,Math.min(300,lunch)):0;entry.end=now}save();closeModal();render();notify(`${active.length} crew member${active.length===1?'':'s'} checked out.`);
 }else if(form.dataset.form==='shot'){
  const f=Number(values.feet);
@@ -1193,7 +1199,7 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
 }else if(form.dataset.form==='time'){
  const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);save();closeModal();render();notify('Crew time saved.');
 }});
-document.addEventListener('change',e=>{if(e.target.matches('[data-equipment-type]')){const wrap=e.target.closest('form')?.querySelector('[data-truck-fields]');if(wrap)wrap.hidden=e.target.value!=='Truck';return}if(e.target.matches('[data-report-scope]')){state.reportScope=e.target.value==='job'?'job':'today';save();render();notify('Report scope saved.');return}if(e.target.matches('[data-theme-select]')){state.theme=e.target.value==='dark'?'dark':'daylight';applyTheme();save();render();notify(state.theme==='daylight'?'Daylight mode enabled.':'Night mode enabled.');return}if(e.target.matches('[data-lunch-enabled]')){state.autoLunchEnabled=e.target.checked;save();render();notify(state.autoLunchEnabled?'Automatic lunch enabled.':'Automatic lunch disabled.');return}if(e.target.matches('[data-lunch-minutes]')){state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(e.target.value)||0));save();render();notify('Lunch default saved.');return}if(e.target.matches('[data-roster-select]')){const id=e.target.dataset.rosterSelect;state.selectedCrewIds=e.target.checked?[...new Set([...state.selectedCrewIds,id])]:state.selectedCrewIds.filter(x=>x!==id);save();render();return}if(e.target.matches('[data-setting]')){const k=e.target.dataset.setting;state[k]=Math.max(0,Number(e.target.value)||0);save();render()}});
+document.addEventListener('change',e=>{if(e.target.matches('[data-closeout-day]')){closeoutDay=e.target.value||todayLocal();render();return}if(e.target.matches('[data-equipment-type]')){const wrap=e.target.closest('form')?.querySelector('[data-truck-fields]');if(wrap)wrap.hidden=e.target.value!=='Truck';return}if(e.target.matches('[data-report-scope]')){state.reportScope=e.target.value==='job'?'job':'today';save();render();notify('Report scope saved.');return}if(e.target.matches('[data-theme-select]')){state.theme=e.target.value==='dark'?'dark':'daylight';applyTheme();save();render();notify(state.theme==='daylight'?'Daylight mode enabled.':'Night mode enabled.');return}if(e.target.matches('[data-lunch-enabled]')){state.autoLunchEnabled=e.target.checked;save();render();notify(state.autoLunchEnabled?'Automatic lunch enabled.':'Automatic lunch disabled.');return}if(e.target.matches('[data-lunch-minutes]')){state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(e.target.value)||0));save();render();notify('Lunch default saved.');return}if(e.target.matches('[data-roster-select]')){const id=e.target.dataset.rosterSelect;state.selectedCrewIds=e.target.checked?[...new Set([...state.selectedCrewIds,id])]:state.selectedCrewIds.filter(x=>x!==id);save();render();return}if(e.target.matches('[data-setting]')){const k=e.target.dataset.setting;state[k]=Math.max(0,Number(e.target.value)||0);save();render()}});
 $('#cameraFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#galleryFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#importFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await importBackup(file);e.target.value=''});
