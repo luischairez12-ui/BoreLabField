@@ -192,6 +192,17 @@ html[data-theme="dark"] .route-result-warning{border-color:#75593a;background:#3
 
 .pipe-ledger-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.pipe-ledger-row:last-child{border-bottom:0}
 .equipment-row{padding:12px 0;border-bottom:1px solid var(--line)}.equipment-row:last-child{border-bottom:0}.equipment-row>.btn{margin:7px 7px 0 0}.service-alert{padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin:8px 0}.service-alert.due{background:#ffedec;color:#8d2021;border-color:#e8afa8}.service-alert.soon{background:#fff0ce;color:#875000;border-color:#e6c179}.service-alert.good{background:#e5f8ee;color:#16613e;border-color:#9ad0b0}.service-alert.setup{background:var(--surface2);color:var(--text)}.service-alert p{margin-top:5px}html[data-theme="dark"] .service-alert.due{background:#4a2629;color:#ffd3cf}html[data-theme="dark"] .service-alert.soon{background:#4a3b20;color:#ffe5b1}html[data-theme="dark"] .service-alert.good{background:#204239;color:#c6f5dc}.truck-maintenance-form[hidden]{display:none!important}
+.closeout-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:13px}
+.closeout-stats>div{display:flex;flex-direction:column;gap:5px;background:var(--surface2);padding:12px;border:1px solid var(--line);border-radius:11px}
+.closeout-stats strong{font-size:21px;color:var(--accent)}.closeout-stats small{font-size:11px;color:var(--muted)}
+.closeout-check{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);font-size:13px}
+.closeout-check input{width:20px;height:20px;accent-color:#e57e20}
+.closeout-item{display:flex;flex-direction:column;gap:4px;padding:10px 0;border-bottom:1px solid var(--line)}
+.closeout-item small{color:var(--muted)}
+.closeout-warning{padding:12px 14px;margin-top:12px;border-radius:12px;background:#fff1d9;color:#794d10;border:1px solid #e9c582}
+.closeout-warning p{font-size:12px;line-height:1.4;margin:5px 0 0}
+html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;border-color:#6f5630}
+
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -267,15 +278,108 @@ function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('bore
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
 async function refreshPhotos(){try{photos=(await photoDB('list')).sort((a,b)=>b.addedAt.localeCompare(a.addedAt))}catch(e){console.warn('Photo storage unavailable:',e);photos=[]}}
 function setPage(p){page=p;closeModal();render();window.scrollTo({top:0,behavior:'instant'});if(p==='planner'&&!attemptedAutoAddressLookup){attemptedAutoAddressLookup=true;resolveMissingAddresses(false)}}
-function render(){document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,planner:renderPlanner,pipe:pipeInventoryView,photos:renderPhotos,crew:renderCrew,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();}
+function render(){document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,planner:renderPlanner,pipe:pipeInventoryView,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();}
 function section(title,right=''){return `<div class="section-title"><h2><span class="accentbar"></span>${esc(title)}</h2>${right}</div>`}
 function quick(label,icon,sub,action){return `<button class="quick" data-action="${action}"><div class="qicon">${icon}</div><strong>${esc(label)}</strong><small>${esc(sub)}</small></button>`}
 function shotRow(s){return `<div class="shot"><div class="shot-icon">⌁</div><div><h3>${esc(s.name)} <span class="status ${s.status==='complete'?'complete':s.status==='progress'?'progress':'planned'}">${s.status==='complete'?'Complete':s.status==='progress'?'Drilling':'Pending'}</span></h3><small>${feet(s)} ft bore · ${pipeNeed(s)} ft with allowance<br>${esc(s.address||coordsText(s)||'No location set')}</small></div><div class="shot-actions"><span class="foot">${feet(s)}′</span><button data-action="shot-detail" data-id="${s.id}" aria-label="Open ${esc(s.name)}">›</button></div></div>`}
+function dailyRecords(day,all=false){
+ const inDay=x=>x&&localDay(x)===day;
+ return {
+  shots:state.shots.filter(x=>all||[x.startedAt,x.completedAt,x.updatedAt].some(inDay)),
+  crew:state.crew.filter(x=>all||[x.start,x.end].some(inDay)),
+  pipe:state.pipeMoves.filter(x=>all||inDay(x.at)),
+  photos:photos.filter(x=>all||inDay(x.addedAt)).map(({id,shotId,addedAt,lat,lon,accuracy,kind})=>({id,shotId,addedAt,lat,lon,accuracy,kind}))
+ };
+}
+function snapshotWork(kind,day,notes='',checks=[]){
+ const r=dailyRecords(day,kind==='job'),copy=x=>JSON.parse(JSON.stringify(x));
+ const done=r.shots.filter(x=>x.status==='complete');
+ return {
+  id:uid(),kind,day,createdAt:new Date().toISOString(),jobName:state.jobName,homeBase:state.shopAddress||coordsText(shop())||'',notes:String(notes).trim().slice(0,4000),
+  checks:copy(checks),shots:copy(r.shots),crew:copy(r.crew),pipe:copy(r.pipe),photos:copy(r.photos),reels:copy(state.reels),equipment:copy(state.equipment),allowance:extra(),truckPipe:pipeOnTruck(),
+  summary:{shots:r.shots.length,completed:done.length,completedFeet:done.reduce((a,x)=>a+feet(x),0),crewHours:r.crew.reduce((a,x)=>a+hours(x),0),installedPipe:r.pipe.filter(x=>x.type==='installed').reduce((a,x)=>a+Number(x.feet||0),0),photos:r.photos.length}
+ };
+}
+function reviewIssues(r){
+ const out=[];
+ const active=r.crew.filter(x=>!x.end).length;
+ const drilling=r.shots.filter(x=>x.status==='progress').length;
+ const noPipe=r.shots.filter(x=>x.status==='complete'&&pipeOnShot(x)==null).length;
+ if(active)out.push(`${active} crew time entries still checked in`);
+ if(drilling)out.push(`${drilling} bore(s) still marked drilling`);
+ if(noPipe)out.push(`${noPipe} completed bore(s) without logged pipe`);
+ if(!r.photos.length)out.push('No jobsite photos recorded');
+ return out;
+}
+function renderCloseout(){
+ const date=closeoutDay||todayLocal(),r=dailyRecords(date),issues=reviewIssues(r);
+ const labels=['Crew hours reviewed','Bore logs reviewed','Reel/pipe inventory reviewed','Photos and notes reviewed'];
+ return `<div class="page">
+ <div class="between"><div><span class="eyebrow">FIELD / END OF DAY</span><h1>Daily Closeout</h1></div><button class="btn micro ghost" data-page="history">History</button></div>
+ <p class="muted smalltext spaced">Review the workday and save a dated record. Saving never checks out crew or marks bore shots complete automatically.</p>
+ <div class="card spaced"><label class="field">Work date<input type="date" data-closeout-day value="${esc(date)}"></label>
+ <div class="closeout-stats">
+ <div><strong>${r.shots.length}</strong><small>Bores updated</small></div><div><strong>${fmt(r.crew.reduce((n,x)=>n+hours(x),0),2)}</strong><small>Crew-hours</small></div>
+ <div><strong>${r.photos.length}</strong><small>Photos</small></div><div><strong>${fmt(r.pipe.filter(x=>x.type==='installed').reduce((n,x)=>n+Number(x.feet||0),0),1)}'</strong><small>Pipe used</small></div></div>
+ ${issues.length?`<div class="closeout-warning"><strong>Check before closing:</strong>${issues.map(x=>`<p>• ${esc(x)}</p>`).join('')}</div>`:'<div class="note good spaced">No obvious outstanding items detected.</div>'}
+ </div>
+ <form class="card spaced" data-form="closeout">
+ <h3>Closeout Checklist</h3><p class="smalltext muted">Check each box only after you have reviewed the records.</p>
+ ${labels.map((x,i)=>`<label class="closeout-check"><input name="check${i}" type="checkbox" value="yes" required><span>${esc(x)}</span></label>`).join('')}
+ <label class="field spaced">Field notes<textarea name="notes" maxlength="4000" rows="4" placeholder="Work completed, interruptions, supply runs, tomorrow's plans..."></textarea></label>
+ <div class="action-row"><button class="btn primary" type="submit">✓ Save Daily Closeout</button><button class="btn ghost" type="button" data-action="export-daily-pdf">Save Current PDF</button></div>
+ </form>
+ ${section('Recorded Activity')}
+ <div class="card">${r.shots.length?r.shots.map(sh=>`<div class="closeout-item"><strong>${esc(sh.name)}</strong><small>${fmt(feet(sh),1)} ft · ${esc(sh.status)}</small></div>`).join(''):'<p class="smalltext muted">No bore shots updated today.</p>'}
+ ${r.crew.map(e=>`<div class="closeout-item"><strong>${esc(e.name)}</strong><small>${e.end?fmt(hours(e),2)+' h':'Still checked in'}</small></div>`).join('')}</div>${footnote()}</div>`;
+}
+function renderHistory(){
+ const entries=[...state.history].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+ const cards=kind=>{
+  const filtered=entries.filter(x=>x.kind===kind);
+  return filtered.length?filtered.map(x=>`<div class="card spaced"><div class="between"><div><span class="eyebrow">${kind==='daily'?'CLOSED WORKDAY':'JOB SNAPSHOT'}</span><h3>${esc(x.jobName)} · ${esc(x.day)}</h3><small class="muted">Saved ${esc(fullDate(x.createdAt))}</small></div><span class="status complete">Saved</span></div>
+  <p class="smalltext muted spaced">${x.summary?.shots||0} bores · ${fmt(x.summary?.completedFeet||0,1)} ft complete · ${fmt(x.summary?.crewHours||0,2)} crew-hours</p>
+  <div class="action-row"><button class="btn micro ghost" data-action="history-detail" data-id="${esc(x.id)}">View</button><button class="btn micro primary" data-action="history-pdf" data-id="${esc(x.id)}">Export PDF</button></div></div>`).join(''):'<p class="smalltext muted spaced">No saved records yet.</p>';
+ };
+ return `<div class="page"><div class="between"><div><span class="eyebrow">FIELD / ARCHIVE</span><h1>Job History</h1></div><button class="btn micro ghost" data-page="closeout">Closeout</button></div>
+ <p class="smalltext muted spaced">One active job only. This saves historical snapshots without adding multiple-job switching.</p>
+ <div class="card spaced"><h3>Snapshot Current Job</h3><p class="smalltext muted spaced">Preserve a copy of the current job records without clearing the work in progress.</p><button class="btn primary" data-action="archive-job-snapshot">Save Job Snapshot</button></div>
+ ${section('Daily Closeouts')}${cards('daily')}${section('Job Snapshots')}${cards('job')}
+ <div class="note spaced">Snapshots freeze saved records, but original photo files remain in the local photo library. Back them up before deleting or resetting the app.</div>${footnote()}</div>`;
+}
+function historyDetail(id){
+ const x=state.history.find(z=>z.id===id);if(!x)return;
+ showModal(`${modalHead((x.kind==='daily'?'Daily Closeout':'Job Snapshot')+' · '+x.day)}
+ <div class="card"><h3>${esc(x.jobName)}</h3>
+ ${kv('Saved',esc(fullDate(x.createdAt)))}${kv('Bores',x.summary?.shots||0)}${kv('Completed footage',fmt(x.summary?.completedFeet||0,1)+' ft')}
+ ${kv('Crew-hours',fmt(x.summary?.crewHours||0,2))}${kv('Pipe installed',fmt(x.summary?.installedPipe||0,1)+' ft')}${kv('Photo records',x.summary?.photos||0)}
+ ${x.notes?`<p class="smalltext muted spaced">${esc(x.notes)}</p>`:''}
+ <div class="divider"></div><h3>Saved Bore Records</h3>
+ ${(x.shots||[]).map(sh=>`<div class="closeout-item"><strong>${esc(sh.name)}</strong><small>${fmt(feet(sh),1)} ft · ${esc(sh.status)}</small></div>`).join('')||'<p>No bore records.</p>'}
+ ${(x.checks||[]).map(c=>`<p class="smalltext">${c.checked?'✓':'○'} ${esc(c.label)}</p>`).join('')}
+ </div><div class="action-row"><button class="btn primary" data-action="history-pdf" data-id="${esc(id)}">Export PDF</button></div>`);
+}
+function saveCloseout(form,values){
+ const labels=['Crew hours reviewed','Bore logs reviewed','Reel/pipe inventory reviewed','Photos and notes reviewed'];
+ const checks=labels.map((label,i)=>({label,checked:!!form.querySelector(`[name="check${i}"]:checked`)}));
+ if(checks.some(x=>!x.checked))return notify('Review and check all four items first.');
+ const date=closeoutDay||todayLocal(),r=dailyRecords(date),issues=reviewIssues(r);
+ const n=r.shots.length+r.crew.length+r.pipe.length+r.photos.length;
+ if(!n&&!confirm('No records found for this date. Save an empty closeout?'))return;
+ if(issues.length&&!confirm('Unresolved items:\n'+issues.join('\n')+'\nSave the snapshot anyway?'))return;
+ const entry=snapshotWork('daily',date,values.notes,checks);entry.warnings=issues;
+ state.history.push(entry);save();setPage('history');notify('Daily closeout saved in Job History.');
+}
+function archiveCurrentJob(){
+ if(!confirm('Save a dated snapshot of the current job? The active job will not change or close.'))return;
+ state.history.push(snapshotWork('job',todayLocal(),'Saved job progress',[]));
+ save();render();notify('Job snapshot saved.');
+}
 function renderHome(){const pct=totalFeet()?Math.round(doneFeet()/totalFeet()*100):0;let hasDemo=state.demo?`<div class="note spaced">Sample shots are loaded so you can try the app. Add your real job or tap <b>Clear Demo</b> in Settings to start fresh.</div>`:'';
 return `<div class="page"><div class="hero"><span class="eyebrow">HDD FIELD OPERATIONS</span><h1>Ready for today's shots?</h1><p>Plan the route. Count your pipe. Capture the work. Keep your crew organized.</p><div class="hero-tags"><span class="tag teal">● Works offline</span><span class="tag">📍 GPS photo records</span></div></div>
 ${oilWarnings()}${section("Today's Job",`<button class="btn micro ghost" data-action="edit-job">Edit job</button>`)}<div class="card"><div class="card-head"><div><div class="eyebrow">ACTIVE JOB</div><h2 style="margin-top:5px">${esc(state.jobName)}</h2><p class="muted tiny">${state.shots.length} bore shots · ${state.shots.filter(s=>s.status==='complete').length} completed</p></div><span class="status ${pct===100?'complete':'progress'}">${pct}%</span></div><div class="progress"><div style="width:${pct}%"></div></div><div class="stats"><div class="stat"><span>Completed footage</span><strong class="teal">${fmt(doneFeet())}′</strong></div><div class="stat"><span>Planned footage</span><strong>${fmt(totalFeet())}′</strong></div><div class="stat"><span>Pipe required (+${extra()}′/shot)</span><strong class="orange">${fmt(totalNeed())}′</strong></div></div></div>${hasDemo}
 ${section('Daily Job Board',`<button class="btn micro" data-action="new-shot">+ Add shot</button>`)}<div class="shot-list">${state.shots.length?state.shots.map(shotRow).join(''):`<div class="empty"><div class="emptyicon">⌁</div><strong>No shots yet</strong>Tap Add shot to plan your first bore.</div>`}</div><div class="action-row"><button class="btn cyan" data-page="planner">⌁ Smart Shot Planner</button><button class="btn ghost" data-action="export-report">▤ Daily Report</button></div>
-${section('Field Toolbox')}<div class="quick-grid">${quick('Route Planner','⌁','Shot order & travel','go-planner')}${quick('Bore Logs','▤','Footage & notes','new-shot')}${quick('Pipe Inventory','◈','Reel-by-reel footage','go-pipe')}${quick('Job Photos','▣','GPS & timestamps','go-photos')}${quick('Crew Check-In','◷','Roster & timesheets','go-crew')}${quick('Daily Report','▧','Download & print','export-report')}${quick('Equipment','⚙','Trucks, service & drills','open-equipment')}${quick('Mud Mixer','◉','Coming in next build','roadmap')}${quick('Manual Library','▤','Coming in next build','roadmap')}</div>${footnote()}</div>`}
+${section('Field Toolbox')}<div class="quick-grid">${quick('Route Planner','⌁','Shot order & travel','go-planner')}${quick('Bore Logs','▤','Footage & notes','new-shot')}${quick('Pipe Inventory','◈','Reel-by-reel footage','go-pipe')}${quick('Job Photos','▣','GPS & timestamps','go-photos')}${quick('Crew Check-In','◷','Roster & timesheets','go-crew')}${quick('Daily Report','▧','PDF export','export-report')}${quick('Daily Closeout','✓','Review the day','open-closeout')}${quick('Job History','▤','Saved workdays','open-history')}${quick('Equipment','⚙','Trucks, service & drills','open-equipment')}${quick('Mud Mixer','◉','Coming in next build','roadmap')}${quick('Manual Library','▤','Coming in next build','roadmap')}</div>${footnote()}</div>`}
 function coordsValid(o){return o&&o.lat!==''&&o.lon!==''&&o.lat!=null&&o.lon!=null&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lon))&&Math.abs(Number(o.lat))<=90&&Math.abs(Number(o.lon))<=180}
 function coordsText(s){return coordsValid(s)?`${Number(s.lat).toFixed(5)}, ${Number(s.lon).toFixed(5)}`:''}
 function hav(a,b){if(!coordsValid(a)||!coordsValid(b))return NaN;const R=3958.7613,lat1=Number(a.lat)*Math.PI/180,lat2=Number(b.lat)*Math.PI/180,dlat=(Number(b.lat)-Number(a.lat))*Math.PI/180,dlon=(Number(b.lon)-Number(a.lon))*Math.PI/180,q=Math.sin(dlat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dlon/2)**2;return R*2*Math.asin(Math.sqrt(q))}
