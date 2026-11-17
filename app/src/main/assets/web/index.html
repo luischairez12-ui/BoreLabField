@@ -504,14 +504,14 @@ function pipeInventoryView(){
  return `<div class="page"><div class="between"><div><span class="eyebrow">FIELD / INVENTORY</span><h1>Pipe Reels</h1></div><button class="btn micro ghost" data-page="planner">Planner</button></div>
  <p class="smalltext muted spaced">Track each reel, where it is, and what pipe remains. Saving a reel doesn't change previously recorded shots.</p>
  <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
- <div class="stat"><span>On truck</span><strong class="orange">${fmt(reelTotal('truck'),1)}′</strong></div>
+ <div class="stat"><span>On truck</span><strong class="orange">${fmt(pipeOnTruck(),1)}′</strong></div>
  <div class="stat"><span>At yard</span><strong>${fmt(reelTotal('yard'),1)}′</strong></div>
- <div class="stat"><span>Total</span><strong class="teal">${fmt(reelTotal(),1)}′</strong></div></div>
+ <div class="stat"><span>Total</span><strong class="teal">${fmt(reelMode()?reelTotal():pipeOnTruck(),1)}′</strong></div></div>
  ${!reelMode()?`<div class="note spaced">Your previous single pipe total (${fmt(state.pipeAvailable)} ft) is still saved. Add reels to begin tracking individually. We won't guess how the pipe is divided.</div>`:''}
  <div class="between spaced"><h2>Reels</h2><button class="btn micro primary" data-action="new-reel">+ Add Reel</button></div>
  ${reels.length?reels.map(reel=>`<div class="card spaced"><div class="between"><div style="min-width:0"><strong>${esc(reel.name)}</strong><p class="muted tiny">${esc(reel.size||reel.material||'HDPE')} · ${reel.location==='truck'?'On truck':'At yard'}${reel.mustEmpty?' · Use before return':''}</p></div><span class="status planned">${fmt(reel.remaining,1)} ft</span></div>
  <p class="tiny muted spaced">${fmt(reelReserved(reel.id),1)} ft reserved · ${fmt(Math.max(0,Number(reel.remaining)-reelReserved(reel.id)),1)} ft unreserved</p>
- <div class="action-row"><button class="btn micro primary" data-action="reel-use" data-id="${esc(reel.id)}">Use Pipe</button><button class="btn micro ghost" data-action="reel-reserve" data-id="${esc(reel.id)}">Reserve</button><button class="btn micro ghost" data-action="reel-edit" data-id="${esc(reel.id)}">Edit</button><button class="btn micro ghost" data-action="reel-adjust" data-id="${esc(reel.id)}">Adjust</button></div></div>`).join(''):'<div class="empty"><strong>No reels saved</strong>Add your first reel to get started.</div>'}
+ <div class="action-row"><button class="btn micro primary" data-action="reel-use" data-id="${esc(reel.id)}">Use Pipe</button><button class="btn micro ghost" data-action="reel-reserve" data-id="${esc(reel.id)}">Reserve</button><button class="btn micro ghost" data-action="reel-edit" data-id="${esc(reel.id)}">Edit</button><button class="btn micro ghost" data-action="reel-adjust" data-id="${esc(reel.id)}">Adjust</button>${Number(reel.remaining)<=0&&!reelReserved(reel.id)?`<button class="btn micro ghost" data-action="reel-archive" data-id="${esc(reel.id)}">Archive Empty</button>`:""}</div></div>`).join(''):'<div class="empty"><strong>No reels saved</strong>Add your first reel to get started.</div>'}
  ${state.pipeReservations.length?`<div class="card spaced"><h3>Pipe Reserved for Shots</h3>${state.pipeReservations.map(h=>{const reel=state.reels.find(x=>x.id===h.reelId),shot=state.shots.find(x=>x.id===h.shotId);return `<div class="between" style="padding:9px 0"><div><strong class="smalltext">${esc(shot?.name||'Unknown shot')}</strong><p class="tiny muted">${esc(reel?.name||'Unknown reel')} · ${fmt(h.feet,1)} ft reserved</p></div><button class="btn micro ghost" data-action="reel-release" data-id="${esc(h.id)}">Release</button></div>`}).join('')}</div>`:''}
  ${history.length?`<div class="card spaced"><h3>Recent Pipe Activity</h3>${history.map(m=>{const reel=state.reels.find(r=>r.id===m.reelId),shot=state.shots.find(sh=>sh.id===m.shotId);return `<div class="pipe-ledger-row"><div><strong class="smalltext">${esc(reel?.name||'Reel')} · ${esc(m.type)}</strong><p class="tiny muted">${esc(shot?.name||m.note||'Inventory update')} · ${esc(fullDate(m.at))}</p></div><strong>${m.type==='installed'||m.type==='removed'?'-':'+'}${fmt(m.feet,1)} ft</strong></div>`}).join('')}</div>`:''}
  <p class="tiny muted spaced">Footage is inventory, not proof that a particular reel can make a continuous pull. Check length, material, fittings and reel constraints before starting.</p>${footnote()}</div>`;
@@ -690,6 +690,15 @@ function oilStatus(truck,now=new Date()){
  if(soon.length)return {kind:'soon',label:'Oil change coming up',details:soon.map(x=>`${fmt(x.left,1)} ${x.unit} remaining`).join(' · '),metrics};
  return {kind:'good',label:'Oil schedule on track',details:'Update the odometer and engine hours to keep this estimate current.',metrics};
 }
+function notifyServiceOnOpen(){
+ const alerts=state.equipment.filter(e=>e.type==='Truck'&&!e.archived).map(e=>({name:e.name,...oilStatus(e)})).filter(x=>['due','soon'].includes(x.kind));
+ if(alerts.length){
+  const due=alerts.filter(x=>x.kind==='due');
+  const chosen=due.length?due:alerts;
+  const headline=due.length?'Oil change due':'Oil change coming up';
+  notify(`${headline}: ${chosen.map(x=>x.name).join(', ')}. See Equipment Garage.`);
+ }
+}
 function oilWarnings(){
  const trucks=state.equipment.filter(x=>x.type==='Truck'&&!x.archived);
  const alerts=trucks.map(t=>({t,status:oilStatus(t)})).filter(x=>x.status.kind==='due'||x.status.kind==='soon');
@@ -701,7 +710,7 @@ function serviceLogForm(id){
  showModal(`${modalHead('Oil Change — '+truck.name)}
  <p class="smalltext muted">Log an oil change when it is performed. The new date, odometer and engine hours become the baseline for the next reminder.</p>
  <form data-form="oil-service" data-id="${esc(id)}">
-  <label class="field">Service date<input type="date" name="date" value="${new Date().toISOString().slice(0,10)}" required></label>
+  <label class="field">Service date<input type="date" name="date" value="${todayLocal()}" required></label>
   <div class="form-grid"><label class="field">Odometer (mi)<input type="number" step="1" min="0" name="miles" value="${esc(truck.odometer??'')}"></label>
   <label class="field">Engine hours<input type="number" step="0.1" min="0" name="hours" value="${esc(truck.engineHours??'')}"></label></div>
   <label class="field">Work notes / oil / filter<input name="note" maxlength="200" placeholder="Optional"></label>
@@ -1083,7 +1092,7 @@ $('#cameraFile').addEventListener('change',async e=>{const file=e.target.files?.
 $('#galleryFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#importFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await importBackup(file);e.target.value=''});
 window.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if((e.key==='Enter'||e.key===' ')&&e.target.matches('.map-pin')){e.preventDefault();e.target.click()}});
-async function init(){applyTheme();await refreshPhotos();render();setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
+async function init(){applyTheme();await refreshPhotos();render();setTimeout(notifyServiceOnOpen,300);setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
 init();
 })();
 
