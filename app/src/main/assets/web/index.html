@@ -755,9 +755,17 @@ function saveMudProduct(form,values){
  if(!scanned&&(rate===''||perGallons===''))return notify('Manually entered products require a complete dose and gallons.');
  const verified=!scanned||values.verifiedRate==='yes';
  if(scanned&&verified&&(rate===''||perGallons===''))return notify('Enter the confirmed rate and gallons before checking verified.');
+ let stockQty=existing?.stockQty,packageUnit=existing?.packageUnit,packageSize=existing?.packageSize;
+ if(existing?.stockTracked===true&&existing.unit!==unit){
+  const converted=convertMudQty(Number(stockQty),existing.unit,unit);
+  if(converted===null){
+   if(Number(stockQty)>0)return notify('Cannot change to an incompatible unit while product inventory remains. Remove or recount your existing stock first.');
+   stockQty=0;packageSize='';packageUnit=unit;
+  }else stockQty=mudRound(converted);
+ }
  const product={...existing,id:existing?.id||uid(),name:name.slice(0,100),
   manufacturer:String(values.manufacturer||'').trim().slice(0,100),
-  rate,unit,perGallons,
+  rate,unit,perGallons,stockQty,packageUnit,packageSize,
   source:String(values.source||'').trim().slice(0,220),instructions:String(values.instructions||'').trim().slice(0,2000),
   labelPhoto:photo,labelText:text.slice(0,9000),scannedAt:existing?.scannedAt||scan?.at||'',
   rateVerified:verified,archived:false};
@@ -829,7 +837,7 @@ function saveMudLevel(values){
    changed&&g>previous?'unknown':
    changed?'adjusted':(tank.contentsStatus||'unknown');
  state.mudTank={...tank,levelChoice:level.levelChoice,currentGallons:String(g),
-   targetGallons:String(Math.max(g,Math.min(capacity,Number(tank.targetGallons)||g))),contentsStatus};
+   targetGallons:String(Math.max(g,Math.min(capacity,Number(tank.targetGallons)||g))),contentsStatus,lastMixId:g===0?'':(tank.lastMixId||'')};
  save();closeModal();render();
  notify(level.levelChoice==='custom'?'Current tank gallons updated.':'Approximate tank level saved: '+g+' gal.');
 }
