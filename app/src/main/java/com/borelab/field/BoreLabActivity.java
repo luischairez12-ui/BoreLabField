@@ -7,6 +7,13 @@ import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+import org.json.JSONObject;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -225,7 +232,71 @@ public class BoreLabActivity extends Activity {
         if (webView != null) webView.setBackgroundColor(color);
     }
 
+
+    /** The bundled ML Kit model reads product label text on-device. No cloud upload. */
+    private void recognizeProductLabel(String dataUrl) {
+        new Thread(() -> {
+            Bitmap bitmap = null;
+            try {
+                if (dataUrl == null || !dataUrl.startsWith("data:image/") || !dataUrl.contains(",")) {
+                    throw new IllegalArgumentException("Select a readable label photo.");
+                }
+                String encoded = dataUrl.substring(dataUrl.indexOf(',') + 1);
+                if (encoded.length() > 12000000) {
+                    throw new IllegalArgumentException("Image too large; take a closer photo.");
+                }
+                byte[] imageBytes = Base64.decode(encoded, Base64.DEFAULT);
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inJustDecodeBounds = true;
+                BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length, options);
+                if (options.outWidth <= 0 || options.outHeight <= 0) {
+                    throw new IllegalArgumentException("The selected image could not be decoded.");
+                }
+                int sample = 1;
+                while (options.outWidth / sample > 2000 || options.outHeight / sample > 2000) sample *= 2;
+                options.inJustDecodeBounds = false;
+                options.inSampleSize = sample;
+                bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length, options);
+                if (bitmap == null) throw new IllegalArgumentException("Unreadable product image.");
+                final Bitmap decoded = bitmap;
+                TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+                recognizer.process(InputImage.fromBitmap(decoded, 0))
+                    .addOnSuccessListener(result -> {
+                        sendScanResult(result.getText(), null);
+                        decoded.recycle();
+                        recognizer.close();
+                    })
+                    .addOnFailureListener(error -> {
+                        sendScanResult("", error.getMessage());
+                        decoded.recycle();
+                        recognizer.close();
+                    });
+            } catch (Exception error) {
+                if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                sendScanResult("", error.getMessage());
+            }
+        }, "BoreLab-Label-OCR").start();
+    }
+
+    /** Quote all OCR content as JS string data so label text is never executed as code. */
+    private void sendScanResult(String text, String error) {
+        String escapedText = JSONObject.quote(text == null ? "" : text);
+        String escapedError = error == null ? "null" : JSONObject.quote(error);
+        runOnUiThread(() -> {
+            if (webView != null) {
+                webView.evaluateJavascript(
+                    "window.borelabOnLabelScan && window.borelabOnLabelScan(" +
+                    escapedText + "," + escapedError + ");", null);
+            }
+        });
+    }
+
     final class FileExportBridge {
+        /** OCR text scanning runs on-device using the model bundled inside the APK. */
+        @JavascriptInterface public void scanProductLabel(String dataUrl) {
+            recognizeProductLabel(dataUrl);
+        }
+
         @JavascriptInterface public void setTheme(String mode) {
             runOnUiThread(() -> applySystemTheme(!"dark".equals(mode)));
         }
