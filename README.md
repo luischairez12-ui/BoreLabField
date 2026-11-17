@@ -27,6 +27,12 @@ The prototype works offline for locally stored records. It is **not** a producti
 
 The APK is a debug/test build, not Play Store signed.
 
+## Updating from v0.2
+
+Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
+
+Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
 ## Development
 
 - Web app source: `app/src/main/assets/web/index.html` (self-contained HTML/CSS/JS)
