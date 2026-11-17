@@ -37,7 +37,7 @@ assert(js.includes("manualLinks:[]"),'New state must contain manual links');
 assert(js.includes('if(!Array.isArray(state.manualLinks))state.manualLinks=[]'), 'Old state needs migration');
 assert.equal(data.manualLinkUrl('https://www.scribd.com/document/780730040/24x40-36x50-Vermeer-operators-manual-Series-II'),
  'https://www.scribd.com/document/780730040/24x40-36x50-Vermeer-operators-manual-Series-II');
-assert.throws(()=>data.manualLinkUrl('javascript:alert(1)'),/https|complete/);
+assert.throws(()=>data.manualLinkUrl('javascript:alert(1)'),/HTTPS|complete/);
 assert.throws(()=>data.manualLinkUrl('http://example.com/file.pdf'),/HTTPS/);
 assert.throws(()=>data.manualLinkUrl('https://192.168.1.3/file.pdf'),/HTTPS/);
 data.state.manualLinks.push({id:'custom-1',machineId:'vermeer-d24x40',type:'operator',label:'My Field Manual',url:'https://example.com/manual.pdf',note:'crew note'});
