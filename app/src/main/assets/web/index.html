@@ -595,6 +595,55 @@ function recordReelAction(form,values){
  state.pipeMoves.push({id:uid(),reelId:reel.id,shotId,type,feet,at:new Date().toISOString(),before,after:reel.remaining,note:String(values.note||'').trim().slice(0,180)});
  save();closeModal();render();notify(`${feet} ft ${type} · ${fmt(reel.remaining,1)} ft left on ${reel.name}.`);
 }
+function saveCompanyEquipment(form,values){
+ const name=String(values.name||'').trim(),type=String(values.type||'Other').trim();
+ if(!name)return notify('Enter an equipment name.');
+ if(!['Drill','Locator','Mixer','Truck','Trailer','Other'].includes(type))return notify('Select an equipment type.');
+ const id=form.dataset.id,old=state.equipment.find(e=>e.id===id);
+ const e={...old,id:old?.id||uid(),name:name.slice(0,90),type,serial:String(values.serial||'').trim().slice(0,80),notes:String(values.notes||'').trim().slice(0,1000),archived:old?.archived||false};
+ if(type==='Truck'){
+  const number=(field,whole=false)=>{
+   const raw=String(values[field]??'').trim();
+   if(!raw)return '';
+   const n=Number(raw);
+   if(!Number.isFinite(n)||n<0||(whole&&!Number.isInteger(n)))throw Error('Check '+field.replaceAll(/[A-Z]/g,c=>' '+c.toLowerCase()));
+   return n;
+  };
+  try{
+   e.odometer=number('odometer',true);e.engineHours=number('engineHours');
+   e.lastOilMiles=number('lastOilMiles',true);e.lastOilHours=number('lastOilHours');
+   e.oilIntervalMiles=number('oilIntervalMiles',true);e.oilIntervalMonths=number('oilIntervalMonths',true);e.oilIntervalHours=number('oilIntervalHours');
+   e.lastOilAt=String(values.lastOilAt||'').trim();
+   if(e.lastOilAt&&!/^\d{4}-\d{2}-\d{2}$/.test(e.lastOilAt))throw Error('Invalid service date');
+   if(e.lastOilAt&&new Date(e.lastOilAt+'T12:00:00')>new Date(Date.now()+24*3600000))throw Error('Last oil change cannot be in the future');
+   if(e.odometer!==''&&e.lastOilMiles!==''&&e.odometer<e.lastOilMiles)throw Error('Current odometer cannot be lower than the last oil-change mileage.');
+   if(e.engineHours!==''&&e.lastOilHours!==''&&e.engineHours<e.lastOilHours)throw Error('Current engine hours cannot be lower than at last oil change.');
+  }catch(err){return notify(err.message)}
+  e.serviceHistory=Array.isArray(old?.serviceHistory)?old.serviceHistory:[];
+ }
+ if(old)state.equipment=state.equipment.map(x=>x.id===id?e:x);else state.equipment.push(e);
+ save();closeModal();render();notify(type==='Truck'?'Company truck and oil reminder settings saved.':'Equipment saved.');
+}
+function saveOilService(form,values){
+ const truck=state.equipment.find(e=>e.id===form.dataset.id&&e.type==='Truck');
+ if(!truck)return notify('Truck not found.');
+ const date=String(values.date||'').trim();
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(new Date(date+'T12:00:00').getTime()))return notify('Enter a valid oil service date.');
+ if(new Date(date+'T12:00:00')>new Date(Date.now()+24*3600000))return notify('The service date cannot be in the future.');
+ if(truck.lastOilAt&&date<truck.lastOilAt)return notify('This service predates the current last-oil record. Edit the baseline in Garage to correct old history.');
+ const miles=String(values.miles??'').trim(),hours=String(values.hours??'').trim();
+ if(miles&&(Number(miles)<0||!Number.isInteger(Number(miles))))return notify('Enter a valid odometer reading.');
+ if(hours&&(!Number.isFinite(Number(hours))||Number(hours)<0))return notify('Enter valid engine hours.');
+ if(miles&&truck.odometer!==''&&truck.odometer!=null&&Number(miles)<Number(truck.odometer))return notify('Service odometer cannot be below the current saved reading. Update the truck first if needed.');
+ if(hours&&truck.engineHours!==''&&truck.engineHours!=null&&Number(hours)<Number(truck.engineHours))return notify('Service engine hours cannot be below the current saved reading.');
+ truck.lastOilAt=date;
+ truck.lastOilMiles=miles===''?'':Number(miles);truck.lastOilHours=hours===''?'':Number(hours);
+ if(miles!=='')truck.odometer=Number(miles);
+ if(hours!=='')truck.engineHours=Number(hours);
+ if(!Array.isArray(truck.serviceHistory))truck.serviceHistory=[];
+ truck.serviceHistory.push({id:uid(),date,miles:truck.lastOilMiles,hours:truck.lastOilHours,note:String(values.note||'').trim().slice(0,200),kind:'oil'});
+ save();closeModal();render();notify('Oil change recorded. Next due reminder recalculated.');
+}
 function equipmentSummary(shot){
  const found=(shot.equipmentIds||[]).map(id=>state.equipment.find(e=>e.id===id)).filter(Boolean);
  return found.length?found.map(e=>`${e.name}${e.type?` (${e.type})`:''}`).join(', '):'None selected';
@@ -635,7 +684,7 @@ function oilStatus(truck,now=new Date()){
  }
  if(!lastAt&&(lastMiles===''||lastMiles==null)&&(lastHours===''||lastHours==null))return {kind:'setup',label:'Record last oil change',details:'Enter the last service date and/or mileage to begin tracking.',metrics};
  if(!intervalMiles&&!intervalMonths&&!intervalHours)return {kind:'setup',label:'Set service interval',details:'Use the oil interval recommended by the vehicle manufacturer or fleet policy.',metrics};
- if(!metrics.length)return {kind:'setup',label:'Complete oil schedule',details:'Enter a matching last-service date, mileage, or engine hours for the interval you chose.',metrics};
+ if(!metrics.length||!remaining.length)return {kind:'setup',label:'Complete oil schedule',details:'Enter matching last-service and current mileage, date, or engine hours to determine when oil is due.',metrics};
  const due=remaining.filter(x=>x.left<=0),soon=remaining.filter(x=>x.left>0&&x.left<=x.near);
  if(due.length)return {kind:'due',label:'Oil change due',details:due.map(x=>`${fmt(Math.abs(x.left),1)} ${x.unit} ${x.left<0?'past due':'at interval'}`).join(' · '),metrics};
  if(soon.length)return {kind:'soon',label:'Oil change coming up',details:soon.map(x=>`${fmt(x.left,1)} ${x.unit} remaining`).join(' · '),metrics};
@@ -997,15 +1046,7 @@ switch(action){
  default:break;
 }
 }catch(e){console.error(e);notify('Could not complete action: '+e.message)}});
-document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){
- const name=String(values.name||'').trim(),type=String(values.type||'Other').trim();
- if(!name)return notify('Enter an equipment name.');
- if(!['Drill','Locator','Mixer','Truck','Trailer','Other'].includes(type))return notify('Choose an equipment type.');
- const id=form.dataset.id,old=state.equipment.find(x=>x.id===id);
- const gear={...old,id:old?.id||uid(),name:name.slice(0,90),type,serial:String(values.serial||'').trim().slice(0,80),notes:String(values.notes||'').trim().slice(0,1000),archived:old?.archived||false};
- if(old)state.equipment=state.equipment.map(x=>x.id===id?gear:x);else state.equipment.push(gear);
- save();closeModal();render();notify('Equipment saved.');
-}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
+document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
 }else if(form.dataset.form==='checkout'){const now=new Date().toISOString();const active=state.crew.filter(e=>!e.end);for(const entry of active){const lunch=Number(values['lunch_'+entry.id]);entry.lunch=Number.isFinite(lunch)?Math.max(0,Math.min(300,lunch)):0;entry.end=now}save();closeModal();render();notify(`${active.length} crew member${active.length===1?'':'s'} checked out.`);
 }else if(form.dataset.form==='shot'){
  const f=Number(values.feet);
