@@ -1019,6 +1019,83 @@ function downloadBlob(name,content,type){const blob=new Blob([content],{type});i
 async function exportBackup(){try{await refreshPhotos();downloadBlob(`BoreLab_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({type:'borelab-backup',version:2,createdAt:new Date().toISOString(),state,photos},null,2),'application/json');notify('Backup downloaded — keep it somewhere safe.')}catch(e){notify('Could not export: '+e.message)}}
 async function importBackup(file){try{const obj=JSON.parse(await file.text());if(obj.type!=='borelab-backup'||!obj.state||!Array.isArray(obj.state.shots)||!Array.isArray(obj.photos))throw new Error('This is not a valid BoreLab backup.');if(!confirm('Replace all current job data, photos and time entries with this backup?'))return;await photoDB('clear');for(const p of obj.photos){if(typeof p.dataUrl==='string'&&p.dataUrl.startsWith('data:image/'))await photoDB('put',p)}state=obj.state;if(!Array.isArray(state.roster))state.roster=[];if(!Array.isArray(state.equipment))state.equipment=[];if(!Array.isArray(state.reels))state.reels=[];if(!Array.isArray(state.pipeMoves))state.pipeMoves=[];if(!Array.isArray(state.pipeReservations))state.pipeReservations=[];if(!Array.isArray(state.history))state.history=[];if(!['today','job'].includes(state.reportScope))state.reportScope='today';if(!Array.isArray(state.selectedCrewIds))state.selectedCrewIds=[];save();await refreshPhotos();setPage('home');notify('Backup restored successfully.')}catch(e){notify(`Restore failed: ${e.message}`)}}
 function reportCSS(){return `body{font:13px/1.5 system-ui,Arial;color:#152535;margin:28px auto;max-width:900px;padding:0 18px}h1{color:#df7d1f;border-bottom:3px solid #df7d1f;padding-bottom:12px}h2{margin-top:30px;background:#e8eff3;padding:8px 12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #acbbc5;padding:8px;text-align:left}th{background:#e8eff3}img{max-width:290px;max-height:220px;object-fit:cover;margin:8px 14px 8px 0}small{color:#516274}.print{padding:12px;background:#eee;border:0;border-radius:8px;cursor:pointer}@media print{.print{display:none}}`}
+function buildPdfPayload(snapshot=null,requestedDay=''){
+ const day=requestedDay||todayLocal(),scope=snapshot?(snapshot.kind==='job'?'job':'daily'):(state.reportScope==='job'?'job':'daily');
+ const r=snapshot?{shots:snapshot.shots||[],crew:snapshot.crew||[],pipe:snapshot.pipe||[],photos:snapshot.photos||[]} :dailyRecords(day,scope==='job');
+ const machines=snapshot?.equipment||state.equipment,reels=snapshot?.reels||state.reels;
+ const title=snapshot?(snapshot.kind==='job'?'Saved Job Snapshot':'Saved Daily Closeout'):(scope==='job'?'Job Activity Report':'Daily Field Report');
+ const shotPipe=sh=>{
+  const entries=r.pipe.filter(m=>m.type==='installed'&&m.shotId===sh.id);
+  if(entries.length)return entries.reduce((a,x)=>a+Number(x.feet||0),0);
+  return sh.pipeUsed!==''&&sh.pipeUsed!=null&&Number.isFinite(Number(sh.pipeUsed))?Number(sh.pipeUsed):null;
+ };
+ const formattedDate=x=>x?fullDate(x):'—';
+ const actualTotal=r.shots.reduce((a,sh)=>a+Number(shotPipe(sh)||0),0);
+ const complete=r.shots.filter(sh=>sh.status==='complete');
+ const selectedPhotoIds=new Set(r.photos.map(x=>x.id));
+ const snapshotPhotos=r.photos.map(p=>{
+  const full=photos.find(x=>x.id===p.id);
+  const shot=r.shots.find(x=>x.id===p.shotId);
+  const coord=p.lat!=null&&p.lon!=null?`${Number(p.lat).toFixed(6)}, ${Number(p.lon).toFixed(6)}`:'GPS unavailable';
+  return {shot:shot?.name||'General job photo',date:formattedDate(p.addedAt),location:shot?.address||coord,dataUrl:full?.dataUrl||''};
+ });
+ return {
+  title,job:snapshot?.jobName||state.jobName,period:scope==='job'?'All recorded job activity':snapshot?.day||day,
+  homeBase:snapshot?.homeBase||state.shopAddress||coordsText(shop())||'Not provided',
+  generatedAt:formattedDate(new Date().toISOString()),
+  closeoutNote:snapshot?.notes||'',
+  checks:snapshot?.checks||[],
+  summary:{shots:`${r.shots.length} (${complete.length} complete)`,
+   completedFeet:`${fmt(complete.reduce((a,x)=>a+feet(x),0),1)} ft`,
+   plannedPipe:`${fmt(r.shots.reduce((a,x)=>a+feet(x)+Number(snapshot?.allowance??extra()),0),1)} ft`,
+   actualPipe:`${fmt(actualTotal,1)} ft (from records; check reel ledger)`,
+   crewHours:`${fmt(r.crew.reduce((a,x)=>a+hours(x),0),2)} h`,
+   photos:String(r.photos.length)},
+  shots:r.shots.map(sh=>({
+   name:sh.name||'Unnamed bore',status:sh.status||'',feet:fmt(sh.feet,1),
+   plannedPipe:fmt(Number(sh.feet||0)+Number(snapshot?.allowance??extra()),1),
+   actualPipe:shotPipe(sh)!=null?fmt(shotPipe(sh),1):'Not entered',
+   notes:sh.notes||'',address:sh.address||(sh.lat&&sh.lon?`${sh.lat}, ${sh.lon}`:'Unknown'),
+   equipment:(sh.equipmentIds||[]).map(id=>machines.find(x=>x.id===id)).filter(Boolean).map(x=>x.name).join(', ')||'Not recorded',
+   rodCount:sh.rodCount??'',entryDepth:sh.entryDepth??'',exitDepth:sh.exitDepth??'',
+   startedAt:formattedDate(sh.startedAt),completedAt:formattedDate(sh.completedAt)
+  })),
+  crew:r.crew.map(x=>({name:x.name||'',start:formattedDate(x.start),end:x.end?formattedDate(x.end):'Still on the clock',
+    lunch:String(x.lunch??0),hours:x.end?fmt(hours(x),2):'In progress',notes:x.notes||''})),
+  pipe:r.pipe.map(m=>({reel:reels.find(x=>x.id===m.reelId)?.name||'Reel',type:m.type||'',
+    shot:r.shots.find(x=>x.id===m.shotId)?.name||'General',feet:fmt(m.feet,1),date:formattedDate(m.at),note:m.note||''})),
+  photos:snapshotPhotos
+ };
+}
+async function exportRealPdf(snapshotId='',specificDay=''){
+ await refreshPhotos();
+ const saved=snapshotId?state.history.find(x=>x.id===snapshotId):null;
+ if(snapshotId&&!saved)return notify('Saved history record not found.');
+ const payload=buildPdfPayload(saved,specificDay);
+ const time=saved?.day||specificDay||todayLocal();
+ const file=`BoreLab_${saved?.kind==='job'?'Job_History':saved?'Closeout':state.reportScope==='job'?'Job_Report':'Daily_Report'}_${safeFile(payload.job)}_${time}.pdf`;
+ if(window.BoreLabNative?.exportPdf){
+  try{
+   window.BoreLabNative.exportPdf(file,JSON.stringify(payload));
+   notify('PDF prepared. Choose where to save it in Android.');
+  }catch(e){notify('Could not start PDF export: '+e.message)}
+  return;
+ }
+ // The browser preview has no Android PDF bridge; preserve access to the archived report's values.
+ const row=(a,b)=>`<p><strong>${esc(a)}:</strong> ${esc(b)}</p>`;
+ const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(payload.title)}</title>
+ <style>body{font:13px/1.55 sans-serif;max-width:850px;margin:25px auto;padding:0 20px;color:#243440}h1,h2{color:#d76e16}table{width:100%;border-collapse:collapse}td,th{border:1px solid #d4dfe6;padding:7px;vertical-align:top}img{max-width:270px;max-height:220px;margin:6px}@media print{.print{display:none}}</style></head>
+ <body><button class="print" onclick="window.print()">Print / Save as PDF</button><h1>${esc(payload.title)}</h1>
+ ${row('Job',payload.job)}${row('Period',payload.period)}${row('Home Base',payload.homeBase)}
+ ${Object.entries(payload.summary).map(([a,b])=>row(a,b)).join('')}
+ <h2>Bore Logs</h2>${payload.shots.map(x=>`<h3>${esc(x.name)} — ${esc(x.status)}</h3>${['feet','plannedPipe','actualPipe','equipment','address','startedAt','completedAt','notes'].map(k=>row(k,x[k])).join('')}`).join('')}
+ <h2>Crew</h2>${payload.crew.map(x=>row(x.name,`${x.start} – ${x.end}; ${x.hours} h`)).join('')}
+ <h2>Pipe Movements</h2>${payload.pipe.map(x=>row(x.reel,`${x.type} ${x.feet} ft · ${x.shot}`)).join('')}
+ <h2>Photos</h2>${payload.photos.map(x=>`<div>${x.dataUrl?`<img src="${x.dataUrl}">`:''}${row(x.shot,x.date+' · '+x.location)}</div>`).join('')}
+ ${payload.closeoutNote?row('Closeout notes',payload.closeoutNote):''}<p>Verify all records before submission.</p></body></html>`;
+ downloadBlob(file.replace(/\.pdf$/,'.html'),html,'text/html');
+ notify('Browser preview exported HTML. Open in a browser and Print → Save as PDF; Android app exports PDF directly.');
+}
 function exportReport(){
  const done=(async()=>{
   await refreshPhotos();
