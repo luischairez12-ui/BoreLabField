@@ -523,7 +523,8 @@ public class BoreLabActivity extends Activity {
                 String host = uri.getHost();
                 String[] allowed = {
                     "www.scribd.com", "manuals.plus", "www.ditchwitchmidwest.com",
-                    "manualmachine.com", "www.manualslib.com", "sc-journal.com",
+                    "manualmachine.com", "www.manualslib.com", "www.manualsdir.com",
+                    "partesyherramientas.us", "eliteundergroundtools.com", "sc-journal.com",
                     "diyrepairmanuals.com", "www.vermeer.com", "www.ditchwitch.com",
                     "ditchwitch.box.com", "data.ntsb.gov"
                 };
@@ -539,6 +540,29 @@ public class BoreLabActivity extends Activity {
             } catch (Exception e) {
                 toast("Invalid manual link: " + e.getMessage());
             }
+        }
+
+
+        /** User-entered manual URL: always HTTPS and always opened outside the app. */
+        @JavascriptInterface public void openUserManualLink(String url) {
+            try {
+                Uri uri = Uri.parse(url);
+                String host = uri.getHost();
+                if (url == null || url.length() > 1800 ||
+                    !"https".equalsIgnoreCase(uri.getScheme()) ||
+                    host == null || !host.contains(".") ||
+                    uri.getUserInfo() != null ||
+                    "appassets.androidplatform.net".equalsIgnoreCase(host) ||
+                    host.equalsIgnoreCase("localhost") || host.toLowerCase(java.util.Locale.ROOT).endsWith(".localhost") ||
+                    host.matches("\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\.\\\\d+") || host.startsWith("["))
+                    throw new IllegalArgumentException("Use a public https:// manual link.");
+                runOnUiThread(() -> {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                    intent.addCategory(Intent.CATEGORY_BROWSABLE);
+                    try { startActivity(intent); }
+                    catch (Exception e) { toast("Cannot open this manual in a browser."); }
+                });
+            } catch (Exception e) { toast("Invalid manual link."); }
         }
 
         @JavascriptInterface public void listManuals() {
