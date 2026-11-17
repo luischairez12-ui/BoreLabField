@@ -187,6 +187,7 @@ if(!Number.isFinite(Number(state.defaultLunchMinutes)))state.defaultLunchMinutes
 state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(state.defaultLunchMinutes)));
 if(state.theme!=='dark'&&state.theme!=='daylight')state.theme='daylight';
 let page='home',modal='',photos=[],pendingPhotoShot='',pendingPhotoKind='camera',geocodeWaitUntil=0,toastTimeout;
+let resolvingAddresses=false,attemptedAutoAddressLookup=false,lookupQueue=Promise.resolve();
 const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(n,d=0)=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:d});
@@ -212,7 +213,7 @@ const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
 async function refreshPhotos(){try{photos=(await photoDB('list')).sort((a,b)=>b.addedAt.localeCompare(a.addedAt))}catch(e){console.warn('Photo storage unavailable:',e);photos=[]}}
-function setPage(p){page=p;closeModal();render();window.scrollTo({top:0,behavior:'instant'})}
+function setPage(p){page=p;closeModal();render();window.scrollTo({top:0,behavior:'instant'});if(p==='planner'&&!attemptedAutoAddressLookup){attemptedAutoAddressLookup=true;resolveMissingAddresses(false)}}
 function render(){document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,planner:renderPlanner,photos:renderPhotos,crew:renderCrew,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();}
 function section(title,right=''){return `<div class="section-title"><h2><span class="accentbar"></span>${esc(title)}</h2>${right}</div>`}
 function quick(label,icon,sub,action){return `<button class="quick" data-action="${action}"><div class="qicon">${icon}</div><strong>${esc(label)}</strong><small>${esc(sub)}</small></button>`}
@@ -364,7 +365,85 @@ function startPickedPhoto(){pendingPhotoShot=$('#photoShotPicker')?.value||'';cl
 function photoDetail(id){const p=photos.find(p=>p.id===id);if(!p)return;const s=state.shots.find(s=>s.id===p.shotId);const hasLoc=p.lat!=null&&p.lon!=null;const coordinates=hasLoc?`${Number(p.lat).toFixed(6)}, ${Number(p.lon).toFixed(6)}`:'GPS unavailable';const address=s?.address||'';showModal(`${modalHead('Jobsite Photo')}<img src="${p.dataUrl}" alt="Captured site photo" class="photo-preview"><div class="card spaced">${kv('Shot',esc(s?.name||'General job photo'))}${kv(p.kind==='gallery'?'Added at':'Recorded at',esc(fullDate(p.addedAt)))}${kv('Address',esc(address||'No address provided'))}${kv('GPS',esc(coordinates))}${hasLoc?kv('Estimated accuracy',`${fmt(p.accuracy,1)} meters`):''}</div><div class="action-row">${hasLoc?`<a class="btn ghost" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.lat},${p.lon}`)}">Map coordinates</a>`:''}${hasLoc&&s&&!coordsValid(s)?`<button class="btn cyan" data-action="use-photo-gps" data-id="${p.id}">Use GPS for Shot</button>`:''}<button class="btn danger" data-action="delete-photo" data-id="${p.id}">Delete Photo</button></div>`)}
 function getPosition(){return new Promise((resolve,reject)=>{if(!navigator.geolocation)return reject(new Error('GPS unavailable in this browser.'));navigator.geolocation.getCurrentPosition(pos=>resolve({lat:pos.coords.latitude,lon:pos.coords.longitude,accuracy:pos.coords.accuracy}),err=>reject(new Error(err.code===1?'Location permission denied.':'Unable to get GPS position.')),{enableHighAccuracy:true,timeout:13000,maximumAge:0})})}
 async function gpsFill(target){try{notify('Requesting current GPS position…');const pos=await getPosition();const lat=$(`#${target}Lat`),lon=$(`#${target}Lon`);if(!lat||!lon)return;lat.value=pos.lat.toFixed(6);lon.value=pos.lon.toFixed(6);notify(`GPS captured (accuracy ±${Math.round(pos.accuracy)} m)`)}catch(err){notify(err.message+' Enter coordinates manually if needed.')}}
-async function geocode(target){const addr=$(`#${target}Address`)?.value?.trim();if(!addr)return notify('Enter an address first.');if(Date.now()<geocodeWaitUntil)return notify('Try again in a moment (geocoder rate limit).');geocodeWaitUntil=Date.now()+1400;notify('Looking up the address…');try{const u=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(addr)}`;const r=await fetch(u,{headers:{Accept:'application/json'}});if(!r.ok)throw new Error(`lookup unavailable (${r.status})`);const results=await r.json();if(!results.length)return notify('No match found. Check the address or enter GPS coordinates.');$(`#${target}Lat`).value=Number(results[0].lat).toFixed(6);$(`#${target}Lon`).value=Number(results[0].lon).toFixed(6);notify('Found approximate coordinates. Check the pin before routing.')}catch(e){notify(`Online lookup unavailable: ${e.message}`)}}
+function lookupAddressCoordinates(address){
+ const addr=String(address||'').trim();
+ if(!addr)return Promise.reject(Error('Enter an address.'));
+ const task=lookupQueue.then(async()=>{
+   const wait=Math.max(0,geocodeWaitUntil-Date.now());
+   if(wait)await new Promise(done=>setTimeout(done,wait));
+   geocodeWaitUntil=Date.now()+1250;
+   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),14000);
+   try{
+     const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(addr)}`;
+     const res=await fetch(url,{headers:{Accept:'application/json'},signal:controller.signal});
+     if(!res.ok)throw Error('Online lookup unavailable ('+res.status+').');
+     const rows=await res.json();
+     if(!Array.isArray(rows)||!rows.length)throw Error('Address not found; check spelling or use GPS.');
+     const p={lat:Number(rows[0].lat),lon:Number(rows[0].lon)};
+     if(!coordsValid(p))throw Error('Geocoder returned invalid coordinates.');
+     return {lat:p.lat.toFixed(6),lon:p.lon.toFixed(6)};
+   }catch(e){if(e.name==='AbortError')throw Error('Address lookup timed out.');throw e}
+   finally{clearTimeout(timeout)}
+ });
+ lookupQueue=task.catch(()=>{});
+ return task;
+}
+async function resolveMissingAddresses(manual=true){
+ if(resolvingAddresses){if(manual)notify('Location lookup is already running.');return}
+ const tasks=[];
+ if(state.shopAddress?.trim()&&!coordsValid(shop()))tasks.push({type:'shop',address:state.shopAddress.trim()});
+ for(const shot of state.shots.filter(x=>x.status!=='complete'&&x.address?.trim()&&!coordsValid(x)))tasks.push({type:'shot',id:shot.id,address:shot.address.trim()});
+ if(!tasks.length){if(manual)notify('No saved addresses awaiting GPS. Add shop and shot addresses first.');return}
+ resolvingAddresses=true;let good=0,failed=0,firstError='';
+ notify(`Looking up ${tasks.length} saved address${tasks.length===1?'':'es'}…`);
+ try{
+ for(const t of tasks){
+   try{
+     const p=await lookupAddressCoordinates(t.address);
+     if(t.type==='shop'){
+       if(state.shopAddress.trim()!==t.address)continue;
+       state.shopLat=p.lat;state.shopLon=p.lon;
+     }else{
+       const shot=state.shots.find(x=>x.id===t.id);
+       if(!shot||shot.address.trim()!==t.address)continue;
+       shot.lat=p.lat;shot.lon=p.lon;
+     }
+     good++;save();if(page==='planner')render();
+   }catch(e){failed++;firstError ||= e.message}
+ }
+ }finally{resolvingAddresses=false}
+ notify(good?`${good} location${good===1?'':'s'} added to the map.${failed?` ${failed} unresolved.`:''}`:`Could not resolve addresses. ${firstError} You can enter GPS manually.`);
+}
+async function geocode(target){
+ const addr=document.querySelector(`#${target}Address`)?.value?.trim();
+ if(!addr)return notify('Enter an address first.');
+ notify('Looking up the address…');
+ try{
+   const point=await lookupAddressCoordinates(addr);
+   if(target==='shop'){
+     state.shopAddress=addr;state.shopLat=point.lat;state.shopLon=point.lon;
+     save();if(page==='planner')render();
+     notify('Shop GPS located and saved.');
+   }else{
+     const lat=document.querySelector('#shotLat'),lon=document.querySelector('#shotLon');
+     if(!lat||!lon)return;
+     lat.value=point.lat;lon.value=point.lon;
+     notify('Address located. Tap Save Shot to keep the GPS pin.');
+   }
+ }catch(e){notify(`Address lookup failed: ${e.message}`)}
+}
+async function resolveShotAfterSave(id){
+ const shot=state.shots.find(x=>x.id===id);
+ if(!shot||!shot.address?.trim()||coordsValid(shot))return;
+ const address=shot.address.trim();
+ try{
+  const p=await lookupAddressCoordinates(address);
+  const latest=state.shots.find(x=>x.id===id);
+  if(!latest||latest.address.trim()!==address||coordsValid(latest))return;
+  latest.lat=p.lat;latest.lon=p.lon;save();if(page==='planner')render();
+  notify(`${latest.name} GPS added to map.`);
+ }catch(e){notify('Shot saved, but GPS lookup failed: '+e.message)}
+}
 async function compressImage(file){if(file.size>30*1024*1024)throw new Error('Image is too large (30 MB limit).');return new Promise((resolve,reject)=>{const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{URL.revokeObjectURL(url);const scale=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*scale));c.height=Math.max(1,Math.round(img.naturalHeight*scale));const ctx=c.getContext('2d');ctx.drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.76))};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Could not read image.'))};img.src=url})}
 async function addPhoto(file){if(!file||!file.type.startsWith('image/'))return notify('Please select a photo file.');notify('Saving jobsite photo…');let pos=null;try{pos=await getPosition()}catch(e){console.info('Saving without GPS:',e.message)}try{const dataUrl=await compressImage(file);const rec={id:uid(),shotId:pendingPhotoShot||'',kind:pendingPhotoKind,addedAt:new Date().toISOString(),lat:pos?.lat??null,lon:pos?.lon??null,accuracy:pos?.accuracy??null,dataUrl};await photoDB('put',rec);await refreshPhotos();closeModal();setPage('photos');notify(pos?`Photo saved with GPS (±${Math.round(pos.accuracy)} m)`:'Photo saved without GPS. You can add shot coordinates manually.')}catch(e){notify('Photo could not be saved: '+e.message)}}
 function safeFile(s){return String(s).replace(/[^a-z0-9-_]/gi,'_').slice(0,60)}
@@ -375,7 +454,22 @@ function reportCSS(){return `body{font:13px/1.5 system-ui,Arial;color:#152535;ma
 async function exportReport(){await refreshPhotos();const today=new Date().toISOString().slice(0,10);const rows=state.shots.map(s=>`<tr><td>${esc(s.name)}</td><td>${feet(s)}</td><td>${pipeNeed(s)}</td><td>${esc(s.status)}</td><td>${esc(s.address||coordsText(s)||'Not provided')}</td><td>${esc(s.notes||'')}</td></tr>`).join('');const crew=state.crew.map(e=>`<tr><td>${esc(e.name)}</td><td>${esc(fullDate(e.start))}</td><td>${e.end?esc(fullDate(e.end)):'Still checked in'}</td><td>${fmt(e.lunch)} min</td><td>${fmt(hours(e),2)}</td></tr>`).join('');const imageHTML=photos.map(p=>{const s=state.shots.find(s=>s.id===p.shotId);const loc=s?.address||(p.lat!=null?`${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}`:'GPS unavailable');return `<div style="display:inline-block;vertical-align:top;width:310px;margin-bottom:12px;break-inside:avoid"><img src="${p.dataUrl}"><div><b>${esc(s?.name||'General job photo')}</b><br><small>${esc(fullDate(p.addedAt))}<br>${esc(loc)}</small></div></div>`}).join('');const html=`<!doctype html><html><head><meta charset="utf-8"><title>BoreLab · ${esc(state.jobName)}</title><style>${reportCSS()}</style></head><body><button class="print" onclick="window.print()">Print / Save as PDF</button><h1>BoreLab Field — Daily Report</h1><p><b>Job:</b> ${esc(state.jobName)}<br><b>Report created:</b> ${esc(fullDate(new Date().toISOString()))}<br><b>Shop:</b> ${esc(state.shopAddress||coordsText(shop())||'Not provided')}<br><b>Footage:</b> ${fmt(doneFeet())} / ${fmt(totalFeet())} ft completed<br><b>Estimated pipe allocations:</b> ${fmt(totalNeed())} ft, incl. +${fmt(extra())} ft per shot<br><b>Pipe on hand:</b> ${fmt(state.pipeAvailable)} ft</p><h2>Bore Log</h2><table><thead><tr><th>Shot</th><th>Feet</th><th>Pipe incl. extra</th><th>Status</th><th>Location</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table><h2>Crew Time Entries</h2><p>Saved roster: ${state.roster.map(x=>esc(x.name)).join(', ')||'None'}</p><table><thead><tr><th>Member</th><th>In</th><th>Out</th><th>Lunch</th><th>Hours</th></tr></thead><tbody>${crew}</tbody></table><p><b>Total crew-hours:</b> ${fmt(state.crew.reduce((a,e)=>a+hours(e),0),2)}</p><h2>Jobsite Photos</h2>${imageHTML||'<p>No photos added.</p>'}<p><small>Photo timestamps were recorded when added. GPS coordinates are included only when device location was available. Verify all field records before using for billing or compliance.</small></p></body></html>`;downloadBlob(`BoreLab_Report_${safeFile(state.jobName)}_${today}.html`,html,'text/html');notify('Report downloaded. Open it in your browser, then Print → Save as PDF.')}
 function setShotStatus(id){const s=state.shots.find(x=>x.id===id);if(!s)return;s.status=s.status==='planned'?'progress':s.status==='progress'?'complete':'planned';s.completedAt=s.status==='complete'?new Date().toISOString():null;save();closeModal();render();notify(`${s.name} is now ${s.status==='complete'?'complete':s.status==='progress'?'in progress':'pending'}.`)}
 async function resetData(demo){if(!confirm('This will replace ALL locally saved shots, photos and time entries. Continue?'))return;await photoDB('clear');state=seed();if(!demo){state.demo=false;state.shots=[];state.jobName='My HDD Job'}save();await refreshPhotos();setPage('home');notify(demo?'Demo reloaded.':'Fresh job created.')}
-function saveShop(){state.shopAddress=$('#shopAddress').value.trim();state.shopLat=$('#shopLat').value.trim();state.shopLon=$('#shopLon').value.trim();save();render();notify('Shop location saved.')}
+async function saveShop(){
+ const address=document.querySelector('#shopAddress').value.trim();
+ let lat=document.querySelector('#shopLat').value.trim(),lon=document.querySelector('#shopLon').value.trim();
+ if((lat||lon)&&!coordsValid({lat,lon}))return notify('Please enter both valid GPS coordinates or leave them empty.');
+ if(address!==state.shopAddress&&lat===String(state.shopLat||'')&&lon===String(state.shopLon||'')){lat='';lon=''}
+ state.shopAddress=address;state.shopLat=lat;state.shopLon=lon;save();render();
+ if(coordsValid(shop()))return notify('Shop coordinates saved. Pin updated.');
+ if(!address)return notify('Shop cleared. Add an address or GPS position.');
+ notify('Shop saved. Looking up its GPS coordinates…');
+ try{
+   const p=await lookupAddressCoordinates(address);
+   if(state.shopAddress!==address)return;
+   state.shopLat=p.lat;state.shopLon=p.lon;save();render();
+   notify('Shop pin added to map. Now add your shot locations.');
+ }catch(e){render();notify(`Shop address saved, but GPS lookup failed: ${e.message}`)}
+}
 const getForm=(form)=>Object.fromEntries(new FormData(form).entries());
 document.addEventListener('click',async event=>{const p=event.target.closest('[data-page]');if(p){setPage(p.dataset.page);return}const btn=event.target.closest('[data-action]');if(!btn)return;if(btn.dataset.action==='backdrop'&&event.target!==btn)return;const action=btn.dataset.action,id=btn.dataset.id;event.preventDefault();try{
 switch(action){
@@ -398,6 +492,7 @@ switch(action){
  case 'gps-shot':gpsFill('shot');break;
  case 'geocode-shop':geocode('shop');break;
  case 'geocode-shot':geocode('shot');break;
+ case 'resolve-addresses':resolveMissingAddresses(true);break;
  case 'choose-photo':photoChoose('camera');break;
  case 'choose-gallery':photoChoose('gallery');break;
  case 'capture-for-shot':photoChoose('camera',id);break;
@@ -423,7 +518,7 @@ switch(action){
 document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
 }else if(form.dataset.form==='checkout'){const now=new Date().toISOString();const active=state.crew.filter(e=>!e.end);for(const entry of active){const lunch=Number(values['lunch_'+entry.id]);entry.lunch=Number.isFinite(lunch)?Math.max(0,Math.min(300,lunch)):0;entry.end=now}save();closeModal();render();notify(`${active.length} crew member${active.length===1?'':'s'} checked out.`);
 }else if(form.dataset.form==='shot'){
- const f=Number(values.feet);if(!Number.isFinite(f)||f<0)return notify('Enter a valid bore length.');const lat=values.lat.trim(),lon=values.lon.trim();if((lat!==''||lon!=='')&&!coordsValid({lat,lon}))return notify('Enter a valid latitude AND longitude, or leave both blank.');const id=form.dataset.id;const old=state.shots.find(s=>s.id===id),s={id:old?.id||uid(),name:values.name.trim(),feet:f,address:values.address.trim(),lat,lon,notes:values.notes.trim(),status:values.status,completedAt:values.status==='complete'?(old?.completedAt||new Date().toISOString()):null};if(old)state.shots=state.shots.map(x=>x.id===id?s:x);else state.shots.push(s);state.demo=false;save();closeModal();render();notify('Bore shot saved.');
+ const f=Number(values.feet);if(!Number.isFinite(f)||f<0)return notify('Enter a valid bore length.');const lat=values.lat.trim(),lon=values.lon.trim();if((lat!==''||lon!=='')&&!coordsValid({lat,lon}))return notify('Enter a valid latitude AND longitude, or leave both blank.');const id=form.dataset.id;const old=state.shots.find(s=>s.id===id),s={id:old?.id||uid(),name:values.name.trim(),feet:f,address:values.address.trim(),lat,lon,notes:values.notes.trim(),status:values.status,completedAt:values.status==='complete'?(old?.completedAt||new Date().toISOString()):null};if(old)state.shots=state.shots.map(x=>x.id===id?s:x);else state.shots.push(s);state.demo=false;save();closeModal();render();notify('Bore shot saved.');resolveShotAfterSave(s.id);
 }else if(form.dataset.form==='time'){
  const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);save();closeModal();render();notify('Crew time saved.');
 }});
