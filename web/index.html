@@ -205,6 +205,15 @@ html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;borde
 
 .mud-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.mud-stat-grid>div{border:1px solid var(--line);background:var(--surface2);padding:10px 8px;border-radius:10px;display:flex;flex-direction:column;gap:4px}.mud-stat-grid small{font-size:11px;color:var(--muted)}.mud-stat-grid strong{font-size:13px}
 .mud-product-item{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:10px 0}.mud-product-item label{display:flex;align-items:center;gap:9px;flex:1;min-width:0;font-size:12px}.mud-product-item input{width:18px;height:18px;flex-shrink:0;accent-color:#e57e20}.mud-product-item label span{min-width:0;overflow-wrap:anywhere}.mud-product-item small,.mud-dose-item small{display:block;color:var(--muted);font-size:11px;margin-top:4px;overflow-wrap:anywhere}.mud-dose-item{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:12px}.mud-dose-item>strong:last-child{color:var(--accent);text-align:right;flex-shrink:0}
+.mud-label-preview{display:flex;align-items:center;gap:13px;margin:12px 0;border:1px solid var(--line);background:var(--surface2);padding:10px;border-radius:12px}
+.mud-label-preview img{width:85px;height:96px;object-fit:contain;background:white;border-radius:8px}
+.mud-label-preview strong{font-size:12px;line-height:1.4}
+.mud-scan-copy{margin:10px 0 16px;border:1px solid var(--line);border-radius:10px;padding:11px}
+.mud-scan-copy summary{cursor:pointer;font-size:12px;font-weight:750}
+.mud-scan-copy pre{font-size:11px;line-height:1.4;white-space:pre-wrap;word-break:break-word;max-height:230px;overflow:auto;color:var(--muted)}
+.mud-rate-check{display:flex;gap:10px;padding:12px;background:var(--surface2);border-radius:11px;align-items:flex-start;font-size:12px}
+.mud-rate-check input{margin-top:1px;flex-shrink:0;width:20px;height:20px;accent-color:var(--accent)}
+
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -229,6 +238,8 @@ html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;borde
   <input type="file" id="cameraFile" accept="image/*" capture="environment" hidden>
   <input type="file" id="galleryFile" accept="image/*" hidden>
   <input type="file" id="importFile" accept="application/json,.json" hidden>
+  <input type="file" id="mudCameraFile" accept="image/*" capture="environment" hidden>
+  <input type="file" id="mudGalleryFile" accept="image/*" hidden>
 <script>
 /* BoreLab Field v0.1 — all data stays on this device unless explicitly exported. */
 (() => {
@@ -258,6 +269,7 @@ let page='home',modal='',photos=[],pendingPhotoShot='',pendingPhotoKind='camera'
 let resolvingAddresses=false,attemptedAutoAddressLookup=false,lookupQueue=Promise.resolve();
 let routeMenuOpen=false; // display-only state
 let closeoutDay='';
+let pendingMudScan=null;
 const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(n,d=0)=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:d});
@@ -278,7 +290,7 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.7.0 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.7.1 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
@@ -395,7 +407,7 @@ function calculateMud(t=mudConfig(),selected=state.mudSelectedIds){
  const added=Math.round((target-current)*1000)/1000;
  if(!added)return{ok:false,error:'No new water to mix. Increase the target level or update the current tank level.'};
  const doseBasis=t.mode==='fresh'?target:added;
- const products=selected.map(id=>state.mudProducts.find(x=>x.id===id&&!x.archived)).filter(Boolean).map(p=>({
+ const products=selected.map(id=>state.mudProducts.find(x=>x.id===id&&!x.archived&&mudProductReady(x))).filter(Boolean).map(p=>({
   id:p.id,name:p.name,unit:p.unit,rate:Number(p.rate),perGallons:Number(p.perGallons),
   manufacturer:p.manufacturer||'',source:p.source||'',instructions:p.instructions||'',
   dose:doseBasis*Number(p.rate)/Number(p.perGallons)
@@ -403,21 +415,94 @@ function calculateMud(t=mudConfig(),selected=state.mudSelectedIds){
  if(products.some(p=>!Number.isFinite(p.dose)||p.rate<=0||p.perGallons<=0))return{ok:false,error:'One of the selected products has an invalid rate.'};
  return{ok:true,capacity,current,target,added,doseBasis,products,mode:t.mode,soil:t.soil||'unknown'};
 }
-function mudProductForm(id){
- const p=state.mudProducts.find(x=>x.id===id)||{name:'',manufacturer:'',unit:'lb',rate:'',perGallons:100,source:'',instructions:''};
- const units=['lb','oz (weight)','fl oz','qt','gal','kg','L','mL','bags'];
- showModal(`${modalHead(id?'Edit Mud Product':'Add Mud Product')}
- <p class="smalltext muted">Enter the actual mixing rate from the product label or approved fluid program. BoreLab will not invent additive ratios.</p>
- <form data-form="mud-product" data-id="${esc(id||'')}">
- <label class="field">Product name<input required name="name" maxlength="100" value="${esc(p.name)}" placeholder="Bentonite / polymer product name"></label>
- <label class="field">Manufacturer<input name="manufacturer" maxlength="100" value="${esc(p.manufacturer||'')}"></label>
- <div class="form-grid"><label class="field">Dose amount<input type="number" name="rate" required min="0.000001" step="any" value="${esc(p.rate)}"></label>
- <label class="field">Units<select name="unit">${units.map(u=>`<option value="${esc(u)}" ${p.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select></label>
- <label class="field wide">Per how many gallons of water?<input name="perGallons" type="number" min="0.01" step="any" required value="${esc(p.perGallons)}" placeholder="e.g., 100"></label></div>
- <label class="field">Rate source / label reference<input name="source" maxlength="220" value="${esc(p.source||'')}" placeholder="Data sheet, approved plan, reference date"></label>
- <label class="field">Manufacturer mixing notes<textarea name="instructions" rows="3" maxlength="2000">${esc(p.instructions||'')}</textarea></label>
- <div class="modal-footer"><button class="btn ghost" type="button" data-action="close-modal">Cancel</button>${id?`<button class="btn micro danger" type="button" data-action="mud-archive-product" data-id="${esc(id)}">Archive</button>`:""}<button class="btn primary" type="submit">Save Product</button></div></form>`);
+function guessMudProductName(text){
+ const skip=/\b(warning|caution|keep out|danger|first aid|ingredients|directions|net wt|net weight|safety data|made in|batch no|lot no|www\.|telephone|storage|application rate|mixing instructions)\b/i;
+ const lines=String(text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ const possible=lines.find(x=>x.length>=3&&x.length<=85&&!skip.test(x)&&/[a-zA-Z]{3}/.test(x)&&!/^\d/.test(x));
+ return (possible||'').slice(0,100);
 }
+function chooseMudLabelSource(){
+ showModal(`${modalHead('Scan Mud Product Label')}
+ <p class="smalltext muted">Photograph the front of your bentonite, polymer or drilling fluid product. A close-up of its mixing instructions helps read the text.</p>
+ <div class="action-row"><button class="btn primary" data-action="scan-mud-camera">▣ Take Picture</button>
+ <button class="btn ghost" data-action="scan-mud-gallery">＋ Choose Photo</button></div>
+ <p class="tiny muted spaced">On Android, label text is recognized on your device. Review the product name and label instructions before saving it to your MixLab library.</p>`);
+}
+function imageResizedJpeg(image,maxDimension,quality){
+ const scale=Math.min(1,maxDimension/Math.max(image.naturalWidth||image.width,image.naturalHeight||image.height));
+ const width=Math.max(1,Math.round((image.naturalWidth||image.width)*scale));
+ const height=Math.max(1,Math.round((image.naturalHeight||image.height)*scale));
+ const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+ const ctx=canvas.getContext('2d');
+ if(!ctx)throw Error('Image processing is unavailable.');
+ ctx.drawImage(image,0,0,width,height);
+ return canvas.toDataURL('image/jpeg',quality);
+}
+async function scanMudLabelFile(file){
+ if(!file||!file.type.startsWith('image/'))return notify('Please choose a product label photo.');
+ if(file.size>18000000)return notify('Photo is too large. Try a smaller image or take another picture.');
+ let url;
+ try{
+  url=URL.createObjectURL(file);
+  const image=await new Promise((resolve,reject)=>{
+   const img=new Image();
+   img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Could not open that image.'));
+   img.src=url;
+  });
+  const photo=imageResizedJpeg(image,950,0.66);
+  const scan=imageResizedJpeg(image,1800,0.87);
+  pendingMudScan={photo,text:'',name:'',at:new Date().toISOString()};
+  closeModal();
+  if(window.BoreLabNative?.scanProductLabel){
+   notify('Reading label text on this phone...');
+   window.BoreLabNative.scanProductLabel(scan);
+  }else{
+   notify('Automatic label reading requires the Android app. You can save the photo and enter details manually.');
+   mudProductForm();
+  }
+ }catch(error){
+  pendingMudScan=null;
+  notify('Could not scan photo: '+String(error.message||error));
+ }finally{if(url)URL.revokeObjectURL(url)}
+}
+function mudProductReady(product){
+ return !!product&&Number(product.rate)>0&&Number(product.perGallons)>0&&(!product.labelPhoto||product.rateVerified===true);
+}
+function mudProductForm(id){
+ const existing=state.mudProducts.find(x=>x.id===id);
+ const scan=(!id&&pendingMudScan)?pendingMudScan:null;
+ const p=existing||{name:scan?.name||'',manufacturer:'',unit:'lb',rate:'',perGallons:scan?'':100,source:'',instructions:'',labelPhoto:scan?.photo||'',labelText:scan?.text||'',rateVerified:false};
+ const units=['lb','oz (weight)','fl oz','qt','gal','kg','L','mL','bags'];
+ const scanned=!!p.labelPhoto;
+ showModal(`${modalHead(id?'Edit Mud Product':scanned?'Review Scanned Product':'Add Mud Product')}
+ ${scanned?`<div class="mud-label-preview"><img src="${p.labelPhoto}" alt="Saved product label" loading="lazy"><div><strong>Product label photo saved with this entry</strong><p class="tiny muted spaced">Review the scanned text. It may miss numbers, symbols, or lines.</p></div></div>
+ <details class="mud-scan-copy"><summary>Recognized label text · tap to read</summary><pre>${esc((p.labelText||'').slice(0,9000)||'No text recognized. Enter the details from the label photo.')}</pre></details>`:
+ `<p class="smalltext muted">Enter the mixing rate from the product label or an approved fluid program.</p>`}
+ <form data-form="mud-product" data-id="${esc(id||'')}">
+ <label class="field">Product name<input required name="name" maxlength="100" value="${esc(p.name)}" placeholder="Name printed on the bag or bottle"></label>
+ <label class="field">Manufacturer<input name="manufacturer" maxlength="100" value="${esc(p.manufacturer||'')}"></label>
+ <div class="form-grid">
+ <label class="field">Dose amount<input type="number" name="rate" ${scanned?'':'required'} min="0.000001" step="any" value="${esc(p.rate??'')}" placeholder="Read label"></label>
+ <label class="field">Units<select name="unit">${units.map(u=>`<option value="${esc(u)}" ${p.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select></label>
+ <label class="field wide">Per gallons of water<input type="number" name="perGallons" ${scanned?'':'required'} min="0.01" step="any" value="${esc(p.perGallons??'')}" placeholder="e.g., 100 or 1000 from label"></label>
+ </div>
+ <label class="field">Rate source<input name="source" maxlength="220" value="${esc(p.source||'')}" placeholder="Product label / published data sheet / approved program"></label>
+ <label class="field">Manufacturer mixing notes<textarea name="instructions" rows="3" maxlength="2000">${esc(p.instructions||'')}</textarea></label>
+ ${scanned?`<label class="mud-rate-check"><input type="checkbox" name="verifiedRate" value="yes" ${p.rateVerified?'checked':''}><span>I verified the mixing rate, units and gallons against the actual label or approved instructions.</span></label>
+ <p class="tiny muted spaced">Save now even if you have not confirmed the rate. The product will appear in your library, marked <strong>Needs Verified Rate</strong>, and will become selectable for calculations after you confirm it.</p>`:''}
+ <div class="modal-footer"><button class="btn ghost" type="button" data-action="close-modal">Cancel</button>
+ ${id?`<button class="btn micro danger" type="button" data-action="mud-archive-product" data-id="${esc(id)}">Archive</button>`:''}
+ <button class="btn primary" type="submit">${scanned?'Save to Product Library':'Save Product'}</button></div>
+ </form>`);
+}
+window.borelabOnLabelScan=function borelabOnLabelScan(text,error){
+ if(!pendingMudScan)return;
+ pendingMudScan.text=String(text||'').slice(0,9000);
+ pendingMudScan.name=guessMudProductName(pendingMudScan.text);
+ if(error)notify('Text recognition failed. You can still save the label image and enter details manually.');
+ else if(!pendingMudScan.text.trim())notify('No readable text was found. Try a clearer photo or enter details manually.');
+ mudProductForm();
+};
 function mudLevelForm(){
  const t=mudConfig();
  showModal(`${modalHead('Update Current Tank Level')}<p class="smalltext muted">For pumping down or coming back with leftover fluid. This only changes the water/mixture level; it does not record an added chemical batch.</p>
@@ -437,7 +522,12 @@ function renderMudMixer(){
  <label class="field wide">Ground conditions (notes only)<select name="soil">${[['unknown','Not recorded'],['sand','Sand'],['clay','Clay'],['mixed','Mixed'],['rock','Rock'],['other','Other']].map(([v,label])=>`<option value="${v}" ${t.soil===v?'selected':''}>${label}</option>`).join('')}</select></label></div>
  <p class="tiny muted spaced">Soil choice does not automatically alter treatment dosage. Check the actual ground, water quality and fluid program.</p>
  <div class="divider"></div><div class="between"><h3>Products for This Batch</h3><button type="button" class="btn micro ghost" data-action="mud-add-product">+ Product</button></div>
- ${products.length?products.map(p=>`<div class="mud-product-item"><label><input name="mudSelected" type="checkbox" value="${esc(p.id)}" ${state.mudSelectedIds.includes(p.id)?'checked':''}><span><strong>${esc(p.name)}</strong><small>${fmt(p.rate,4)} ${esc(p.unit)} per ${fmt(p.perGallons,2)} gal · ${esc(p.manufacturer||'Custom label rate')}</small></span></label><button class="btn micro ghost" type="button" data-action="mud-edit-product" data-id="${esc(p.id)}">Edit</button></div>`).join(''):'<div class="empty spaced"><strong>No products saved</strong>Add a product and enter its actual manufacturer-approved mixing rate.</div>'}
+ <div class="action-row"><button class="btn primary" type="button" data-action="scan-mud-label">▣ Scan Product Label</button></div>
+ ${products.length?products.map(p=>{const usable=mudProductReady(p);return `<div class="mud-product-item">
+ <label><input name="mudSelected" type="checkbox" value="${esc(p.id)}" ${usable?'':'disabled'} ${usable&&state.mudSelectedIds.includes(p.id)?'checked':''}>
+ <span><strong>${esc(p.name)} ${p.labelPhoto?'▣':''}</strong>
+ <small>${usable?`${fmt(p.rate,4)} ${esc(p.unit)} per ${fmt(p.perGallons,2)} gal`:'Needs verified mixing rate — edit to enable'} · ${esc(p.manufacturer||'Saved product')}</small></span></label>
+ <button class="btn micro ghost" type="button" data-action="mud-edit-product" data-id="${esc(p.id)}">${usable?'Edit':'Add Rate'}</button></div>`}).join(''):'<div class="empty spaced"><strong>No products saved</strong>Add a product and enter its actual manufacturer-approved mixing rate.</div>'}
  <label class="field spaced">Mix notes<textarea name="notes" rows="2" maxlength="1000" placeholder="pH readings, mixing order, unusual conditions...">${esc(t.notes||'')}</textarea></label>
  <div class="action-row"><button class="btn primary" type="submit">Calculate & Save Plan</button><button class="btn ghost" type="submit" data-mud-commit="yes">Record Actual Mix</button></div></form></div>
  <div class="card spaced"><div class="between"><div><span class="eyebrow">SAVED PLAN</span><h2>Mix Preview</h2></div><span class="status ${plan.ok?'complete':'planned'}">${plan.ok?'Review doses':'Set inputs'}</span></div>
@@ -451,16 +541,35 @@ function renderMudMixer(){
  ${footnote()}</div>`;
 }
 function saveMudProduct(form,values){
- const rate=Number(values.rate),perGallons=Number(values.perGallons),name=String(values.name||'').trim();
+ const name=String(values.name||'').trim(),unit=String(values.unit||'').trim();
  const units=['lb','oz (weight)','fl oz','qt','gal','kg','L','mL','bags'];
- if(!name||!units.includes(values.unit)||!Number.isFinite(rate)||rate<=0||!Number.isFinite(perGallons)||perGallons<=0)return notify('Enter a name, positive dose, units and gallons from the label.');
  const id=form.dataset.id,existing=state.mudProducts.find(p=>p.id===id);
+ const scan=!existing?pendingMudScan:null;
+ const photo=existing?.labelPhoto||scan?.photo||'';
+ const text=existing?.labelText||scan?.text||'';
+ const scanned=!!photo;
+ const rateRaw=String(values.rate??'').trim(),perRaw=String(values.perGallons??'').trim();
+ const rate=rateRaw===''?'':Number(rateRaw),perGallons=perRaw===''?'':Number(perRaw);
+ if(!name||!units.includes(unit))return notify('Enter the product name and choose its dose units.');
+ if(rate!==''&&(!Number.isFinite(rate)||rate<=0))return notify('Dose must be a positive number.');
+ if(perGallons!==''&&(!Number.isFinite(perGallons)||perGallons<=0))return notify('Gallons must be a positive number.');
+ if(!scanned&&(rate===''||perGallons===''))return notify('Manually entered products require a complete dose and gallons.');
+ const verified=!scanned||values.verifiedRate==='yes';
+ if(scanned&&verified&&(rate===''||perGallons===''))return notify('Enter the confirmed rate and gallons before checking verified.');
  const product={...existing,id:existing?.id||uid(),name:name.slice(0,100),
-  manufacturer:String(values.manufacturer||'').trim().slice(0,100),rate,unit:values.unit,perGallons,
-  source:String(values.source||'').trim().slice(0,220),instructions:String(values.instructions||'').trim().slice(0,2000),archived:false};
+  manufacturer:String(values.manufacturer||'').trim().slice(0,100),
+  rate,unit,perGallons,
+  source:String(values.source||'').trim().slice(0,220),instructions:String(values.instructions||'').trim().slice(0,2000),
+  labelPhoto:photo,labelText:text.slice(0,9000),scannedAt:existing?.scannedAt||scan?.at||'',
+  rateVerified:verified,archived:false};
  if(existing)state.mudProducts=state.mudProducts.map(p=>p.id===id?product:p);
- else{state.mudProducts.push(product);state.mudSelectedIds.push(product.id)}
- save();closeModal();render();notify('Product rate saved from your entry.');
+ else state.mudProducts.push(product);
+ if(mudProductReady(product)){
+  if(!state.mudSelectedIds.includes(product.id))state.mudSelectedIds.push(product.id);
+ }else state.mudSelectedIds=state.mudSelectedIds.filter(x=>x!==product.id);
+ pendingMudScan=null;
+ save();closeModal();render();
+ notify(mudProductReady(product)?'Product saved and ready to select in MixLab.':'Scanned product saved in MixLab. Tap Add Rate later to enable calculations.');
 }
 function saveMudPlan(form,values,record=false){
  const config={
@@ -470,7 +579,7 @@ function saveMudPlan(form,values,record=false){
   notes:String(values.notes||'').trim().slice(0,1000)
  };
  const ids=[...form.querySelectorAll('input[name="mudSelected"]:checked')].map(input=>input.value)
-  .filter(id=>state.mudProducts.some(p=>p.id===id&&!p.archived));
+  .filter(id=>state.mudProducts.some(p=>p.id===id&&!p.archived&&mudProductReady(p)));
  const plan=calculateMud(config,ids);
  if(!plan.ok)return notify(plan.error);
  if(record&&!plan.products.length)return notify('Select at least one product to record an actual mixed batch. A water-only calculation can still be previewed.');
@@ -1327,7 +1436,10 @@ switch(action){
  case 'export-daily-pdf':await exportRealPdf('',closeoutDay||todayLocal());break;
  case 'go-pipe':setPage('pipe');break;
  case 'go-mud':setPage('mud');break;
- case 'mud-add-product':mudProductForm();break;
+ case 'scan-mud-label':chooseMudLabelSource();break;
+ case 'scan-mud-camera':closeModal();$('#mudCameraFile').click();break;
+ case 'scan-mud-gallery':closeModal();$('#mudGalleryFile').click();break;
+ case 'mud-add-product':pendingMudScan=null;mudProductForm();break;
  case 'mud-edit-product':mudProductForm(id);break;
  case 'mud-archive-product':archiveMudProduct(id);break;
  case 'mud-level':mudLevelForm();break;
@@ -1417,6 +1529,9 @@ document.addEventListener('change',e=>{if(e.target.matches('[data-closeout-day]'
 $('#cameraFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#galleryFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#importFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await importBackup(file);e.target.value=''});
+for(const inputId of ['mudCameraFile','mudGalleryFile']){
+ $('#'+inputId).addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await scanMudLabelFile(file);e.target.value=''});
+}
 window.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if((e.key==='Enter'||e.key===' ')&&e.target.matches('.map-pin')){e.preventDefault();e.target.click()}});
 async function init(){applyTheme();await refreshPhotos();render();setTimeout(notifyServiceOnOpen,300);setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
 init();

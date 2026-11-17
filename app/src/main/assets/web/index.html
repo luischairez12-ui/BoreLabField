@@ -290,7 +290,7 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.7.0 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.7.1 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}

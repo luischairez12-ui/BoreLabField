@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.7.0 (debug/test build)
+**Current version:** v0.7.1 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.7.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.7.1-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,19 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.7.1 — Scan a Product Label Once, Reuse in MixLab
+
+- **Scan Product Label** in MixLab offers camera capture or choosing an existing photo.
+- The Android app uses the **bundled on-device Google ML Kit Latin-script text recognizer**, so no cloud OCR service, network connection, or Google Play Services is required to read the label.
+- BoreLab suggests a product name based on the scanned text; keeps a compressed product-label photo and recognized label text alongside the saved product entry.
+- A scanned product immediately becomes a **saved library option**. If the dosage is incomplete or unverified, it is listed as **Needs verified mixing rate**, with an **Add Rate** button; its checkbox remains disabled.
+- Once a user checks the product's actual label/approved fluid program, enters a positive amount and gallons, and explicitly checks **I verified...**, the product becomes selectable for MixLab calculations and is selected automatically after saving.
+- Existing manually entered products remain available without scanning. Old MixLab batch history and existing job data are preserved.
+- Scanned product photos are compressed and stored with the saved app data, including JSON backups. Too many photos could approach browser storage limits; back up regularly.
+- In a regular web browser without the Android OCR bridge, the user can still attach the photo and manually enter the product details; **automatic OCR is available in the Android APK only**.
+
+**Important:** Image recognition is not a guarantee of accurate dosage. Mixing quantities are never approved automatically. Verify rates, units, gallon basis and manufacturer-specific instructions yourself before calculating or mixing.
 
 ## New in v0.7 — MixLab: Drilling Mud Calculator
 
