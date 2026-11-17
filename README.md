@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.4.1 (debug/test build)
+**Current version:** v0.5.0 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.4.1-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.5.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,24 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.5 — Reel Inventory and Company Truck Service
+
+**No changes to road routing in this release.** The existing GPS/route behavior is retained.
+
+- **Reel-by-reel pipe stock:** add individual reels with size, material, location (truck or yard), remaining footage, and a "use before returning" flag
+- **Pipe reservations:** hold footage against a reel for a particular shot without reducing remaining physical stock; release reservations from the inventory screen
+- **Actual pipe use:** record footage installed from a reel and attach it to a bore shot; reduce the reel's balance only when pipe is recorded as used, not when planned or reserved
+- **Inventory adjustments and history:** log added/removed footage, with safeguards against negative balances or using pipe reserved for another shot
+- **Planner integration:** pipe on truck comes from active reel balances once reels are entered; pending shots (not completed shots) drive the open pipe requirement
+- **Preserves legacy inventory:** existing single-number stock remains available until the crew adds reels; no reel allocations are inferred
+- **Garage company trucks:** save odometer, engine hours, last oil service date/mileage/hours, and configurable oil-change interval in miles, months, and/or engine hours
+- **Oil change status:** show "due soon" or "due" on Home and in Garage based on entered readings and dates; show a reminder when the app opens
+- **Log an oil change:** record when service occurred and reset the next-due calculation, retaining service history
+
+**Important service disclaimer:** BoreLab does *not* guess the correct oil-change interval for a company truck. Enter the manufacturer/fleet interval for that specific engine and duty cycle. The app cannot read the odometer by itself; update the mileage/engine-hours values as they change. **Reminders appear in BoreLab on app open / in Garage. They are not Android background push notifications when the app is closed.** Confirm service requirements with the vehicle manual and your fleet policy.
+
+**Important pipe disclaimer:** Reel footage is a quantity balance, not proof of continuous usable pipe. Confirm reel lengths, pipe types, connections, handling, and scrap before scheduling work. Installed-pipe transaction history takes precedence over an older manually typed pipe-used value for a shot. The app stores these records only on this device until exported.
 
 ## New in v0.4.1 — Compact Route Options
 
