@@ -194,6 +194,7 @@ public final class FieldPdfExporter {
             label("Actual pipe logged", str(summary, "actualPipe"));
             label("Crew-hours", str(summary, "crewHours"));
             label("Photos", str(summary, "photos"));
+            label("Mud batches", str(summary, "mudBatches"));
         }
         String closeoutNote = str(report, "closeoutNote");
         JSONArray checks = array(report, "checks");
@@ -245,6 +246,24 @@ public final class FieldPdfExporter {
             item(str(move, "reel") + " — " + str(move, "type"),
                  str(move, "feet") + " ft   |   " + str(move, "shot") + "   |   " + str(move, "date"),
                  str(move, "note"));
+        }
+        section("Drilling fluid / MixLab");
+        JSONArray mud = array(report, "mud");
+        if (mud.length() == 0) write("No mixing batches recorded for this period.", 10, MUTED, false, 0);
+        for (int i = 0; i < mud.length(); i++) {
+            JSONObject batch = mud.optJSONObject(i);
+            if (batch == null) continue;
+            String detail = "Water added: " + str(batch, "waterAdded") + " gal  |  Tank: " +
+                    str(batch, "before") + " to " + str(batch, "target") + " gal  |  " +
+                    str(batch, "mode") + "  |  Soil: " + str(batch, "soil");
+            item("Mix recorded " + str(batch, "date"), detail, str(batch, "notes"));
+            JSONArray products = array(batch, "products");
+            for (int p = 0; p < products.length(); p++) {
+                JSONObject additive = products.optJSONObject(p);
+                if (additive == null) continue;
+                write(str(additive, "name") + ": " + str(additive, "amount") + " " + str(additive, "unit"), 9, INK, false, 12);
+            }
+            y += 5;
         }
         section("Jobsite photos");
         JSONArray photos = array(report, "photos");
