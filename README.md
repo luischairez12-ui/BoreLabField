@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.3.4 (debug/test build)
+**Current version:** v0.4.0 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.3.4-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.4.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,17 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.4 — Field Operations
+
+- Tap a shot pin, a shot's **Navigate** button, or the shot detail's **Google Maps** button to open that stop in Maps
+- Launch a full **shop → ordered shot stops → shop** route in Google Maps when all stops have a location
+- **Equipment Garage** in Settings: save drills, locators, mixers, trucks and trailers with optional serial/unit number; assign multiple items to a shot
+- **Bore Log** records planned pipe including the +10 ft allowance versus **actual pipe used**, rod count, entry/exit depth, start/finish time, notes and equipment
+- Photos attached to a shot appear in that shot's detail screen; add from camera or gallery
+- One-tap report compiled from saved records; Settings lets you choose **today** or **entire job**
+
+**Important:** The interactive in-app map is a schematic using GPS positions, not a streets map. It can work offline with existing GPS pins, but Google Maps navigation and address lookup require internet access. Route priority still uses geographic (straight-line) distance, not live road duration. The report exports **printable HTML**, which you can open and use Print → Save as PDF; a native PDF exporter is not implemented yet. Pipe footage used on a bore is not automatically deducted from reusable pipe inventory. The app stays on-device; it does not automatically submit reports or timesheets.
 
 ## Development
 
