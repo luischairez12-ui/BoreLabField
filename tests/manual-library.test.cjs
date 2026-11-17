@@ -14,7 +14,7 @@ const beg=js.indexOf('const MANUAL_MACHINES='),end=js.indexOf('function render()
 assert(beg>=0&&end>beg);
 const f=new Function('window','esc','footnote','section','notify','render','page',
  'let manualFiles={};let manualStatusKnown=true;let selectedManualMachine="vermeer-d24x40";'+js.slice(beg,end)+
- 'return {MANUAL_MACHINES,MANUAL_TYPES,manualSlot,isManualSlot,renderManualLibrary};');
+ 'return {MANUAL_MACHINES,MANUAL_TYPES,manualSlot,isManualSlot,renderManualLibrary,manualAlternatives,openManualAlternative};');
 const data=f({BoreLabNative:{importManual:()=>{},listManuals:()=>{}}},String,()=>'',(x,r)=>x+r,()=>{},()=>{},'manuals');
 assert.equal(data.MANUAL_MACHINES.length,8);
 assert(data.MANUAL_MACHINES.some(x=>x.id==='vermeer-d24x40-series-ii'));
@@ -24,6 +24,16 @@ assert(data.MANUAL_MACHINES.every(x=>x.source.startsWith('https://')));
 const view=data.renderManualLibrary();
 assert(view.includes('○ Not saved'),'No PDF should be checked by default');
 assert(view.includes('Import PDF'));
+assert(data.MANUAL_MACHINES.every(m=>['operator','maintenance','parts'].some(type=>data.manualAlternatives(m.id,type).length)),
+ 'Every rig needs at least one located reference link');
+const sent='https://www.scribd.com/document/780730040/24x40-36x50-Vermeer-operators-manual-Series-II';
+assert.equal(data.manualAlternatives('vermeer-d24x40','operator')[0].url,sent);
+assert.equal(data.manualAlternatives('vermeer-d24x40-series-ii','operator')[0].url,sent);
+assert(js.includes('MANUAL_TYPES.some(([type])=>manualSlot(m.id,type)===slot)'), 'Must match longer Series II model exactly');
+assert(!js.includes("MANUAL_MACHINES.find(m=>slot.startsWith(m.id+'-'))"),'Ambiguous rig prefix bug regression');
+assert(js.includes('Open your Scribd manual'));
+assert(js.includes('openManualLink(item.url)'));
+
 assert(js.includes('MANUAL_ALTERNATES'));
 assert(js.includes('manualAlternatives(machine.id,type).map'));
 assert(js.includes("case 'manual-alternate':openManualAlternative(id,Number(btn.dataset.index))"));
@@ -39,6 +49,9 @@ assert(java.includes('private boolean isPdf(File pdf)'));
 assert(java.includes('getFilesDir(), "manuals"'));
 assert(java.includes('StandardCopyOption.REPLACE_EXISTING'));
 assert(java.includes('FLAG_GRANT_READ_URI_PERMISSION'));
+assert(java.includes('void openManualLink(String url)'));
+assert(java.includes('CATEGORY_BROWSABLE'));
+assert(java.includes('"www.scribd.com"'));
 assert(manifest.includes('androidx.core.content.FileProvider'));
 assert(filepaths.includes('path="manuals/"'));
 console.log('BoreLab Manual Library: model catalog, UI actions, disk-based checkmarks and Android PDF storage bridge verified.');
