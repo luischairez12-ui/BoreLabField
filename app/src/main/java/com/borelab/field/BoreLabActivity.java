@@ -230,6 +230,39 @@ public class BoreLabActivity extends Activity {
             runOnUiThread(() -> applySystemTheme(!"dark".equals(mode)));
         }
 
+
+        /** Create a real PDF, then let Android's document picker choose its destination. */
+        @JavascriptInterface public void exportPdf(String name, String reportJson) {
+            new Thread(() -> {
+                try {
+                    if (reportJson == null || reportJson.length() > 40000000) {
+                        throw new IllegalArgumentException("Report is too large. Remove some photos and retry.");
+                    }
+                    final byte[] bytes = FieldPdfExporter.generate(reportJson);
+                    runOnUiThread(() -> {
+                        if (exportBytes != null) {
+                            toast("Finish saving the previous export first.");
+                            return;
+                        }
+                        exportBytes = bytes;
+                        Intent save = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                        save.addCategory(Intent.CATEGORY_OPENABLE);
+                        save.setType("application/pdf");
+                        save.putExtra(Intent.EXTRA_TITLE,
+                                name == null || name.isEmpty() ? "BoreLab_Field_Report.pdf" : name);
+                        try {
+                            startActivityForResult(save, REQ_SAVE);
+                        } catch (Exception e) {
+                            exportBytes = null;
+                            toast("Unable to open PDF save dialog.");
+                        }
+                    });
+                } catch (Exception e) {
+                    toast("PDF generation failed: " + e.getMessage());
+                }
+            }, "BoreLab-PDF").start();
+        }
+
         @JavascriptInterface public void saveBase64File(String name, String mime, String base64) {
             try {
                 final byte[] bytes = Base64.decode(base64, Base64.DEFAULT);
