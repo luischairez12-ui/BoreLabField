@@ -195,6 +195,7 @@ public final class FieldPdfExporter {
             label("Crew-hours", str(summary, "crewHours"));
             label("Photos", str(summary, "photos"));
             label("Mud batches", str(summary, "mudBatches"));
+            label("Mud stock movements", str(summary, "mudStockMoves"));
         }
         String closeoutNote = str(report, "closeoutNote");
         JSONArray checks = array(report, "checks");
@@ -264,6 +265,17 @@ public final class FieldPdfExporter {
                 write(str(additive, "name") + ": " + str(additive, "amount") + " " + str(additive, "unit"), 9, INK, false, 12);
             }
             y += 5;
+        }
+        section("Mud product stock movements");
+        JSONArray stockMoves = array(report, "mudStock");
+        if (stockMoves.length() == 0) write("No tracked product stock movements for this period.", 10, MUTED, false, 0);
+        for (int i = 0; i < stockMoves.length(); i++) {
+            JSONObject item = stockMoves.optJSONObject(i);
+            if (item == null) continue;
+            item(str(item, "product") + " — " + str(item, "kind"),
+                 str(item, "delta") + " " + str(item, "units") + "   |   Remaining " +
+                 str(item, "after") + "   |   " + str(item, "date"),
+                 str(item, "note"));
         }
         section("Jobsite photos");
         JSONArray photos = array(report, "photos");
