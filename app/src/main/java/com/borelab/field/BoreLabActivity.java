@@ -20,6 +20,13 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
 import android.view.View;
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
+import com.tom_roush.pdfbox.pdmodel.PDDocument;
+import com.tom_roush.pdfbox.text.PDFTextStripper;
+import org.json.JSONArray;
+import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import androidx.core.content.FileProvider;
 import android.webkit.GeolocationPermissions;
 import android.webkit.JavascriptInterface;
@@ -59,6 +66,7 @@ public class BoreLabActivity extends Activity {
     private String pendingLocationOrigin;
     private byte[] exportBytes;
     private String pendingManualSlot;
+    private final ExecutorService manualSearchExecutor = Executors.newSingleThreadExecutor();
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
@@ -416,7 +424,96 @@ public class BoreLabActivity extends Activity {
         if (webView != null) sendManualStatus(null);
     }
 
+
+    /**
+     * Searches actual text embedded in an imported manual, entirely on the device.
+     * Scanned image-only PDFs require a future OCR pass and are reported as such.
+     * Results are page-indexed: one excerpt per matching PDF page, maximum 100 matches.
+     */
+    private void searchSavedManual(String slot, String query, String requestId) {
+        manualSearchExecutor.execute(() -> {
+            JSONObject result = new JSONObject();
+            JSONArray matches = new JSONArray();
+            int textPages = 0, totalPages = 0, scannedPages = 0;
+            try {
+                if (query == null || query.trim().length() < 2 || query.length() > 80)
+                    throw new IllegalArgumentException("Enter 2–80 characters to search.");
+                File file = manualFile(slot);
+                if (!isPdf(file))
+                    throw new IllegalArgumentException("This PDF is not saved. Import it first.");
+                PDFBoxResourceLoader.init(getApplicationContext());
+                String needle = query.trim().toLowerCase(Locale.ROOT);
+                try (PDDocument document = PDDocument.load(file)) {
+                    totalPages = document.getNumberOfPages();
+                    int limit = Math.min(900, totalPages);
+                    PDFTextStripper reader = new PDFTextStripper();
+                    for (int page = 1; page <= limit; page++) {
+                        reader.setStartPage(page);
+                        reader.setEndPage(page);
+                        String text = reader.getText(document).replaceAll("\\s+", " ").trim();
+                        if (!text.isEmpty()) textPages++;
+                        int found = text.toLowerCase(Locale.ROOT).indexOf(needle);
+                        if (found >= 0 && matches.length() < 100) {
+                            int begin = Math.max(0, found - 70);
+                            int end = Math.min(text.length(), found + needle.length() + 100);
+                            String excerpt = (begin > 0 ? "…" : "") +
+                                    text.substring(begin, end) + (end < text.length() ? "…" : "");
+                            JSONObject hit = new JSONObject();
+                            hit.put("page", page);
+                            hit.put("snippet", excerpt);
+                            matches.put(hit);
+                        }
+                    }
+                    scannedPages = limit;
+                }
+                result.put("pageCount", totalPages);
+                result.put("searchedPages", scannedPages);
+                result.put("textPages", textPages);
+                result.put("results", matches);
+                result.put("truncated", matches.length() >= 100 || scannedPages < totalPages);
+            } catch (Exception e) {
+                try { result.put("error", String.valueOf(e.getMessage())); }
+                catch (Exception ignored) {}
+            }
+            final String js = "window.borelabOnManualSearch && window.borelabOnManualSearch(" +
+                JSONObject.quote(slot == null ? "" : slot) + "," +
+                JSONObject.quote(query == null ? "" : query) + "," +
+                JSONObject.quote(requestId == null ? "" : requestId) + "," + result.toString() + ");";
+            runOnUiThread(() -> {
+                if (webView != null) webView.evaluateJavascript(js, null);
+            });
+        });
+    }
+
     final class FileExportBridge {
+
+
+        @JavascriptInterface public void searchManual(String slot, String query, String requestId) {
+            try {
+                safeManualSlot(slot);
+                if (requestId == null || !requestId.matches("[0-9]{1,12}"))
+                    throw new IllegalArgumentException("Invalid request");
+                searchSavedManual(slot, query, requestId);
+            } catch (Exception e) {
+                sendManualStatus("Search unavailable: " + e.getMessage());
+            }
+        }
+
+        @JavascriptInterface public void openManualPage(String slot, int page) {
+            try {
+                File file = manualFile(slot);
+                if (!isPdf(file) || page < 1 || page > 9000)
+                    throw new IllegalArgumentException("Page or PDF unavailable.");
+                runOnUiThread(() -> {
+                    Intent intent = new Intent(BoreLabActivity.this, ManualReaderActivity.class);
+                    intent.putExtra("slot", slot);
+                    intent.putExtra("page", page);
+                    startActivity(intent);
+                });
+            } catch (Exception e) {
+                sendManualStatus("Cannot open page: " + e.getMessage());
+            }
+        }
 
         @JavascriptInterface public void listManuals() {
             sendManualStatus(null);
@@ -519,6 +616,7 @@ public class BoreLabActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        manualSearchExecutor.shutdownNow();
         if (webView != null) { webView.destroy(); webView = null; }
         super.onDestroy();
     }
