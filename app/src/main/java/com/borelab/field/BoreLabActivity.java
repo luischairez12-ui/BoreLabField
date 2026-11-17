@@ -554,7 +554,7 @@ public class BoreLabActivity extends Activity {
                     uri.getUserInfo() != null ||
                     "appassets.androidplatform.net".equalsIgnoreCase(host) ||
                     host.equalsIgnoreCase("localhost") || host.toLowerCase(java.util.Locale.ROOT).endsWith(".localhost") ||
-                    host.matches("\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\.\\\\d+") || host.startsWith("["))
+                    host.matches("\\d+\\.\\d+\\.\\d+\\.\\d+") || host.startsWith("["))
                     throw new IllegalArgumentException("Use a public https:// manual link.");
                 runOnUiThread(() -> {
                     Intent intent = new Intent(Intent.ACTION_VIEW, uri);
