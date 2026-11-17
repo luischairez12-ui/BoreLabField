@@ -191,6 +191,7 @@ html[data-theme="dark"] .planner-mode-summary small{color:#ffc588}
 html[data-theme="dark"] .route-result-warning{border-color:#75593a;background:#332b20;color:#ffd18c!important}
 
 .pipe-ledger-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.pipe-ledger-row:last-child{border-bottom:0}
+.equipment-row{padding:12px 0;border-bottom:1px solid var(--line)}.equipment-row:last-child{border-bottom:0}.equipment-row>.btn{margin:7px 7px 0 0}.service-alert{padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin:8px 0}.service-alert.due{background:#ffedec;color:#8d2021;border-color:#e8afa8}.service-alert.soon{background:#fff0ce;color:#875000;border-color:#e6c179}.service-alert.good{background:#e5f8ee;color:#16613e;border-color:#9ad0b0}.service-alert.setup{background:var(--surface2);color:var(--text)}.service-alert p{margin-top:5px}html[data-theme="dark"] .service-alert.due{background:#4a2629;color:#ffd3cf}html[data-theme="dark"] .service-alert.soon{background:#4a3b20;color:#ffe5b1}html[data-theme="dark"] .service-alert.good{background:#204239;color:#c6f5dc}.truck-maintenance-form[hidden]{display:none!important}
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -270,7 +271,7 @@ function quick(label,icon,sub,action){return `<button class="quick" data-action=
 function shotRow(s){return `<div class="shot"><div class="shot-icon">⌁</div><div><h3>${esc(s.name)} <span class="status ${s.status==='complete'?'complete':s.status==='progress'?'progress':'planned'}">${s.status==='complete'?'Complete':s.status==='progress'?'Drilling':'Pending'}</span></h3><small>${feet(s)} ft bore · ${pipeNeed(s)} ft with allowance<br>${esc(s.address||coordsText(s)||'No location set')}</small></div><div class="shot-actions"><span class="foot">${feet(s)}′</span><button data-action="shot-detail" data-id="${s.id}" aria-label="Open ${esc(s.name)}">›</button></div></div>`}
 function renderHome(){const pct=totalFeet()?Math.round(doneFeet()/totalFeet()*100):0;let hasDemo=state.demo?`<div class="note spaced">Sample shots are loaded so you can try the app. Add your real job or tap <b>Clear Demo</b> in Settings to start fresh.</div>`:'';
 return `<div class="page"><div class="hero"><span class="eyebrow">HDD FIELD OPERATIONS</span><h1>Ready for today's shots?</h1><p>Plan the route. Count your pipe. Capture the work. Keep your crew organized.</p><div class="hero-tags"><span class="tag teal">● Works offline</span><span class="tag">📍 GPS photo records</span></div></div>
-${section("Today's Job",`<button class="btn micro ghost" data-action="edit-job">Edit job</button>`)}<div class="card"><div class="card-head"><div><div class="eyebrow">ACTIVE JOB</div><h2 style="margin-top:5px">${esc(state.jobName)}</h2><p class="muted tiny">${state.shots.length} bore shots · ${state.shots.filter(s=>s.status==='complete').length} completed</p></div><span class="status ${pct===100?'complete':'progress'}">${pct}%</span></div><div class="progress"><div style="width:${pct}%"></div></div><div class="stats"><div class="stat"><span>Completed footage</span><strong class="teal">${fmt(doneFeet())}′</strong></div><div class="stat"><span>Planned footage</span><strong>${fmt(totalFeet())}′</strong></div><div class="stat"><span>Pipe required (+${extra()}′/shot)</span><strong class="orange">${fmt(totalNeed())}′</strong></div></div></div>${hasDemo}
+${oilWarnings()}${section("Today's Job",`<button class="btn micro ghost" data-action="edit-job">Edit job</button>`)}<div class="card"><div class="card-head"><div><div class="eyebrow">ACTIVE JOB</div><h2 style="margin-top:5px">${esc(state.jobName)}</h2><p class="muted tiny">${state.shots.length} bore shots · ${state.shots.filter(s=>s.status==='complete').length} completed</p></div><span class="status ${pct===100?'complete':'progress'}">${pct}%</span></div><div class="progress"><div style="width:${pct}%"></div></div><div class="stats"><div class="stat"><span>Completed footage</span><strong class="teal">${fmt(doneFeet())}′</strong></div><div class="stat"><span>Planned footage</span><strong>${fmt(totalFeet())}′</strong></div><div class="stat"><span>Pipe required (+${extra()}′/shot)</span><strong class="orange">${fmt(totalNeed())}′</strong></div></div></div>${hasDemo}
 ${section('Daily Job Board',`<button class="btn micro" data-action="new-shot">+ Add shot</button>`)}<div class="shot-list">${state.shots.length?state.shots.map(shotRow).join(''):`<div class="empty"><div class="emptyicon">⌁</div><strong>No shots yet</strong>Tap Add shot to plan your first bore.</div>`}</div><div class="action-row"><button class="btn cyan" data-page="planner">⌁ Smart Shot Planner</button><button class="btn ghost" data-action="export-report">▤ Daily Report</button></div>
 ${section('Field Toolbox')}<div class="quick-grid">${quick('Route Planner','⌁','Shot order & travel','go-planner')}${quick('Bore Logs','▤','Footage & notes','new-shot')}${quick('Pipe Inventory','◈','Reel-by-reel footage','go-pipe')}${quick('Job Photos','▣','GPS & timestamps','go-photos')}${quick('Crew Check-In','◷','Roster & timesheets','go-crew')}${quick('Daily Report','▧','Download & print','export-report')}${quick('Equipment','⚙','Drills, locators & mixers','open-equipment')}${quick('Mud Mixer','◉','Coming in next build','roadmap')}${quick('Manual Library','▤','Coming in next build','roadmap')}</div>${footnote()}</div>`}
 function coordsValid(o){return o&&o.lat!==''&&o.lon!==''&&o.lat!=null&&o.lon!=null&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lon))&&Math.abs(Number(o.lat))<=90&&Math.abs(Number(o.lon))<=180}
@@ -598,26 +599,111 @@ function equipmentSummary(shot){
  const found=(shot.equipmentIds||[]).map(id=>state.equipment.find(e=>e.id===id)).filter(Boolean);
  return found.length?found.map(e=>`${e.name}${e.type?` (${e.type})`:''}`).join(', '):'None selected';
 }
+function oilStatus(truck,now=new Date()){
+ const lastAt=truck.lastOilAt||'',lastMiles=truck.lastOilMiles,lastHours=truck.lastOilHours;
+ const miles=truck.odometer,hrs=truck.engineHours;
+ const intervalMiles=Number(truck.oilIntervalMiles),intervalMonths=Number(truck.oilIntervalMonths),intervalHours=Number(truck.oilIntervalHours);
+ const metrics=[],remaining=[];
+ if(intervalMiles>0&&lastMiles!==''&&lastMiles!=null&&Number.isFinite(Number(lastMiles))){
+   const next=Number(lastMiles)+intervalMiles;
+   metrics.push(`Next mileage: ${fmt(next)} mi`);
+   if(miles!==''&&miles!=null&&Number.isFinite(Number(miles))){
+     const left=next-Number(miles);
+     remaining.push({left,near:Math.min(500,Math.max(100,intervalMiles*.1)),unit:'mi'});
+   }
+ }
+ if(intervalHours>0&&lastHours!==''&&lastHours!=null&&Number.isFinite(Number(lastHours))){
+   const next=Number(lastHours)+intervalHours;
+   metrics.push(`Next engine hours: ${fmt(next,1)} h`);
+   if(hrs!==''&&hrs!=null&&Number.isFinite(Number(hrs))){
+     const left=next-Number(hrs);
+     remaining.push({left,near:Math.min(25,Math.max(5,intervalHours*.1)),unit:'h'});
+   }
+ }
+ if(intervalMonths>0&&lastAt){
+   const date=new Date(lastAt+'T12:00:00');
+   if(Number.isFinite(date.getTime())){
+     const day=date.getDate();date.setDate(1);date.setMonth(date.getMonth()+Math.floor(intervalMonths));
+     const final=new Date(date.getFullYear(),date.getMonth()+1,0).getDate();date.setDate(Math.min(day,final));
+     const next=date.toISOString().slice(0,10);
+     metrics.push(`Next due date: ${next}`);
+     const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+     const due=new Date(date.getFullYear(),date.getMonth(),date.getDate());
+     const left=Math.ceil((due-today)/86400000);
+     remaining.push({left,near:30,unit:'days'});
+   }
+ }
+ if(!lastAt&&(lastMiles===''||lastMiles==null)&&(lastHours===''||lastHours==null))return {kind:'setup',label:'Record last oil change',details:'Enter the last service date and/or mileage to begin tracking.',metrics};
+ if(!intervalMiles&&!intervalMonths&&!intervalHours)return {kind:'setup',label:'Set service interval',details:'Use the oil interval recommended by the vehicle manufacturer or fleet policy.',metrics};
+ if(!metrics.length)return {kind:'setup',label:'Complete oil schedule',details:'Enter a matching last-service date, mileage, or engine hours for the interval you chose.',metrics};
+ const due=remaining.filter(x=>x.left<=0),soon=remaining.filter(x=>x.left>0&&x.left<=x.near);
+ if(due.length)return {kind:'due',label:'Oil change due',details:due.map(x=>`${fmt(Math.abs(x.left),1)} ${x.unit} ${x.left<0?'past due':'at interval'}`).join(' · '),metrics};
+ if(soon.length)return {kind:'soon',label:'Oil change coming up',details:soon.map(x=>`${fmt(x.left,1)} ${x.unit} remaining`).join(' · '),metrics};
+ return {kind:'good',label:'Oil schedule on track',details:'Update the odometer and engine hours to keep this estimate current.',metrics};
+}
+function oilWarnings(){
+ const trucks=state.equipment.filter(x=>x.type==='Truck'&&!x.archived);
+ const alerts=trucks.map(t=>({t,status:oilStatus(t)})).filter(x=>x.status.kind==='due'||x.status.kind==='soon');
+ return alerts.length?`<div class="card spaced"><div class="between"><h3>Company Truck Service</h3><button class="btn micro ghost" data-action="open-equipment">Garage</button></div>${alerts.map(({t,status})=>`<div class="service-alert ${status.kind}"><strong>${esc(t.name)} — ${esc(status.label)}</strong><p class="tiny">${esc(status.details)}</p></div>`).join('')}</div>`:'';
+}
+function serviceLogForm(id){
+ const truck=state.equipment.find(x=>x.id===id&&x.type==='Truck');if(!truck)return notify('Company truck not found.');
+ const records=[...(truck.serviceHistory||[])].reverse().slice(0,8);
+ showModal(`${modalHead('Oil Change — '+truck.name)}
+ <p class="smalltext muted">Log an oil change when it is performed. The new date, odometer and engine hours become the baseline for the next reminder.</p>
+ <form data-form="oil-service" data-id="${esc(id)}">
+  <label class="field">Service date<input type="date" name="date" value="${new Date().toISOString().slice(0,10)}" required></label>
+  <div class="form-grid"><label class="field">Odometer (mi)<input type="number" step="1" min="0" name="miles" value="${esc(truck.odometer??'')}"></label>
+  <label class="field">Engine hours<input type="number" step="0.1" min="0" name="hours" value="${esc(truck.engineHours??'')}"></label></div>
+  <label class="field">Work notes / oil / filter<input name="note" maxlength="200" placeholder="Optional"></label>
+  <div class="modal-footer"><button type="button" class="btn ghost" data-action="close-modal">Cancel</button><button class="btn primary" type="submit">Record Oil Change</button></div>
+ </form>
+ ${records.length?`<div class="divider"></div><h3>Previous Oil Changes</h3>${records.map(x=>`<div class="between" style="padding:8px 0"><span class="smalltext">${esc(x.date)} ${x.miles!==''&&x.miles!=null?'· '+fmt(x.miles)+' mi':''}</span><small class="muted">${esc(x.note||'')}</small></div>`).join('')}`:''}`);
+}
 function equipmentForm(id){
  const item=state.equipment.find(e=>e.id===id)||{name:'',type:'Drill',serial:'',notes:''};
- const options=['Drill','Locator','Mixer','Truck','Trailer','Other'];
+ const types=['Drill','Locator','Mixer','Truck','Trailer','Other'];
+ const v=x=>esc(item[x]??'');
  showModal(`${modalHead(id?'Edit Equipment':'Add Equipment')}
- <p class="smalltext muted">Save the machines your crew uses, then choose them for each bore.</p>
+ <p class="smalltext muted">Save your regular company equipment. For a truck, enter its maintenance schedule and current mileage.</p>
  <form data-form="equipment" data-id="${esc(id||'')}">
-  <label class="field">Name or model<input name="name" value="${esc(item.name)}" required maxlength="90" placeholder="e.g., JT20, Falcon F5"></label>
-  <label class="field">Type<select name="type">${options.map(x=>`<option value="${x}" ${item.type===x?'selected':''}>${x}</option>`).join('')}</select></label>
-  <label class="field">Serial / unit number (optional)<input name="serial" value="${esc(item.serial||'')}" maxlength="80"></label>
-  <label class="field">Notes (optional)<textarea name="notes" maxlength="1000">${esc(item.notes||'')}</textarea></label>
+  <label class="field">Name or model<input name="name" value="${esc(item.name)}" required maxlength="90" placeholder="e.g., JT20, Freightliner FL70"></label>
+  <label class="field">Type<select name="type" data-equipment-type>${types.map(x=>`<option value="${x}" ${item.type===x?'selected':''}>${x}</option>`).join('')}</select></label>
+  <label class="field">Unit number / VIN / serial (optional)<input name="serial" value="${v('serial')}" maxlength="80"></label>
+  <div data-truck-fields ${item.type==='Truck'?'':'hidden'} class="truck-maintenance-form">
+   <h3>Company Truck · Oil Service</h3>
+   <p class="smalltext muted">Intervals vary by engine, usage, oil specification and fleet policy. Set the actual manufacturer/fleet schedule. No interval is assumed.</p>
+   <div class="form-grid"><label class="field">Current odometer (miles)<input name="odometer" type="number" min="0" step="1" value="${v('odometer')}"></label>
+    <label class="field">Current engine hours<input name="engineHours" type="number" min="0" step="0.1" value="${v('engineHours')}"></label></div>
+   <div class="divider"></div><p class="smalltext"><strong>Last known oil change</strong></p>
+   <div class="form-grid">
+    <label class="field">Last service date<input type="date" name="lastOilAt" value="${v('lastOilAt')}"></label>
+    <label class="field">Odometer then (mi)<input type="number" name="lastOilMiles" min="0" step="1" value="${v('lastOilMiles')}"></label>
+    <label class="field">Engine hours then<input type="number" name="lastOilHours" min="0" step="0.1" value="${v('lastOilHours')}"></label>
+   </div>
+   <p class="smalltext"><strong>Oil change interval — choose one or more</strong></p>
+   <div class="form-grid">
+    <label class="field">Every miles<input type="number" name="oilIntervalMiles" min="0" step="1" value="${v('oilIntervalMiles')}" placeholder="From manual"></label>
+    <label class="field">Every months<input type="number" name="oilIntervalMonths" min="0" max="120" step="1" value="${v('oilIntervalMonths')}"></label>
+    <label class="field">Every engine hours<input type="number" name="oilIntervalHours" min="0" step="0.1" value="${v('oilIntervalHours')}"></label>
+   </div>
+  </div>
+  <label class="field">Notes<textarea name="notes">${v('notes')}</textarea></label>
   <div class="modal-footer"><button type="button" class="btn ghost" data-action="close-modal">Cancel</button><button class="btn primary" type="submit">Save Equipment</button></div>
  </form>`);
 }
 function equipmentSettings(){
- const active=state.equipment.filter(e=>!e.archived),archived=state.equipment.filter(e=>e.archived);
- return `<div class="card spaced" id="equipmentSettings">
- <div class="card-head"><div><span class="eyebrow">CREW GEAR</span><h2 style="margin-top:5px">Equipment Garage</h2></div><button class="btn micro primary" data-action="add-equipment">+ Add</button></div>
- <p class="smalltext muted">Save equipment once. Select your drill, locator and mixer for each shot. Archived equipment remains in old bore logs.</p>
- ${active.length?`<div class="equip-list">${active.map(e=>`<div class="equipment-item"><div style="min-width:0"><strong>${esc(e.name)}</strong><small>${esc(e.type)}${e.serial?' · '+esc(e.serial):''}</small></div><div class="action-row" style="margin:0"><button class="btn micro ghost" data-action="edit-equipment" data-id="${esc(e.id)}">Edit</button><button class="btn micro ghost" data-action="archive-equipment" data-id="${esc(e.id)}">Archive</button></div></div>`).join('')}</div>`:'<div class="empty spaced"><strong>No equipment saved yet</strong>Add your drill, locator, or mixer.</div>'}
- ${archived.length?`<p class="tiny muted spaced">${archived.length} archived item(s) retained for previous logs.</p>`:''}</div>`;
+ const active=state.equipment.filter(x=>!x.archived),archive=state.equipment.filter(x=>x.archived);
+ return `<div class="card spaced" id="equipmentSettings"><div class="card-head"><div><span class="eyebrow">CREW GEAR</span><h2 style="margin-top:5px">Equipment Garage</h2></div><button class="btn micro primary" data-action="add-equipment">+ Add</button></div>
+ <p class="smalltext muted">Save your drill, locator, mixer and company trucks. Truck oil reminders update from the mileage, engine hours and service dates you record.</p>
+ ${active.length?active.map(e=>{
+  const status=e.type==='Truck'?oilStatus(e):null;
+  const last=e.type==='Truck'?`<p class="tiny muted">Last oil: ${e.lastOilAt?esc(e.lastOilAt):'date unknown'}${e.lastOilMiles!==''&&e.lastOilMiles!=null?' · '+fmt(e.lastOilMiles)+' mi':''}</p>`:'';
+  const progress=status?`<div class="service-alert ${status.kind}"><strong>${esc(status.label)}</strong><p class="tiny">${esc(status.details)}</p>${status.metrics.length?`<p class="tiny"> ${esc(status.metrics.join(' · '))}</p>`:''}</div>`:'';
+  return `<div class="equipment-row"><div class="between"><div style="min-width:0"><strong>${esc(e.name)}</strong><p class="tiny muted">${esc(e.type)} ${e.serial?'· '+esc(e.serial):''}${e.odometer!==''&&e.odometer!=null?' · '+fmt(e.odometer)+' mi':''}</p>${last}</div><button class="btn micro ghost" data-action="edit-equipment" data-id="${esc(e.id)}">Edit</button></div>${progress}${e.type==='Truck'?`<button class="btn micro primary" data-action="log-oil" data-id="${esc(e.id)}">Record Oil Change</button>`:''}<button class="btn micro ghost" data-action="archive-equipment" data-id="${esc(e.id)}">Archive</button></div>`;
+ }).join(''):'<div class="empty spaced"><strong>No equipment saved</strong>Add a drill or company truck to get started.</div>'}
+ ${archive.length?`<p class="tiny muted spaced">${archive.length} archived equipment item(s) kept for past logs.</p>`:''}
+ </div>`;
 }
 function shotForm(id){
  const shot=state.shots.find(x=>x.id===id);
@@ -876,6 +962,7 @@ switch(action){
  case 'open-equipment':setPage('settings');document.querySelector('#equipmentSettings')?.scrollIntoView({behavior:'smooth',block:'start'});break;
  case 'add-equipment':equipmentForm();break;
  case 'edit-equipment':equipmentForm(id);break;
+ case 'log-oil':serviceLogForm(id);break;
  case 'archive-equipment':{const gear=state.equipment.find(e=>e.id===id);if(gear&&confirm('Archive '+gear.name+'? Previous bore logs will keep its name.')){gear.archived=true;save();render();notify('Equipment archived.')}break;}
  case 'roadmap':showModal(`${modalHead('Coming in the Next Build')}<p class="smalltext muted">Equipment garage, manufacturer manual indexing, and manufacturer-verified mud mixing are on the BoreLab roadmap. They are not functional in v0.1.</p>`);break;
  case 'toggle-route-menu':routeMenuOpen=!routeMenuOpen;render();break;
@@ -950,7 +1037,7 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
 }else if(form.dataset.form==='time'){
  const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);save();closeModal();render();notify('Crew time saved.');
 }});
-document.addEventListener('change',e=>{if(e.target.matches('[data-report-scope]')){state.reportScope=e.target.value==='job'?'job':'today';save();render();notify('Report scope saved.');return}if(e.target.matches('[data-theme-select]')){state.theme=e.target.value==='dark'?'dark':'daylight';applyTheme();save();render();notify(state.theme==='daylight'?'Daylight mode enabled.':'Night mode enabled.');return}if(e.target.matches('[data-lunch-enabled]')){state.autoLunchEnabled=e.target.checked;save();render();notify(state.autoLunchEnabled?'Automatic lunch enabled.':'Automatic lunch disabled.');return}if(e.target.matches('[data-lunch-minutes]')){state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(e.target.value)||0));save();render();notify('Lunch default saved.');return}if(e.target.matches('[data-roster-select]')){const id=e.target.dataset.rosterSelect;state.selectedCrewIds=e.target.checked?[...new Set([...state.selectedCrewIds,id])]:state.selectedCrewIds.filter(x=>x!==id);save();render();return}if(e.target.matches('[data-setting]')){const k=e.target.dataset.setting;state[k]=Math.max(0,Number(e.target.value)||0);save();render()}});
+document.addEventListener('change',e=>{if(e.target.matches('[data-equipment-type]')){const wrap=e.target.closest('form')?.querySelector('[data-truck-fields]');if(wrap)wrap.hidden=e.target.value!=='Truck';return}if(e.target.matches('[data-report-scope]')){state.reportScope=e.target.value==='job'?'job':'today';save();render();notify('Report scope saved.');return}if(e.target.matches('[data-theme-select]')){state.theme=e.target.value==='dark'?'dark':'daylight';applyTheme();save();render();notify(state.theme==='daylight'?'Daylight mode enabled.':'Night mode enabled.');return}if(e.target.matches('[data-lunch-enabled]')){state.autoLunchEnabled=e.target.checked;save();render();notify(state.autoLunchEnabled?'Automatic lunch enabled.':'Automatic lunch disabled.');return}if(e.target.matches('[data-lunch-minutes]')){state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(e.target.value)||0));save();render();notify('Lunch default saved.');return}if(e.target.matches('[data-roster-select]')){const id=e.target.dataset.rosterSelect;state.selectedCrewIds=e.target.checked?[...new Set([...state.selectedCrewIds,id])]:state.selectedCrewIds.filter(x=>x!==id);save();render();return}if(e.target.matches('[data-setting]')){const k=e.target.dataset.setting;state[k]=Math.max(0,Number(e.target.value)||0);save();render()}});
 $('#cameraFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#galleryFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#importFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await importBackup(file);e.target.value=''});
