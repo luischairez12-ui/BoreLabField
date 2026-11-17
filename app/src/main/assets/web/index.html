@@ -540,6 +540,60 @@ function reelActionForm(id,kind){
  <div class="modal-footer"><button class="btn ghost" type="button" data-action="close-modal">Cancel</button><button class="btn primary" type="submit">Save</button></div></form>
  <p class="tiny muted spaced">Reservations don't subtract pipe. Pipe used or removed reduces this reel, with the transaction saved for later review.</p>`);
 }
+function archiveReel(id){
+ const reel=state.reels.find(x=>x.id===id);if(!reel)return;
+ if(Number(reel.remaining)>0||reelReserved(id)>0)return notify('Empty the reel and release reservations before archiving.');
+ if(!confirm(`Archive ${reel.name}? Its history stays saved.`))return;
+ reel.archived=true;save();render();notify('Empty reel archived.');
+}
+function saveReel(form,values){
+ const id=form.dataset.id,old=state.reels.find(x=>x.id===id);
+ const name=String(values.name||'').trim(),location=values.location==='yard'?'yard':'truck';
+ const value=Number(values.remaining);
+ if(!name)return notify('Reel name required.');
+ if(!old&&(!Number.isFinite(value)||value<0))return notify('Enter valid starting footage.');
+ const reel={...old,id:old?.id||uid(),name:name.slice(0,80),size:String(values.size||'').trim().slice(0,40),material:String(values.material||'').trim().slice(0,60),location,mustEmpty:values.mustEmpty==='yes',notes:String(values.notes||'').trim().slice(0,1000),remaining:old?Number(old.remaining):value,initialFeet:old?.initialFeet??value,archived:old?.archived||false};
+ if(old)state.reels=state.reels.map(x=>x.id===id?reel:x);else state.reels.push(reel);
+ save();closeModal();render();notify('Reel saved: '+reel.name+'.');
+}
+function recordReelAction(form,values){
+ const reel=state.reels.find(r=>r.id===form.dataset.id&&!r.archived);
+ if(!reel)return notify('Reel not found.');
+ const kind=form.dataset.kind,n=Number(values.feet),shotId=String(values.shotId||'');
+ if(!Number.isFinite(n)||n<=0||Math.round(n*10)!==n*10)return notify('Enter positive footage in tenths of a foot.');
+ const feet=Math.round(n*10)/10;
+ if((kind==='reserve'||(kind==='use'&&shotId))&&!state.shots.some(x=>x.id===shotId))return notify('Select a valid shot.');
+ if(kind==='reserve'){
+   const free=Number(reel.remaining)-reelReserved(reel.id);
+   if(feet>free+0.00001)return notify('Not enough unreserved footage on this reel.');
+   state.pipeReservations.push({id:uid(),reelId:reel.id,shotId,feet,at:new Date().toISOString()});
+   save();closeModal();render();notify(`${feet} ft reserved for this shot.`);
+   return;
+ }
+ let type='',newRemaining=Number(reel.remaining),before=newRemaining;
+ if(kind==='use'){
+   const otherReserved=reelReserved(reel.id,shotId);
+   if(feet>newRemaining-otherReserved+0.00001)return notify('Not enough available pipe; footage reserved for other shots cannot be used.');
+   newRemaining-=feet;type='installed';
+   if(shotId){
+     let release=feet;
+     for(const item of state.pipeReservations.filter(h=>h.reelId===reel.id&&h.shotId===shotId)){
+       const taken=Math.min(release,item.feet);item.feet=Math.round((item.feet-taken)*10)/10;release-=taken;
+       if(release<=0)break;
+     }
+     state.pipeReservations=state.pipeReservations.filter(h=>h.feet>0);
+   }
+ }else if(kind==='adjust'){
+   if(values.direction==='add'){newRemaining+=feet;type='added'}
+   else{
+     if(feet>newRemaining-reelReserved(reel.id)+0.00001)return notify('Cannot remove pipe already reserved or more pipe than the reel holds.');
+     newRemaining-=feet;type='removed';
+   }
+ }else return notify('Unknown pipe action.');
+ reel.remaining=Math.round(newRemaining*10)/10;
+ state.pipeMoves.push({id:uid(),reelId:reel.id,shotId,type,feet,at:new Date().toISOString(),before,after:reel.remaining,note:String(values.note||'').trim().slice(0,180)});
+ save();closeModal();render();notify(`${feet} ft ${type} · ${fmt(reel.remaining,1)} ft left on ${reel.name}.`);
+}
 function equipmentSummary(shot){
  const found=(shot.equipmentIds||[]).map(id=>state.equipment.find(e=>e.id===id)).filter(Boolean);
  return found.length?found.map(e=>`${e.name}${e.type?` (${e.type})`:''}`).join(', '):'None selected';
@@ -808,6 +862,13 @@ switch(action){
  case 'delete-shot':if(confirm('Delete this shot? Its photos will remain saved as unassigned records.')){state.shots=state.shots.filter(s=>s.id!==id);for(const p of photos)if(p.shotId===id){p.shotId='';await photoDB('put',p)}state.demo=false;save();closeModal();render();notify('Shot deleted.')}break;
  case 'go-planner':setPage('planner');break;
  case 'go-pipe':setPage('pipe');break;
+ case 'new-reel':reelForm();break;
+ case 'reel-edit':reelForm(id);break;
+ case 'reel-use':reelActionForm(id,'use');break;
+ case 'reel-reserve':reelActionForm(id,'reserve');break;
+ case 'reel-adjust':reelActionForm(id,'adjust');break;
+ case 'reel-archive':archiveReel(id);break;
+ case 'reel-release':{const hold=state.pipeReservations.find(h=>h.id===id);if(hold&&confirm('Release this pipe reservation?')){state.pipeReservations=state.pipeReservations.filter(h=>h.id!==id);save();render();notify('Reservation released.')}break}
  case 'open-map-pin':{const p=id==='shop'?{address:state.shopAddress,lat:state.shopLat,lon:state.shopLon}:state.shots.find(s=>s.id===id);openMapUrl(mapsPinUrl(p||{}));break}
  case 'open-full-route':openMapUrl(mapsLink(orderedShots().order));break;
  case 'go-photos':setPage('photos');break;
@@ -849,7 +910,7 @@ switch(action){
  default:break;
 }
 }catch(e){console.error(e);notify('Could not complete action: '+e.message)}});
-document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='equipment'){
+document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){
  const name=String(values.name||'').trim(),type=String(values.type||'Other').trim();
  if(!name)return notify('Enter an equipment name.');
  if(!['Drill','Locator','Mixer','Truck','Trailer','Other'].includes(type))return notify('Choose an equipment type.');
