@@ -461,6 +461,67 @@ window.borelabOnManualSearch=function borelabOnManualSearch(slot,query,requestId
  showManualSearch(slot,query,payload,false);
 }
 
+
+const MANUAL_MORE_URL='https://eliteundergroundtools.com/machine-manuals/';
+const manualUserLinks=(machineId,type)=>(state.manualLinks||[]).filter(x=>x&&x.machineId===machineId&&x.type===type);
+function manualLinkUrl(raw){
+ const rawText=String(raw||'').trim();
+ if(rawText.length>1800)throw Error('URL is too long.');
+ let url;
+ try{url=new URL(rawText)}catch{throw Error('Paste a complete https:// web address.')}
+ const host=url.hostname.toLowerCase();
+ if(url.protocol!=='https:'||!host.includes('.')||url.username||url.password||
+   host==='appassets.androidplatform.net'||host==='localhost'||host.endsWith('.localhost')||
+   /^\d+\.\d+\.\d+\.\d+$/.test(host)||host.startsWith('['))
+   throw Error('Use a public HTTPS manual link.');
+ return url.href;
+}
+function manualExternalUrl(url){
+ try{
+  const address=manualLinkUrl(url);
+  if(window.BoreLabNative?.openUserManualLink)window.BoreLabNative.openUserManualLink(address);
+  else window.location.assign(address);
+ }catch(e){notify(e.message)}
+}
+function manualLinkForm(id=''){
+ const old=(state.manualLinks||[]).find(x=>x?.id===id);
+ const rig=old?.machineId||selectedManualMachine,category=old?.type||'operator';
+ showModal(modalHead(old?'Edit Manual Link':'Save a Manual Link')+
+  '<p class="smalltext muted">Add any online reader or PDF link. Personal links are saved locally and included in JSON backups.</p>'+
+  '<form data-form="manual-link" data-id="'+esc(old?.id||'')+'"><div class="form-grid spaced">'+
+  '<label class="field wide">Rig<select name="machineId" required>'+
+  MANUAL_MACHINES.map(m=>'<option value="'+esc(m.id)+'" '+(m.id===rig?'selected':'')+'>'+esc(m.make+' '+m.model)+'</option>').join('')+'</select></label>'+
+  '<label class="field wide">Manual type<select name="type" required>'+
+  MANUAL_TYPES.map(([type,title])=>'<option value="'+esc(type)+'" '+(category===type?'selected':'')+'>'+esc(title)+'</option>').join('')+'</select></label>'+
+  '<label class="field wide">Link title<input name="label" required maxlength="90" placeholder="JT20 Operator Manual" value="'+esc(old?.label||'')+'"></label>'+
+  '<label class="field wide">Manual website or PDF link<input type="url" name="url" required maxlength="1800" inputmode="url" placeholder="https://example.com/manual.pdf" value="'+esc(old?.url||'')+'"></label>'+
+  '<label class="field wide">Notes / serial range (optional)<input name="note" maxlength="180" placeholder="Series II, serial 2001–4000" value="'+esc(old?.note||'')+'"></label>'+
+  '</div><div class="action-row spaced"><button class="btn primary" type="submit">Save link</button>'+
+  '<button class="btn ghost" type="button" data-action="close-modal">Cancel</button></div></form>');
+}
+function saveManualLink(values,id=''){
+ if(!Array.isArray(state.manualLinks))state.manualLinks=[];
+ const prev=state.manualLinks.find(x=>x?.id===id);
+ if(state.manualLinks.length>=100&&!prev)return notify('Limit of 100 personal links reached.');
+ const machineId=String(values.machineId||''),type=String(values.type||''),
+  label=String(values.label||'').trim().slice(0,90),note=String(values.note||'').trim().slice(0,180);
+ if(!MANUAL_MACHINES.some(m=>m.id===machineId)||!MANUAL_TYPES.some(x=>x[0]===type)||!label)
+  return notify('Choose a rig, type, and link name.');
+ let url;
+ try{url=manualLinkUrl(values.url)}catch(e){return notify(e.message)}
+ if(state.manualLinks.some(x=>x?.id!==prev?.id&&x.machineId===machineId&&x.type===type&&x.url===url))
+  return notify('This manual URL is already saved for that rig and type.');
+ const link={id:prev?.id||uid(),machineId,type,label,url,note,createdAt:prev?.createdAt||new Date().toISOString()};
+ if(prev)state.manualLinks=state.manualLinks.map(x=>x.id===prev.id?link:x);
+ else state.manualLinks.push(link);
+ selectedManualMachine=machineId;save();closeModal();render();notify('Your manual link was saved.');
+}
+function openManualUserLink(id){
+ const link=(state.manualLinks||[]).find(x=>x?.id===id);
+ if(!link)return notify('This link was removed.');
+ manualExternalUrl(link.url);
+}
+
 function renderManualLibrary(){
  const machine=MANUAL_MACHINES.find(m=>m.id===selectedManualMachine)||MANUAL_MACHINES[0];
  const native=!!window.BoreLabNative?.importManual;
