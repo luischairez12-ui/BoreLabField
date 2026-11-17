@@ -776,24 +776,46 @@ function saveMudPlan(form,values,record=false){
   capacity:String(values.capacity??'').trim(),currentGallons:level.currentGallons,levelChoice:level.levelChoice,
   targetGallons:String(values.targetGallons??'').trim(),mode:values.mode==='fresh'?'fresh':'topoff',
   soil:['unknown','sand','clay','mixed','rock','other'].includes(values.soil)?values.soil:'unknown',
-  notes:String(values.notes||'').trim().slice(0,1000)
+  notes:String(values.notes||'').trim().slice(0,1000),
+  lastMixId:state.mudTank?.lastMixId||'',
+  contentsStatus:state.mudTank?.contentsStatus||'unknown'
  };
  const ids=[...form.querySelectorAll('input[name="mudSelected"]:checked')].map(input=>input.value)
   .filter(id=>state.mudProducts.some(p=>p.id===id&&!p.archived&&mudProductReady(p)));
  const plan=calculateMud(config,ids);
  if(!plan.ok)return notify(plan.error);
- if(record&&!plan.products.length)return notify('Select at least one product to record an actual mixed batch. A water-only calculation can still be previewed.');
+ if(record&&!plan.products.length)return notify('Select at least one saved product before recording a mixed batch.');
+ const assessment=mudStockAssessment(plan);
  if(record){
-  if(!confirm(`Record ${fmt(plan.added,2)} gallons of added water and ${plan.products.length} products as actually mixed? The tank level will become ${fmt(plan.target,2)} gallons.`))return;
-  state.mudLogs.push({id:uid(),at:new Date().toISOString(),jobName:state.jobName,
-   capacity:plan.capacity,before:plan.current,target:plan.target,added:plan.added,mode:plan.mode,soil:config.soil,
-   products:JSON.parse(JSON.stringify(plan.products)),notes:config.notes});
+  const shortage=assessment.filter(a=>a.status==='short');
+  if(shortage.length)return notify('Not enough tracked stock: '+shortage.map(a=>a.name+' (short '+fmt(Math.abs(a.remaining),3)+' '+a.unit+')').join('; ')+'. Update inventory first.');
+  const unknown=assessment.filter(a=>a.status==='untracked');
+  const warning=unknown.length?'\n\nStock is not tracked for: '+unknown.map(a=>a.name).join(', ')+'. Those products will NOT be deducted from inventory.':'';
+  if(!confirm(`Record ${fmt(plan.added,2)} gallons of water and ${plan.products.length} products as actually mixed? This will deduct tracked product stock and set tank level to ${fmt(plan.target,2)} gallons.${warning}`))return;
+  const at=new Date().toISOString(),batchId=uid();
+  const stockUsed=[];
+  for(const item of assessment){
+   if(item.available==null)continue;
+   const p=state.mudProducts.find(x=>x.id===item.id);
+   if(!p)continue;
+   const before=Number(p.stockQty),after=mudRound(Math.max(0,before-item.required));
+   p.stockQty=after;
+   state.mudStockMoves.push({id:uid(),at,kind:'mix',batchId,productId:p.id,productName:p.name,unit:p.unit,
+    before,after,delta:mudRound(after-before),note:'Automatically deducted when actual mud mix was recorded'});
+   stockUsed.push({productId:p.id,name:p.name,unit:p.unit,amount:mudRound(item.required),remaining:after});
+  }
+  state.mudLogs.push({id:batchId,at,jobName:state.jobName,capacity:plan.capacity,before:plan.current,
+    target:plan.target,added:plan.added,mode:plan.mode,soil:config.soil,
+    products:JSON.parse(JSON.stringify(plan.products)),stockUsed,untrackedProducts:unknown.map(x=>x.name),
+    notes:config.notes});
+  config.lastMixId=batchId;
+  config.contentsStatus=plan.mode==='fresh'?'recorded':state.mudTank?.contentsStatus==='recorded'?'recorded':'unverified';
   config.currentGallons=String(plan.target);
   config.targetGallons=String(plan.target);
-  config.levelChoice='custom'; // Recorded final level is known, not the previous estimated fill percentage.
+  config.levelChoice='custom'; // Final volume logged, not the old estimated fraction.
  }
  state.mudTank=config;state.mudSelectedIds=ids;save();render();
- notify(record?'Actual mix logged; current tank level updated.':'Mix plan saved. Check the label and preview before dosing.');
+ notify(record?'Mix recorded. Tracked product stock and tank contents updated.':'Mix plan saved. Previewing never changes inventory.');
 }
 function saveMudLevel(values){
  const tank=mudConfig(),capacity=Number(tank.capacity);
@@ -801,8 +823,13 @@ function saveMudLevel(values){
  const raw=String(level.currentGallons??'').trim(),g=Number(raw);
  if(!Number.isFinite(capacity)||capacity<=0)return notify('Enter and save tank capacity in MixLab first.');
  if(!raw||!Number.isFinite(g)||g<0||g>capacity)return notify('Select a tank fraction or enter gallons between zero and tank capacity.');
+ const previous=Number(tank.currentGallons)||0;
+ const changed=Math.abs(g-previous)>0.00001;
+ const contentsStatus=g===0?'empty':
+   changed&&g>previous?'unknown':
+   changed?'adjusted':(tank.contentsStatus||'unknown');
  state.mudTank={...tank,levelChoice:level.levelChoice,currentGallons:String(g),
-   targetGallons:String(Math.max(g,Math.min(capacity,Number(tank.targetGallons)||g)))};
+   targetGallons:String(Math.max(g,Math.min(capacity,Number(tank.targetGallons)||g))),contentsStatus};
  save();closeModal();render();
  notify(level.levelChoice==='custom'?'Current tank gallons updated.':'Approximate tank level saved: '+g+' gal.');
 }
