@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.2 (debug/test build)
+**Current version:** v0.3 (debug/test build)
 
 ## Features
 
@@ -11,7 +11,9 @@ Android prototype for horizontal directional drilling (HDD) crews.
 - Configurable extra pipe allowance (default +10 ft per shot) and pipe stock calculations
 - GPS-tagged jobsite photos with timestamp, coordinates and optional address
 - Saved crew roster, remembered crew selection and one-tap check-in/check-out
-- Crew hours with individual lunch deductions
+- Crew hours with individually editable lunch deductions
+- Automatic unpaid lunch default (Off / 0 / 15 / 30 / 45 / 60 / 90 min), applied at checkout
+- High contrast white/orange daylight theme by default; optional navy/orange night theme
 - Local data backup/restore and printable daily reports
 
 The prototype works offline for locally stored records. It is **not** a production payroll app, and shot-order distances are **straight-line estimates**, not actual road driving time.
@@ -21,7 +23,7 @@ The prototype works offline for locally stored records. It is **not** a producti
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.2-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.3-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 

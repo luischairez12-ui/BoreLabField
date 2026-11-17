@@ -12,6 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.view.View;
 import android.webkit.GeolocationPermissions;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -45,11 +46,12 @@ public class BoreLabActivity extends Activity {
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
-        getWindow().setStatusBarColor(Color.rgb(9, 20, 31));
-        getWindow().setNavigationBarColor(Color.rgb(9, 20, 31));
+        getWindow().setStatusBarColor(Color.WHITE);
+        getWindow().setNavigationBarColor(Color.WHITE);
         webView = new WebView(this);
         webView.setBackgroundColor(Color.rgb(9, 20, 31));
         setContentView(webView);
+        applySystemTheme(true);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -213,7 +215,21 @@ public class BoreLabActivity extends Activity {
         runOnUiThread(() -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show());
     }
 
+    private void applySystemTheme(boolean daylight) {
+        int color = daylight ? Color.WHITE : Color.rgb(9, 20, 31);
+        getWindow().setStatusBarColor(color);
+        getWindow().setNavigationBarColor(color);
+        getWindow().getDecorView().setSystemUiVisibility(daylight
+            ? (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR)
+            : 0);
+        if (webView != null) webView.setBackgroundColor(color);
+    }
+
     final class FileExportBridge {
+        @JavascriptInterface public void setTheme(String mode) {
+            runOnUiThread(() -> applySystemTheme(!"dark".equals(mode)));
+        }
+
         @JavascriptInterface public void saveBase64File(String name, String mime, String base64) {
             try {
                 final byte[] bytes = Base64.decode(base64, Base64.DEFAULT);
