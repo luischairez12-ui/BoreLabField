@@ -13,8 +13,8 @@ assert(js.includes('refreshManualFiles()'));
 const beg=js.indexOf('const MANUAL_MACHINES='),end=js.indexOf('function render(){',beg);
 assert(beg>=0&&end>beg);
 const f=new Function('window','esc','footnote','section','notify','render','page',
- 'let manualFiles={};let manualStatusKnown=true;let selectedManualMachine="vermeer-d24x40";'+js.slice(beg,end)+
- 'return {MANUAL_MACHINES,MANUAL_TYPES,manualSlot,isManualSlot,renderManualLibrary,manualAlternatives,openManualAlternative};');
+ 'let manualFiles={};let state={manualLinks:[]};let manualStatusKnown=true;let selectedManualMachine="vermeer-d24x40";'+js.slice(beg,end)+
+ 'return {MANUAL_MACHINES,MANUAL_TYPES,manualSlot,isManualSlot,renderManualLibrary,manualAlternatives,openManualAlternative,manualLinkUrl,manualUserLinks,state};');
 const data=f({BoreLabNative:{importManual:()=>{},listManuals:()=>{}}},String,()=>'',(x,r)=>x+r,()=>{},()=>{},'manuals');
 assert.equal(data.MANUAL_MACHINES.length,8);
 assert(data.MANUAL_MACHINES.some(x=>x.id==='vermeer-d24x40-series-ii'));
@@ -24,6 +24,28 @@ assert(data.MANUAL_MACHINES.every(x=>x.source.startsWith('https://')));
 const view=data.renderManualLibrary();
 assert(view.includes('○ Not saved'),'No PDF should be checked by default');
 assert(view.includes('Import PDF'));
+assert(js.includes('data-action="manual-add-link"'));
+assert(js.includes('data-form="manual-link"'));
+assert(js.includes("case 'manual-user-open':openManualUserLink(id)"));
+assert(js.includes("case 'manual-more':manualExternalUrl(MANUAL_MORE_URL)"));
+assert(js.includes('saveManualLink(values,form.dataset.id'));
+assert(js.includes('eliteundergroundtools.com/machine-manuals/'));
+assert(js.includes('www.manualsdir.com'));
+assert(js.includes('https://www.manualsdir.com/manuals/735351/ditch-witch-jt20.html'));
+assert(js.includes('https://partesyherramientas.us/Manuales/D24x40%20S3.pdf'));
+assert(js.includes("manualLinks:[]"),'New state must contain manual links');
+assert(js.includes('if(!Array.isArray(state.manualLinks))state.manualLinks=[]'), 'Old state needs migration');
+assert.equal(data.manualLinkUrl('https://www.scribd.com/document/780730040/24x40-36x50-Vermeer-operators-manual-Series-II'),
+ 'https://www.scribd.com/document/780730040/24x40-36x50-Vermeer-operators-manual-Series-II');
+assert.throws(()=>data.manualLinkUrl('javascript:alert(1)'),/https|complete/);
+assert.throws(()=>data.manualLinkUrl('http://example.com/file.pdf'),/HTTPS/);
+assert.throws(()=>data.manualLinkUrl('https://192.168.1.3/file.pdf'),/HTTPS/);
+data.state.manualLinks.push({id:'custom-1',machineId:'vermeer-d24x40',type:'operator',label:'My Field Manual',url:'https://example.com/manual.pdf',note:'crew note'});
+const customView=data.renderManualLibrary();
+assert(customView.includes('My Field Manual'));
+assert(customView.includes('manual-user-edit'));
+assert(!customView.includes('✓ Saved offline'),'A custom URL must not imply a PDF is stored');
+
 assert(data.MANUAL_MACHINES.every(m=>['operator','maintenance','parts'].some(type=>data.manualAlternatives(m.id,type).length)),
  'Every rig needs at least one located reference link');
 const sent='https://www.scribd.com/document/780730040/24x40-36x50-Vermeer-operators-manual-Series-II';
