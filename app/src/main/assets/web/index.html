@@ -430,7 +430,7 @@ function convertMudQty(quantity,from,to){
  if(!Number.isFinite(n)||!Number.isFinite(scale[from])||!Number.isFinite(scale[to])||!mudUnitFamily(from)||mudUnitFamily(from)!==mudUnitFamily(to))return null;
  return n*scale[from]/scale[to];
 }
-n=>Math.round((Number(n)+Number.EPSILON)*1000000)/1000000
+const mudRound=n=>Math.round((Number(n)+Number.EPSILON)*1000000)/1000000;
 function mudPackageSizeInDoseUnit(p){
  if(!p||!Number.isFinite(Number(p.packageSize))||Number(p.packageSize)<=0)return null;
  return convertMudQty(Number(p.packageSize),p.packageUnit||p.unit,p.unit);
