@@ -36,9 +36,9 @@ assert.equal(calculateMud({...mudConfig(),targetGallons:'200'}).ok,false,'Empty 
 const planStart=js.indexOf('function saveMudPlan('),planEnd=js.indexOf('function saveMudLevel(',planStart);
 assert(planStart>=0&&planEnd>planStart);
 const messages=[],saves=[];
-const saveMudPlan=new Function('state','calculateMud','fmt','confirm','uid','save','render','notify',
+const saveMudPlan=new Function('state','calculateMud','mudProductReady','fmt','confirm','uid','save','render','notify',
  js.slice(planStart,planEnd)+'return saveMudPlan;')
-(state,calculateMud,(x)=>Number(x).toFixed(2),()=>true,()=>'log1',()=>saves.push(1),()=>{},x=>messages.push(x));
+(state,calculateMud,(p)=>Number(p?.rate)>0&&Number(p?.perGallons)>0&&(!p.labelPhoto||p.rateVerified===true),(x)=>Number(x).toFixed(2),()=>true,()=>'log1',()=>saves.push(1),()=>{},x=>messages.push(x));
 const form={querySelectorAll:()=>[{value:'p1'}]};
 saveMudPlan(form,{capacity:'1000',currentGallons:'200',targetGallons:'500',mode:'topoff',soil:'sand',notes:'Test batch'},false);
 assert.equal(state.mudLogs.length,0,'Preview cannot create an actual mix log');
