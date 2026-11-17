@@ -248,6 +248,9 @@ html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;borde
 .manual-slot:last-child{border:0}
 .manual-slot-info{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .manual-slot .action-row{margin-top:10px}
+.manual-search-result{border:1px solid var(--line);background:var(--surface2);border-radius:12px;margin-top:10px;padding:12px}
+.manual-search-result .smalltext{line-height:1.5}
+.manual-highlight{background:#ffd46b;color:#27210e;border-radius:3px;padding:0 2px}
 .manual-alt-row{display:flex;align-items:flex-start;flex-wrap:wrap;gap:8px;padding:8px 0 0;margin-top:6px}
 .manual-alt-row .tiny{flex:1 1 160px;align-self:center}
 .manual-ok{color:var(--mint);font-size:12px;font-weight:800}
@@ -312,6 +315,7 @@ let routeMenuOpen=false; // display-only state
 let closeoutDay='';
 let pendingMudScan=null;
 let manualFiles={},manualStatusKnown=false,selectedManualMachine='vermeer-d24x40';
+let manualSearchSeq=0,activeManualSearch=null;
 const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(n,d=0)=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:d});
@@ -395,6 +399,50 @@ window.borelabOnManuals=function borelabOnManuals(files,message){
  if(page==='manuals')render();
  if(message)notify(message);
 };
+
+function highlightManualTerm(snippet,query){
+ const text=String(snippet||''),term=String(query||'');
+ const i=text.toLocaleLowerCase().indexOf(term.toLocaleLowerCase());
+ if(i<0||!term)return esc(text);
+ return esc(text.slice(0,i))+'<mark class="manual-highlight">'+esc(text.slice(i,i+term.length))+'</mark>'+esc(text.slice(i+term.length));
+}
+function showManualSearch(slot,query='',payload=null,pending=false){
+ if(!isManualSlot(slot)||manualFiles[slot]!==true)return notify('Import the PDF before searching.');
+ const machine=MANUAL_MACHINES.find(m=>slot.startsWith(m.id+'-'));
+ const type=machine?slot.slice(machine.id.length+1):'manual';
+ const label=MANUAL_TYPES.find(([id])=>id===type)?.[1]||'Manual';
+ const title=(machine?machine.make+' '+machine.model+' · ':'')+label;
+ const matches=Array.isArray(payload?.results)?payload.results:[];
+ const status=pending?'<div class="note spaced">Searching downloaded PDF text offline... Large manuals may take longer.</div>':
+  payload?.error?'<div class="note spaced">'+esc(payload.error)+'</div>':
+  payload?matches.length?
+   '<p class="smalltext muted spaced">Found matching text on '+matches.length+' page(s). Examined '+Number(payload.searchedPages||0)+' of '+Number(payload.pageCount||0)+' PDF pages.</p>':
+   Number(payload.textPages||0)===0?
+    '<div class="note spaced">No selectable text found. This manual may contain scanned page images. OCR search is not yet supported; open the PDF normally for now.</div>':
+    '<div class="note spaced">No exact matches. Try a shorter keyword, part name, or fault-code number.</div>':
+  '<p class="tiny muted spaced">Search the actual words in this PDF, such as hydraulic pressure, rotation, pump, or fault codes.</p>';
+ const rows=matches.map(hit=>{
+  const page=Number(hit.page);
+  if(!Number.isInteger(page)||page<1)return '';
+  return '<div class="manual-search-result"><div class="between"><strong>PDF page '+page+'</strong>'+
+   '<button type="button" class="btn micro primary" data-action="manual-open-page" data-id="'+esc(slot)+'" data-manual-page="'+page+'">View page</button></div>'+
+   '<p class="smalltext muted spaced">'+highlightManualTerm(hit.snippet,query)+'</p></div>';
+ }).join('');
+ const limit=payload?.truncated?'<p class="tiny muted spaced">Showing up to 100 matching pages and searching up to 900 PDF pages. Try a narrower query if you need a shorter list.</p>':'';
+ showModal(modalHead('Search Manual')+
+  '<p class="smalltext muted">'+esc(title)+'</p>'+
+  '<form data-form="manual-search" data-slot="'+esc(slot)+'">'+
+  '<label class="field spaced">Search keyword or phrase<input type="search" name="query" maxlength="80" minlength="2" required placeholder="Example: rotation pressure" value="'+esc(query)+'"></label>'+
+  '<div class="action-row"><button class="btn primary" type="submit" '+(pending?'disabled':'')+'>⌕ Search PDF</button>'+
+  '<button class="btn ghost" type="button" data-action="close-modal">Close</button></div></form>'+
+  status+rows+limit+
+  '<p class="tiny muted spaced">PDF page numbers count cover pages. Check machine model/serial number and the complete safety procedure before following a manual.</p>');
+}
+window.borelabOnManualSearch=function borelabOnManualSearch(slot,query,requestId,payload){
+ if(!activeManualSearch||activeManualSearch.slot!==slot||activeManualSearch.requestId!==requestId||!modal)return;
+ showManualSearch(slot,query,payload,false);
+}
+
 function renderManualLibrary(){
  const machine=MANUAL_MACHINES.find(m=>m.id===selectedManualMachine)||MANUAL_MACHINES[0];
  const native=!!window.BoreLabNative?.importManual;
@@ -414,7 +462,7 @@ function renderManualLibrary(){
    '<div class="action-row"><button type="button" class="btn micro primary" data-action="manual-source" data-id="'+esc(machine.id)+'">↗ Find PDF</button>'+
    '<button type="button" class="btn micro ghost" data-action="manual-import" data-id="'+esc(slot)+'" '+(native?'':'disabled')+'>'+
    (saved?'Replace PDF':'Import PDF')+'</button>'+
-   (saved?'<button type="button" class="btn micro ghost" data-action="manual-open" data-id="'+esc(slot)+'">Open PDF</button>'+
+   (saved?'<button type="button" class="btn micro ghost" data-action="manual-open" data-id="'+esc(slot)+'">Open PDF</button>'+'<button type="button" class="btn micro ghost" data-action="manual-search" data-id="'+esc(slot)+'">⌕ Search PDF</button>'+
       '<button type="button" class="btn micro ghost" data-action="manual-remove" data-id="'+esc(slot)+'">Remove</button>':'')+
    '</div>'+manualAlternatives(machine.id,type).map((item,i)=>
      '<div class="manual-alt-row"><button type="button" class="btn micro ghost" data-action="manual-alternate" data-id="'+esc(slot)+'" data-index="'+i+'">↗ '+esc(item.label)+'</button>'+
@@ -1246,7 +1294,7 @@ ${equipmentSettings()}<div class="card spaced"><h3>Real PDF Reports & Closeouts<
 </select></label>
 <div class="divider"></div><div class="settings-item"><div><strong class="smalltext">Photo records</strong><p class="tiny muted">${photos.length} stored locally</p></div><button class="btn micro" data-page="photos">Open</button></div><div class="settings-item"><div><strong class="smalltext">Backup everything</strong><p class="tiny muted">Download JSON with shots, hours and photos</p></div><button class="btn micro" data-action="export-backup">Export</button></div><div class="settings-item"><div><strong class="smalltext">Restore backup</strong><p class="tiny muted">Import a BoreLab backup file</p></div><button class="btn micro" data-action="import-backup">Import</button></div><div class="settings-item"><div><strong class="smalltext">Daily PDF report</strong><p class="tiny muted">Create a printable HTML report, then Save as PDF</p></div><button class="btn micro" data-action="export-report">Create</button></div></div><div class="card spaced"><h3>Demo & Reset</h3><p class="smalltext muted spaced">Use the sample job while exploring. Clearing demo data also removes saved photos and timesheets on this device.</p><div class="action-row"><button class="btn ghost" data-action="reset-demo">Load Demo</button><button class="btn danger" data-action="clear-demo">Clear & Start Fresh</button></div></div><div class="note spaced">All photos and job information stay in this browser until you export them or clear local data. The app currently has no cloud syncing or automatic backup.</div>${footnote()}</div>`}
 function showModal(body){modal=body;$('#modalRoot').innerHTML=`<div class="modal-backdrop" data-action="backdrop"><div class="modal" role="dialog" aria-modal="true" aria-label="Edit BoreLab details">${body}</div></div>`;document.body.style.overflow='hidden'}
-function closeModal(){modal='';$('#modalRoot').innerHTML='';document.body.style.overflow=''}
+function closeModal(){activeManualSearch=null;modal='';$('#modalRoot').innerHTML='';document.body.style.overflow=''}
 const modalHead=t=>`<div class="modal-head"><h2>${esc(t)}</h2><button type="button" class="icon-btn" data-action="close-modal" aria-label="Close">✕</button></div>`;
 function reelTotal(location){return state.reels.filter(r=>!r.archived&&(!location||r.location===location)).reduce((a,r)=>a+Number(r.remaining||0),0)}
 function reelMode(){return state.reels.length>0}
@@ -1857,6 +1905,8 @@ switch(action){
  case 'manual-alternate':openManualAlternative(id,Number(btn.dataset.index));break;
  case 'manual-import':if(isManualSlot(id)&&window.BoreLabNative?.importManual)window.BoreLabNative.importManual(id);break;
  case 'manual-open':if(isManualSlot(id)&&manualFiles[id]===true)window.BoreLabNative?.openManual(id);break;
+ case 'manual-search':if(isManualSlot(id)&&manualFiles[id]===true&&window.BoreLabNative?.searchManual){activeManualSearch={slot:id,requestId:''};showManualSearch(id);}break;
+ case 'manual-open-page':if(isManualSlot(id)&&manualFiles[id]===true&&window.BoreLabNative?.openManualPage){const n=Number(btn.dataset.manualPage);if(Number.isInteger(n)&&n>=1)window.BoreLabNative.openManualPage(id,n);}break;
  case 'manual-remove':if(isManualSlot(id)&&manualFiles[id]===true&&confirm('Remove this offline PDF from BoreLab? Your original downloaded PDF will not be affected.'))window.BoreLabNative?.removeManual(id);break;
  case 'go-mud-stock':setPage('mudstock');break;
  case 'mud-stock-edit':mudStockForm(id);break;
@@ -1919,7 +1969,7 @@ switch(action){
  default:break;
 }
 }catch(e){console.error(e);notify('Could not complete action: '+e.message)}});
-document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='mud-stock'){saveMudStock(form,values);return}else if(form.dataset.form==='mud-product'){saveMudProduct(form,values);return}else if(form.dataset.form==='mud-level'){saveMudLevel(values);return}else if(form.dataset.form==='mud-batch'){saveMudPlan(form,values,e.submitter?.dataset?.mudCommit==='yes');return}else if(form.dataset.form==='closeout'){saveCloseout(form,values);return}else if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
+document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='manual-search'){const slot=form.dataset.slot,query=String(values.query||'').trim();if(!isManualSlot(slot)||manualFiles[slot]!==true)return notify('Manual missing. Import it again.');if(query.length<2||query.length>80)return notify('Enter 2–80 characters.');const requestId=String(++manualSearchSeq);activeManualSearch={slot,requestId};showManualSearch(slot,query,null,true);window.BoreLabNative?.searchManual(slot,query,requestId);return}else if(form.dataset.form==='mud-stock'){saveMudStock(form,values);return}else if(form.dataset.form==='mud-product'){saveMudProduct(form,values);return}else if(form.dataset.form==='mud-level'){saveMudLevel(values);return}else if(form.dataset.form==='mud-batch'){saveMudPlan(form,values,e.submitter?.dataset?.mudCommit==='yes');return}else if(form.dataset.form==='closeout'){saveCloseout(form,values);return}else if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
 }else if(form.dataset.form==='checkout'){const now=new Date().toISOString();const active=state.crew.filter(e=>!e.end);for(const entry of active){const lunch=Number(values['lunch_'+entry.id]);entry.lunch=Number.isFinite(lunch)?Math.max(0,Math.min(300,lunch)):0;entry.end=now}save();closeModal();render();notify(`${active.length} crew member${active.length===1?'':'s'} checked out.`);
 }else if(form.dataset.form==='shot'){
  const f=Number(values.feet);
