@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.8.0 (debug/test build)
+**Current version:** v0.9.0 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.8.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.9.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,18 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.9.0 — Rig Manual Library
+
+- Added **Manual Library** in Field Toolbox with official manufacturer links for Vermeer D7×11, D23×30, D24×40 and D24×40 S3, plus Ditch Witch JT20, JT21 and JT24.
+- **Find PDF** opens the manufacturer source page/model-specific document folder (not a promise of a direct PDF). Ditch Witch offers model document folders; Vermeer manuals may require registration or a VIN/serial number through VermeerOne.
+- Download your exact machine's PDF in the browser; return to BoreLab and use **Import PDF** to choose it from Android Downloads/Files.
+- Android copies the selected PDF into its private **files/manuals/** folder. A **✓ Saved offline** checkmark appears only after the native code verifies a PDF file is present; an unimported Chrome download does not count.
+- Rechecks the folder on launch, on return to BoreLab, after import/deletion, and with **Check Files**. It does not silently scan the public Downloads folder.
+- **Open PDF** uses a read-only Android FileProvider with any installed PDF viewer; **Remove** deletes only the BoreLab-managed copy, not the original in Downloads.
+- The private PDF folder is not included in JSON backups; keep original PDFs elsewhere. Uninstalling the APK removes those copies. Browser-only preview cannot import manuals.
+- Each slot is labeled Operator/Safety, Maintenance, or Parts. The user must check the PDF's model/year/serial compatibility and select the correct slot. No auto-verification of manual contents is claimed.
+- Existing MixLab, routes, reels, photos and crew data remain intact.
 
 ## New in v0.8.1 — Quick Final Tank Targets
 
