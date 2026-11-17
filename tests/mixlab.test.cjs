@@ -20,7 +20,7 @@ const begin=js.indexOf('function mudConfig(){'),end=js.indexOf('function mudProd
 assert(begin>=0&&end>begin,'Pure MixLab calculation functions missing');
 const state={mudTank:{capacity:'1000',currentGallons:'200',targetGallons:'500',mode:'topoff',soil:'sand'},
  mudProducts:[{id:'p1',name:'Test Label Product',rate:25,perGallons:500,unit:'lb',source:'Synthetic test label'}],
- mudSelectedIds:['p1'],mudLogs:[]};
+ mudSelectedIds:['p1'],mudLogs:[],mudStockMoves:[]};
 const {mudConfig,calculateMud}=new Function('state',js.slice(begin,end)+'return {mudConfig,calculateMud};')(state);
 let plan=calculateMud();
 assert(plan.ok);assert.equal(plan.capacity,1000);assert.equal(plan.current,200);assert.equal(plan.target,500);
@@ -38,9 +38,10 @@ assert(planStart>=0&&planEnd>planStart);
 const messages=[],saves=[];
 const presetBegin=js.indexOf('const MUD_LEVEL_PRESETS='),presetEnd=js.indexOf('function calculateMud(',presetBegin);
 const mudLevelInputValues=new Function(js.slice(presetBegin,presetEnd)+'return mudLevelInputValues;')();
-const saveMudPlan=new Function('state','calculateMud','mudProductReady','mudLevelInputValues','fmt','confirm','uid','save','render','notify',
+const saveMudPlan=new Function('state','calculateMud','mudProductReady','mudLevelInputValues','mudStockAssessment','mudRound','fmt','confirm','uid','save','render','notify',
  js.slice(planStart,planEnd)+'return saveMudPlan;')
-(state,calculateMud,(p)=>Number(p?.rate)>0&&Number(p?.perGallons)>0&&(!p.labelPhoto||p.rateVerified===true),mudLevelInputValues,(x)=>Number(x).toFixed(2),()=>true,()=>'log1',()=>saves.push(1),()=>{},x=>messages.push(x));
+(state,calculateMud,(p)=>Number(p?.rate)>0&&Number(p?.perGallons)>0&&(!p.labelPhoto||p.rateVerified===true),mudLevelInputValues,
+ plan=>plan.products.map(p=>({...p,available:null,required:p.dose,status:'untracked'})),n=>Number(n),(x)=>Number(x).toFixed(2),()=>true,()=>'log1',()=>saves.push(1),()=>{},x=>messages.push(x));
 const form={querySelectorAll:()=>[{value:'p1'}]};
 saveMudPlan(form,{capacity:'1000',currentGallons:'200',targetGallons:'500',mode:'topoff',soil:'sand',notes:'Test batch'},false);
 assert.equal(state.mudLogs.length,0,'Preview cannot create an actual mix log');
