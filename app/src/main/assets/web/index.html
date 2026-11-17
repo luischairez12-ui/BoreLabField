@@ -229,6 +229,8 @@ html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;borde
   <input type="file" id="cameraFile" accept="image/*" capture="environment" hidden>
   <input type="file" id="galleryFile" accept="image/*" hidden>
   <input type="file" id="importFile" accept="application/json,.json" hidden>
+  <input type="file" id="mudCameraFile" accept="image/*" capture="environment" hidden>
+  <input type="file" id="mudGalleryFile" accept="image/*" hidden>
 <script>
 /* BoreLab Field v0.1 — all data stays on this device unless explicitly exported. */
 (() => {
@@ -258,6 +260,7 @@ let page='home',modal='',photos=[],pendingPhotoShot='',pendingPhotoKind='camera'
 let resolvingAddresses=false,attemptedAutoAddressLookup=false,lookupQueue=Promise.resolve();
 let routeMenuOpen=false; // display-only state
 let closeoutDay='';
+let pendingMudScan=null;
 const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(n,d=0)=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:d});
@@ -403,6 +406,64 @@ function calculateMud(t=mudConfig(),selected=state.mudSelectedIds){
  if(products.some(p=>!Number.isFinite(p.dose)||p.rate<=0||p.perGallons<=0))return{ok:false,error:'One of the selected products has an invalid rate.'};
  return{ok:true,capacity,current,target,added,doseBasis,products,mode:t.mode,soil:t.soil||'unknown'};
 }
+function guessMudProductName(text){
+ const skip=/\b(warning|caution|keep out|danger|first aid|ingredients|directions|net wt|net weight|safety data|made in|batch no|lot no|www\.|telephone|storage|application rate|mixing instructions)\b/i;
+ const lines=String(text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ const possible=lines.find(x=>x.length>=3&&x.length<=85&&!skip.test(x)&&/[a-zA-Z]{3}/.test(x)&&!/^\d/.test(x));
+ return (possible||'').slice(0,100);
+}
+function chooseMudLabelSource(){
+ showModal(`${modalHead('Scan Mud Product Label')}
+ <p class="smalltext muted">Photograph the front of your bentonite, polymer or drilling fluid product. A close-up of its mixing instructions helps read the text.</p>
+ <div class="action-row"><button class="btn primary" data-action="scan-mud-camera">▣ Take Picture</button>
+ <button class="btn ghost" data-action="scan-mud-gallery">＋ Choose Photo</button></div>
+ <p class="tiny muted spaced">On Android, label text is recognized on your device. Review the product name and label instructions before saving it to your MixLab library.</p>`);
+}
+function imageResizedJpeg(image,maxDimension,quality){
+ const scale=Math.min(1,maxDimension/Math.max(image.naturalWidth||image.width,image.naturalHeight||image.height));
+ const width=Math.max(1,Math.round((image.naturalWidth||image.width)*scale));
+ const height=Math.max(1,Math.round((image.naturalHeight||image.height)*scale));
+ const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+ const ctx=canvas.getContext('2d');
+ if(!ctx)throw Error('Image processing is unavailable.');
+ ctx.drawImage(image,0,0,width,height);
+ return canvas.toDataURL('image/jpeg',quality);
+}
+async function scanMudLabelFile(file){
+ if(!file||!file.type.startsWith('image/'))return notify('Please choose a product label photo.');
+ if(file.size>18000000)return notify('Photo is too large. Try a smaller image or take another picture.');
+ let url;
+ try{
+  url=URL.createObjectURL(file);
+  const image=await new Promise((resolve,reject)=>{
+   const img=new Image();
+   img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Could not open that image.'));
+   img.src=url;
+  });
+  const photo=imageResizedJpeg(image,950,0.66);
+  const scan=imageResizedJpeg(image,1800,0.87);
+  pendingMudScan={photo,text:'',name:'',at:new Date().toISOString()};
+  closeModal();
+  if(window.BoreLabNative?.scanProductLabel){
+   notify('Reading label text on this phone...');
+   window.BoreLabNative.scanProductLabel(scan);
+  }else{
+   notify('Automatic label reading requires the Android app. You can save the photo and enter details manually.');
+   mudProductForm();
+  }
+ }catch(error){
+  pendingMudScan=null;
+  notify('Could not scan photo: '+String(error.message||error));
+ }finally{if(url)URL.revokeObjectURL(url)}
+}
+window.borelabOnLabelScan=function borelabOnLabelScan(text,error){
+ if(!pendingMudScan)return;
+ pendingMudScan.text=String(text||'').slice(0,9000);
+ pendingMudScan.name=guessMudProductName(pendingMudScan.text);
+ if(error)notify('Text recognition failed. You can still save the label image and enter details manually.');
+ else if(!pendingMudScan.text.trim())notify('No readable text was found. Try a clearer photo or enter details manually.');
+ mudProductForm();
+};
 function mudProductForm(id){
  const p=state.mudProducts.find(x=>x.id===id)||{name:'',manufacturer:'',unit:'lb',rate:'',perGallons:100,source:'',instructions:''};
  const units=['lb','oz (weight)','fl oz','qt','gal','kg','L','mL','bags'];
@@ -437,6 +498,7 @@ function renderMudMixer(){
  <label class="field wide">Ground conditions (notes only)<select name="soil">${[['unknown','Not recorded'],['sand','Sand'],['clay','Clay'],['mixed','Mixed'],['rock','Rock'],['other','Other']].map(([v,label])=>`<option value="${v}" ${t.soil===v?'selected':''}>${label}</option>`).join('')}</select></label></div>
  <p class="tiny muted spaced">Soil choice does not automatically alter treatment dosage. Check the actual ground, water quality and fluid program.</p>
  <div class="divider"></div><div class="between"><h3>Products for This Batch</h3><button type="button" class="btn micro ghost" data-action="mud-add-product">+ Product</button></div>
+ <div class="action-row"><button class="btn primary" type="button" data-action="scan-mud-label">▣ Scan Product Label</button></div>
  ${products.length?products.map(p=>`<div class="mud-product-item"><label><input name="mudSelected" type="checkbox" value="${esc(p.id)}" ${state.mudSelectedIds.includes(p.id)?'checked':''}><span><strong>${esc(p.name)}</strong><small>${fmt(p.rate,4)} ${esc(p.unit)} per ${fmt(p.perGallons,2)} gal · ${esc(p.manufacturer||'Custom label rate')}</small></span></label><button class="btn micro ghost" type="button" data-action="mud-edit-product" data-id="${esc(p.id)}">Edit</button></div>`).join(''):'<div class="empty spaced"><strong>No products saved</strong>Add a product and enter its actual manufacturer-approved mixing rate.</div>'}
  <label class="field spaced">Mix notes<textarea name="notes" rows="2" maxlength="1000" placeholder="pH readings, mixing order, unusual conditions...">${esc(t.notes||'')}</textarea></label>
  <div class="action-row"><button class="btn primary" type="submit">Calculate & Save Plan</button><button class="btn ghost" type="submit" data-mud-commit="yes">Record Actual Mix</button></div></form></div>
@@ -1327,7 +1389,10 @@ switch(action){
  case 'export-daily-pdf':await exportRealPdf('',closeoutDay||todayLocal());break;
  case 'go-pipe':setPage('pipe');break;
  case 'go-mud':setPage('mud');break;
- case 'mud-add-product':mudProductForm();break;
+ case 'scan-mud-label':chooseMudLabelSource();break;
+ case 'scan-mud-camera':closeModal();$('#mudCameraFile').click();break;
+ case 'scan-mud-gallery':closeModal();$('#mudGalleryFile').click();break;
+ case 'mud-add-product':pendingMudScan=null;mudProductForm();break;
  case 'mud-edit-product':mudProductForm(id);break;
  case 'mud-archive-product':archiveMudProduct(id);break;
  case 'mud-level':mudLevelForm();break;
@@ -1417,6 +1482,9 @@ document.addEventListener('change',e=>{if(e.target.matches('[data-closeout-day]'
 $('#cameraFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#galleryFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#importFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await importBackup(file);e.target.value=''});
+for(const inputId of ['mudCameraFile','mudGalleryFile']){
+ $('#'+inputId).addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await scanMudLabelFile(file);e.target.value=''});
+}
 window.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if((e.key==='Enter'||e.key===' ')&&e.target.matches('.map-pin')){e.preventDefault();e.target.click()}});
 async function init(){applyTheme();await refreshPhotos();render();setTimeout(notifyServiceOnOpen,300);setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
 init();
