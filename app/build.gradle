@@ -28,4 +28,7 @@ dependencies {
     // Bundled, on-device Latin text recognition: works without Google Play Services or internet.
     implementation 'com.google.mlkit:text-recognition:16.0.1'
     implementation 'androidx.core:core:1.13.1'
+    // Align older ML Kit Kotlin jdk7/jdk8 artifacts with AndroidX's Kotlin stdlib.
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
 }
