@@ -162,6 +162,9 @@ html[data-theme="dark"] .planner-mode-summary small{color:#ffc588}
 .planner-home-summary small{display:block;margin-top:4px;font-size:11px}
 .planner-home-summary .btn{flex-shrink:0}
 #homeBaseSettings{scroll-margin-top:85px}
+.map-pin{cursor:pointer;outline:none}
+.map-pin:focus-visible circle{stroke:#172c39;stroke-width:4}
+.route-item .right .btn{white-space:nowrap}
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -315,10 +318,16 @@ function orderedShots(){
  return {order,allGeo,estimate,mode,modeName,message,usable,homeReady,missingShotCount:unknown.length,finalShotId:finalShot?.id||null};
 }
 function mapPoint(o){return coordsValid(o)?`${Number(o.lat)},${Number(o.lon)}`:(o.address||'').trim()}
+function mapsPinUrl(o){const p=mapPoint(o);return p?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p)}`:''}
+function openMapUrl(url){
+ if(!url||!/^https:\/\/www\.google\.com\/maps\//.test(url))return notify('This stop needs an address or GPS coordinates.');
+ // Android WebView intercepts this navigation and hands it to Google Maps or a browser.
+ window.location.assign(url);
+}
 function routeMap(order){
  const known=[];
- if(coordsValid(shop()))known.push({id:'S',label:'Shop',lat:Number(state.shopLat),lon:Number(state.shopLon),home:true});
- order.forEach((p,i)=>{if(coordsValid(p))known.push({id:String(i+1),label:p.name,lat:Number(p.lat),lon:Number(p.lon),home:false})});
+ if(coordsValid(shop()))known.push({id:'S',pointId:'shop',label:'Shop',lat:Number(state.shopLat),lon:Number(state.shopLon),home:true});
+ order.forEach((p,i)=>{if(coordsValid(p))known.push({id:String(i+1),pointId:p.id,label:p.name,lat:Number(p.lat),lon:Number(p.lon),home:false})});
  const needed=(coordsValid(shop())?0:1)+order.filter(p=>!coordsValid(p)).length;
  if(!known.length){
    const link=state.shopAddress?`<a class="btn micro ghost spaced" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(state.shopAddress)}" target="_blank" rel="noopener noreferrer">↗ View saved shop address in Maps</a>`:'';
@@ -331,7 +340,7 @@ function routeMap(order){
  const y=p=>205-(p.lat-(minLat-padLat))/(maxLat-minLat+2*padLat)*180;
  const complete=needed===0;
  const connected=complete&&known.length>1?`<polyline points="${[...known,known[0]].map(p=>`${x(p)},${y(p)}`).join(' ')}" class="route-line"/>`:'';
- return `<div class="route-map spaced"><svg viewBox="0 0 360 230" role="img" aria-label="Schematic geographic pin positions, not road navigation"><defs><pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0 L0 0 0 24" fill="none" stroke="#476579" opacity=".35" stroke-width=".7"/></pattern></defs><rect width="360" height="230" fill="url(#grid)"/>${connected}${known.map(p=>`<g><circle cx="${x(p)}" cy="${y(p)}" r="13" fill="${p.home?'#05857c':'#e68b23'}" stroke="#ffffff" stroke-width="2"/><text x="${x(p)}" y="${y(p)+4}" text-anchor="middle" fill="white" font-size="11" font-weight="900">${p.id}</text></g>`).join('')}</svg><span class="map-caption">${known.length} located pin${known.length===1?'':'s'} · ${needed?`${needed} still missing GPS`:'route positions ready'} · schematic, not streets</span></div>`;
+ return `<div class="route-map spaced"><svg viewBox="0 0 360 230" role="img" aria-label="Schematic geographic pin positions, not road navigation"><defs><pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0 L0 0 0 24" fill="none" stroke="#476579" opacity=".35" stroke-width=".7"/></pattern></defs><rect width="360" height="230" fill="url(#grid)"/>${connected}${known.map(p=>`<g class="map-pin" role="button" tabindex="0" data-action="open-map-pin" data-id="${esc(p.pointId)}" aria-label="Open ${esc(p.label)} in Google Maps"><title>${esc(p.label)} — tap to open Google Maps</title><circle cx="${x(p)}" cy="${y(p)}" r="16" fill="${p.home?'#05857c':'#e68b23'}" stroke="#ffffff" stroke-width="2"/><text x="${x(p)}" y="${y(p)+4}" text-anchor="middle" fill="white" font-size="11" font-weight="900" pointer-events="none">${p.id}</text></g>`).join('')}</svg><span class="map-caption">${known.length} located pin${known.length===1?'':'s'} · tap a pin for Google Maps · ${needed?`${needed} still missing GPS`:'route positions ready'} · schematic, not streets</span></div>`;
 }
 function mapsLink(order){
  const start=coordsValid(shop())?mapPoint(shop()):(state.shopAddress||'').trim();
@@ -355,8 +364,8 @@ function renderPlanner(){const plan=orderedShots(),{order,allGeo,estimate,modeNa
 ${section('Plan My Route')}<div class="card"><p class="subheading">Choose how you'd like to finish your day:</p><div class="select-row">${modes.map(([id,label])=>`<button class="chip ${state.routeMode===id?'active':''}" data-action="route-mode" data-mode="${id}">${esc(label)}</button>`).join('')}</div>
   <div class="planner-mode-summary"><strong>Active plan: ${esc(modeName)}</strong><span>${esc(message)}</span>${allGeo?`<small>Estimated round trip: ${fmt(estimate,1)} mi (straight line)</small>`:''}</div>
   <div class="action-row"><button class="btn ghost" data-action="resolve-addresses">⌖ Locate Saved Addresses</button>${!homeReady?`<button class="btn micro ghost" data-action="edit-homebase">⌖ Set Shop GPS in Settings</button>`:''}</div>
-  ${!allGeo?`<div class="note spaced">${esc(locateMessage())}</div>`:''}${routeMap(order)}<div class="section-title"><h2 style="font-size:15px">${usable?'Suggested Shot Order':'Shot Order — Needs Location'}</h2><span class="hint">${order.length} pending</span></div>${order.length?order.map((s,i)=>`<div class="route-item"><span class="bubble">${i+1}</span><div><strong>${esc(s.name)}</strong><div><small>${esc(s.address||coordsText(s)||'Location needed')}</small></div></div><div class="right"><strong>${feet(s)} ft</strong><div><small>${pipeNeed(s)} ft incl. extra</small></div></div></div>`).join(''):`<p class="muted smalltext">All shots are complete, or no shots have been created.</p>`}
-${mapsLink(order)?`<div class="action-row"><a class="btn cyan full" href="${mapsLink(order)}" target="_blank" rel="noopener noreferrer">↗ Preview Stops in Google Maps — verify route</a></div>`:''}</div>
+  ${!allGeo?`<div class="note spaced">${esc(locateMessage())}</div>`:''}${routeMap(order)}<div class="section-title"><h2 style="font-size:15px">${usable?'Suggested Shot Order':'Shot Order — Needs Location'}</h2><span class="hint">${order.length} pending</span></div>${order.length?order.map((s,i)=>`<div class="route-item"><span class="bubble">${i+1}</span><div style="min-width:0;flex:1"><strong>${esc(s.name)}</strong><div><small>${esc(s.address||coordsText(s)||'Location needed')}</small></div></div><div class="right"><strong>${feet(s)} ft</strong><div><small>${pipeNeed(s)} ft incl. extra</small></div>${mapPoint(s)?`<button class="btn micro ghost" data-action="open-map-pin" data-id="${esc(s.id)}" style="margin-top:6px">Navigate</button>`:''}</div></div>`).join(''):`<p class="muted smalltext">All shots are complete, or no shots have been created.</p>`}
+${mapsLink(order)?`<div class="action-row"><button class="btn cyan full" data-action="open-full-route">↗ Google Maps: shop → shots → shop</button></div>`:''}</div>
 ${section('Pipe Inventory')}<div class="card"><div class="form-grid"><label class="field">Pipe on hand (ft)<input type="number" min="0" step="1" value="${esc(state.pipeAvailable)}" data-setting="pipeAvailable"></label><label class="field">Extra per shot (ft)<input type="number" min="0" step="1" value="${esc(state.allowance)}" data-setting="allowance"></label></div><div class="table-wrap spaced"><table><thead><tr><th>Shot</th><th>Bore</th><th>Extra</th><th>Pipe needed</th></tr></thead><tbody>${state.shots.map(s=>`<tr><td>${esc(s.name)}</td><td>${feet(s)} ft</td><td>+${extra()} ft</td><td><b>${pipeNeed(s)} ft</b></td></tr>`).join('')}</tbody></table></div>${kv('Total required',`${fmt(totalNeed())} ft`)}${kv('Pipe available',`${fmt(available)} ft`)}<div class="note ${short<=0?'good':'error'}" style="margin-top:8px">${short>0?`You'll need ${fmt(short)} more feet of pipe to complete all shots without replenishment.`:`Pipe inventory covers the planned shots, with ${fmt(-short)} ft remaining (assuming each allocation is consumed).`}</div><p class="tiny muted spaced">This is an initial material allocation, not a guarantee of recoverable pipe. Allowance can be edited for the whole job. Actual rod lengths and reel handling vary.</p></div>${footnote()}</div>`}
 function renderPhotos(){return `<div class="page"><span class="eyebrow">FIELD / DOCUMENTATION</span><h1 style="margin:6px 0 8px">Jobsite Photos</h1><p class="muted smalltext">Photos are timestamped when added. GPS is captured with permission; if an address isn't provided, coordinates are displayed instead.</p><div class="action-row"><button class="btn primary" data-action="choose-photo">▣ Capture Photo</button><button class="btn ghost" data-action="choose-gallery">＋ Add from Gallery</button></div>${section('Photo Records',`<span class="hint">${photos.length} saved</span>`)}${photos.length?`<div class="photo-grid">${photos.map(p=>{const s=state.shots.find(s=>s.id===p.shotId);return `<button class="photo-tile" data-action="photo-detail" data-id="${p.id}"><img src="${p.dataUrl}" alt="Job photo" loading="lazy"><div class="photo-text"><strong>${esc(s?.name||'Unassigned photo')}</strong><small>${esc(new Date(p.addedAt).toLocaleDateString())} · ${p.lat!=null?'GPS saved':'GPS unavailable'}</small></div></button>`}).join('')}</div>`:`<div class="empty"><div class="emptyicon">▣</div><strong>No job photos yet</strong>Take a photo and link it to a bore shot. The app stores it on this device.</div>`}<div class="note spaced">Location collection requires device permission and a secure browser context (HTTPS or localhost). If GPS isn't available, the photo is saved without inventing a location.</div>${footnote()}</div>`}
 function hours(e){const start=new Date(e.start).getTime(),end=e.end?new Date(e.end).getTime():NaN;if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return 0;return Math.max(0,(end-start)/3600000-Math.max(0,Number(e.lunch)||0)/60)}
@@ -569,6 +578,8 @@ switch(action){
  case 'next-status':setShotStatus(id);break;
  case 'delete-shot':if(confirm('Delete this shot? Its photos will remain saved as unassigned records.')){state.shots=state.shots.filter(s=>s.id!==id);for(const p of photos)if(p.shotId===id){p.shotId='';await photoDB('put',p)}state.demo=false;save();closeModal();render();notify('Shot deleted.')}break;
  case 'go-planner':setPage('planner');break;
+ case 'open-map-pin':{const p=id==='shop'?{address:state.shopAddress,lat:state.shopLat,lon:state.shopLon}:state.shots.find(s=>s.id===id);openMapUrl(mapsPinUrl(p||{}));break}
+ case 'open-full-route':openMapUrl(mapsLink(orderedShots().order));break;
  case 'go-photos':setPage('photos');break;
  case 'go-crew':setPage('crew');break;
  case 'roadmap':showModal(`${modalHead('Coming in the Next Build')}<p class="smalltext muted">Equipment garage, manufacturer manual indexing, and manufacturer-verified mud mixing are on the BoreLab roadmap. They are not functional in v0.1.</p>`);break;
@@ -613,7 +624,7 @@ document.addEventListener('change',e=>{if(e.target.matches('[data-theme-select]'
 $('#cameraFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#galleryFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#importFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await importBackup(file);e.target.value=''});
-window.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+window.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if((e.key==='Enter'||e.key===' ')&&e.target.matches('.map-pin')){e.preventDefault();e.target.click()}});
 async function init(){applyTheme();await refreshPhotos();render();setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
 init();
 })();
