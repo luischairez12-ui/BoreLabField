@@ -31,3 +31,14 @@ assert(!plan('drive',true,partial).allGeo);
 assert.equal(plan('drive',true,partial).order.at(-1).id,'b','Missing GPS shots stay unoptimized');
 assert(source.includes('Active plan: '),'UI must label selected mode');
 console.log('BoreLab route planner checks passed.');
+
+const planner=source.slice(source.indexOf('function renderPlanner()'),source.indexOf('function renderPhotos()'));
+const settings=source.slice(source.indexOf('function renderSettings()'),source.indexOf('function showModal('));
+assert(!planner.includes('id="shopAddress"'),'Home Base form must no longer appear in Planner');
+assert(planner.includes('STARTING FROM · HOME BASE'),'Planner should show saved home base');
+assert(planner.includes('data-action="edit-homebase"'),'Planner should link to settings');
+assert(settings.includes('id="homeBaseSettings"'),'Home Base should be in Settings');
+assert(settings.includes('id="shopAddress"'),'Home Base address editable in Settings');
+assert(settings.includes('data-action="save-shop"'),'Home Base must remain editable');
+assert(source.includes("case 'edit-homebase':"),'Home Base link must open Settings');
+console.log('Home Base settings tests passed.');
