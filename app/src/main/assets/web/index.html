@@ -235,7 +235,7 @@ html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;borde
 'use strict';
 const KEY='borelab-field-v0.1'; // retain existing data key across upgrades
 const uid=()=>globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`;
-const seed=()=>({version:1,demo:true,jobName:'Demo Job · South Glades',allowance:10,pipeAvailable:345,shopName:'',shopAddress:'',shopLat:'',shopLon:'',routeMode:'toward',shotDurationRate:45,setupMinutes:25,roster:[],selectedCrewIds:[],equipment:[],reels:[],pipeMoves:[],pipeReservations:[],history:[],mudProducts:[],mudSelectedIds:[],mudLogs:[],mudTank:{capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'not-recorded',notes:''},reportScope:'today',shots:[{id:uid(),name:'Shot 01',feet:175,address:'',lat:'',lon:'',notes:'',status:'complete',completedAt:new Date().toISOString()},{id:uid(),name:'Shot 02',feet:155,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 03',feet:90,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 04',feet:80,address:'',lat:'',lon:'',notes:'',status:'planned'}],crew:[]});
+const seed=()=>({version:1,demo:true,jobName:'Demo Job · South Glades',allowance:10,pipeAvailable:345,shopName:'',shopAddress:'',shopLat:'',shopLon:'',routeMode:'toward',shotDurationRate:45,setupMinutes:25,roster:[],selectedCrewIds:[],equipment:[],reels:[],pipeMoves:[],pipeReservations:[],history:[],mudProducts:[],mudSelectedIds:[],mudLogs:[],mudTank:{capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'unknown',notes:''},reportScope:'today',shots:[{id:uid(),name:'Shot 01',feet:175,address:'',lat:'',lon:'',notes:'',status:'complete',completedAt:new Date().toISOString()},{id:uid(),name:'Shot 02',feet:155,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 03',feet:90,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 04',feet:80,address:'',lat:'',lon:'',notes:'',status:'planned'}],crew:[]});
 let state;
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');state=s&&Array.isArray(s.shots)?s:seed()}catch{state=seed()}
 if(!Array.isArray(state.roster))state.roster=[];
@@ -278,7 +278,7 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.6.0 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.7.0 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
@@ -416,7 +416,7 @@ function mudProductForm(id){
  <label class="field wide">Per how many gallons of water?<input name="perGallons" type="number" min="0.01" step="any" required value="${esc(p.perGallons)}" placeholder="e.g., 100"></label></div>
  <label class="field">Rate source / label reference<input name="source" maxlength="220" value="${esc(p.source||'')}" placeholder="Data sheet, approved plan, reference date"></label>
  <label class="field">Manufacturer mixing notes<textarea name="instructions" rows="3" maxlength="2000">${esc(p.instructions||'')}</textarea></label>
- <div class="modal-footer"><button class="btn ghost" type="button" data-action="close-modal">Cancel</button><button class="btn primary" type="submit">Save Product</button></div></form>`);
+ <div class="modal-footer"><button class="btn ghost" type="button" data-action="close-modal">Cancel</button>${id?`<button class="btn micro danger" type="button" data-action="mud-archive-product" data-id="${esc(id)}">Archive</button>`:""}<button class="btn primary" type="submit">Save Product</button></div></form>`);
 }
 function mudLevelForm(){
  const t=mudConfig();
