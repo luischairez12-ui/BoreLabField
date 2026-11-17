@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.9.0 (debug/test build)
+**Current version:** v0.9.1 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.9.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.9.1-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,14 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.9.1 — Alternative Manual Sources
+
+- Manufacturer links remain visible. Under **D24×40 Series II**, **JT20**, and **JT24**, BoreLab adds separately labeled alternate sources with the exact manual type.
+- Vermeer D24×40 Series II Scribd operator preview covers serial 2001–4000; a separate maintenance preview covers 381–2000. The parts reference must be checked for revision/serial compatibility. These are **online previews**, not promises of free PDF downloads.
+- Ditch Witch Midwest hosts direct dealer PDF links for JT20/JT20XP operator (issue 6.0) and JT24 operator (issue 3.1); each still needs version verification.
+- Alternative links do not automatically mark PDFs as downloaded. Saved-offline checkmarks continue to be derived only from the verified local PDF in BoreLab's private folder, after the user downloads and imports an authorized copy.
+- No copyrighted manuals are bundled, scraped, or hosted by BoreLab. It does not bypass Scribd subscriptions or manufacturer access controls.
 
 ## New in v0.9.0 — Rig Manual Library
 

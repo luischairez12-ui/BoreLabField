@@ -248,6 +248,8 @@ html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;borde
 .manual-slot:last-child{border:0}
 .manual-slot-info{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .manual-slot .action-row{margin-top:10px}
+.manual-alt-row{display:flex;align-items:flex-start;flex-wrap:wrap;gap:8px;padding:8px 0 0;margin-top:6px}
+.manual-alt-row .tiny{flex:1 1 160px;align-self:center}
 .manual-ok{color:var(--mint);font-size:12px;font-weight:800}
 .manual-missing{color:var(--muted);font-size:12px;font-weight:700}
 @media(min-width:650px){.manual-machine-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -341,11 +343,46 @@ const MANUAL_MACHINES=[
  {id:'vermeer-d7x11',make:'Vermeer',model:'D7×11',source:'https://www.vermeer.com/na/safety/product-manuals'},
  {id:'vermeer-d23x30',make:'Vermeer',model:'D23×30',source:'https://www.vermeer.com/na/safety/product-manuals'},
  {id:'vermeer-d24x40',make:'Vermeer',model:'D24×40',source:'https://www.vermeer.com/na/safety/product-manuals'},
+ {id:'vermeer-d24x40-series-ii',make:'Vermeer',model:'D24×40 Series II',source:'https://www.vermeer.com/na/safety/product-manuals'},
  {id:'vermeer-d24x40-s3',make:'Vermeer',model:'D24×40 S3',source:'https://www.vermeer.com/na/safety/product-manuals'},
  {id:'ditchwitch-jt20',make:'Ditch Witch',model:'JT20',source:'https://ditchwitch.box.com/s/g9bek30r925q9x0nrdoask3wck6yd3k2'},
  {id:'ditchwitch-jt21',make:'Ditch Witch',model:'JT21',source:'https://ditchwitch.box.com/s/51knhh1t9normuep0fi6sipu1x69ol5x'},
  {id:'ditchwitch-jt24',make:'Ditch Witch',model:'JT24',source:'https://ditchwitch.box.com/s/odmw60lhqgp5t61vwvcw8vlec6n6d88q'}
 ];
+
+/* Links are references to publicly viewable source pages; Scribd availability and rights vary. */
+const MANUAL_ALTERNATES={
+ 'vermeer-d24x40-series-ii':{
+  operator:[{label:'Scribd operator preview',kind:'Online preview · Scribd',note:'D24×40 II serial 2001–4000 only',url:'https://www.scribd.com/document/780730040/24x40-36x50-Vermeer-operators-manual-Series-II'}],
+  maintenance:[{label:'Scribd maintenance preview',kind:'Online preview · Scribd',note:'D24×40 II serial 381–2000 only',url:'https://www.scribd.com/document/346989251/2440-Maintenance-Book'}],
+  parts:[
+   {label:'Manuals+ parts reference',kind:'Online document',note:'Check parts revision and serial number',url:'https://manuals.plus/m/8fc7922564c046f8eddba455aacf37159f853a6fbc1d5480677bd02f0d7db6f3'},
+   {label:'Scribd parts preview',kind:'Online preview · Scribd',note:'Parts P2.02, serial 324 and above; verify revision',url:'https://www.scribd.com/document/828892930/D24x40-Series-II-Navigator-Parts-Manual-P2-02'}
+  ]
+ },
+ 'ditchwitch-jt20':{
+  operator:[
+   {label:'Dealer PDF (JT20/JT20XP)',kind:'Direct PDF · Ditch Witch dealer',note:'Issue 6.0, reference 053-2633; check equipment version',url:'https://www.ditchwitchmidwest.com/fckimages/pdfs/manuals/Directional%20Drills/JT20%20operator_s%20manual%20%28ID0318836_09_SVC%29.pdf'},
+   {label:'ManualMachine web preview',kind:'Online document',note:'Confirm manual edition',url:'https://manualmachine.com/ditchwitch/jt20/1496777-user-manual/'}
+  ]
+ },
+ 'ditchwitch-jt24':{
+  operator:[{label:'Dealer PDF (JT24)',kind:'Direct PDF · Ditch Witch dealer',note:'Issue 3.1, reference 053-3180; check equipment version',url:'https://www.ditchwitchmidwest.com/fckimages/pdfs/manuals/Directional%20Drills/JT24%20operator_s%20manual%20%28ID0578896_04_SVC%29.pdf'}]
+ }
+};
+const manualAlternatives=(machineId,type)=>MANUAL_ALTERNATES[machineId]?.[type]||[];
+function openManualAlternative(slot,index){
+ if(!isManualSlot(slot)||!Number.isInteger(index)||index<0)return notify('Unknown manual link.');
+ const match=MANUAL_MACHINES.find(m=>slot.startsWith(m.id+'-'));
+ if(!match)return notify('Unknown rig.');
+ const type=slot.slice(match.id.length+1);
+ const item=manualAlternatives(match.id,type)[index];
+ if(!item)return notify('Manual link unavailable.');
+ const uri=new URL(item.url);
+ const hosts=['www.scribd.com','manuals.plus','www.ditchwitchmidwest.com','manualmachine.com'];
+ if(uri.protocol!=='https:'||!hosts.includes(uri.hostname))return notify('Untrusted manual source.');
+ window.location.assign(item.url);
+}
 const MANUAL_TYPES=[['operator','Operator / Safety'],['maintenance','Maintenance'],['parts','Parts']];
 const manualSlot=(machine,type)=>machine+'-'+type;
 const isManualSlot=id=>MANUAL_MACHINES.some(m=>MANUAL_TYPES.some(([type])=>manualSlot(m.id,type)===id));
@@ -379,24 +416,27 @@ function renderManualLibrary(){
    (saved?'Replace PDF':'Import PDF')+'</button>'+
    (saved?'<button type="button" class="btn micro ghost" data-action="manual-open" data-id="'+esc(slot)+'">Open PDF</button>'+
       '<button type="button" class="btn micro ghost" data-action="manual-remove" data-id="'+esc(slot)+'">Remove</button>':'')+
-   '</div></div>';
+   '</div>'+manualAlternatives(machine.id,type).map((item,i)=>
+     '<div class="manual-alt-row"><button type="button" class="btn micro ghost" data-action="manual-alternate" data-id="'+esc(slot)+'" data-index="'+i+'">↗ '+esc(item.label)+'</button>'+
+     '<div class="tiny muted">'+esc(item.kind)+' · '+esc(item.note)+'</div></div>'
+    ).join('')+'</div>';
  }).join('');
  return '<div class="page"><div class="between"><div><span class="eyebrow">FIELD / EQUIPMENT</span>'+
   '<h1>Manual Library</h1></div><button class="btn micro ghost" data-action="manual-refresh">↻ Check Files</button></div>'+
-  '<p class="smalltext muted spaced">Find official manuals by model. A green checkmark appears only when BoreLab confirms that PDF is saved in its private offline folder.</p>'+
+  '<p class="smalltext muted spaced">Find official manuals or alternate sources when manufacturer access is restricted. A green checkmark appears only when BoreLab confirms a PDF is stored in its private offline folder.</p>'+
   (native?'':'<div class="note spaced">Offline PDF importing and file detection require the Android APK. This browser preview only has the manufacturer links.</div>')+
   section('Select Rig','<span class="hint">'+MANUAL_MACHINES.length+' rig models</span>')+
   '<div class="manual-machine-grid spaced">'+choices+'</div>'+
   section(machine.make+' '+machine.model,'<span class="hint">'+countFor(machine)+'/3 saved</span>')+
   '<div class="card spaced"><p class="tiny muted">Verify the correct manual against your exact model, year, and machine serial number before following instructions or ordering parts.</p>'+slots+'</div>'+
   '<div class="note spaced"><strong>Download → Import → Checkmark</strong><p class="smalltext">'+
-  '1. Tap Find PDF to visit the manufacturer. 2. Download the correct manual from the website.'+
+  '1. Try Find PDF or an alternate source. 2. Download the correct PDF when the website allows it.'+
   ' 3. Return here and tap Import PDF, then select it from Downloads/Files.'+
   ' 4. BoreLab copies it to its private folder and checks it automatically.</p></div>'+
   '<p class="tiny muted spaced">Android does not allow silent scanning of the public Downloads folder.'+
   ' PDFs downloaded in Chrome are marked saved only after importing them into BoreLab. Checking is repeated when the app resumes.'+
   ' Removing the app deletes its private manual copies. Keep the original PDFs elsewhere.'+
-  ' Some manufacturer resources require a registered account or serial number.</p>'+footnote()+'</div>';
+  ' Some manufacturer and Scribd resources require a registered account or subscription. Online previews alone cannot be imported. These alternate links do not bypass access restrictions.</p>'+footnote()+'</div>';
 }
 function openManualSource(machineId){
  const machine=MANUAL_MACHINES.find(m=>m.id===machineId);
@@ -1814,6 +1854,7 @@ switch(action){
  case 'manual-machine':if(MANUAL_MACHINES.some(m=>m.id===id)){selectedManualMachine=id;render();refreshManualFiles();}break;
  case 'manual-refresh':refreshManualFiles();break;
  case 'manual-source':openManualSource(id);break;
+ case 'manual-alternate':openManualAlternative(id,Number(btn.dataset.index));break;
  case 'manual-import':if(isManualSlot(id)&&window.BoreLabNative?.importManual)window.BoreLabNative.importManual(id);break;
  case 'manual-open':if(isManualSlot(id)&&manualFiles[id]===true)window.BoreLabNative?.openManual(id);break;
  case 'manual-remove':if(isManualSlot(id)&&manualFiles[id]===true&&confirm('Remove this offline PDF from BoreLab? Your original downloaded PDF will not be affected.'))window.BoreLabNative?.removeManual(id);break;

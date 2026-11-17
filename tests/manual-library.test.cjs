@@ -16,13 +16,20 @@ const f=new Function('window','esc','footnote','section','notify','render','page
  'let manualFiles={};let manualStatusKnown=true;let selectedManualMachine="vermeer-d24x40";'+js.slice(beg,end)+
  'return {MANUAL_MACHINES,MANUAL_TYPES,manualSlot,isManualSlot,renderManualLibrary};');
 const data=f({BoreLabNative:{importManual:()=>{},listManuals:()=>{}}},String,()=>'',(x,r)=>x+r,()=>{},()=>{},'manuals');
-assert.equal(data.MANUAL_MACHINES.length,7);
+assert.equal(data.MANUAL_MACHINES.length,8);
+assert(data.MANUAL_MACHINES.some(x=>x.id==='vermeer-d24x40-series-ii'));
 assert(data.isManualSlot('ditchwitch-jt20-operator'));
 assert(!data.isManualSlot('../secrets'));
 assert(data.MANUAL_MACHINES.every(x=>x.source.startsWith('https://')));
 const view=data.renderManualLibrary();
 assert(view.includes('○ Not saved'),'No PDF should be checked by default');
 assert(view.includes('Import PDF'));
+assert(js.includes('MANUAL_ALTERNATES'));
+assert(js.includes('manualAlternatives(machine.id,type).map'));
+assert(js.includes("case 'manual-alternate':openManualAlternative(id,Number(btn.dataset.index))"));
+assert(js.includes('2001–4000')&&js.includes('381–2000'));
+assert(js.includes('www.ditchwitchmidwest.com'));
+assert(!js.includes('window.BoreLabNative.downloadManual'),'No in-app paywall bypass or auto-download');
 const java=fs.readFileSync('app/src/main/java/com/borelab/field/BoreLabActivity.java','utf8');
 const manifest=fs.readFileSync('app/src/main/AndroidManifest.xml','utf8');
 const filepaths=fs.readFileSync('app/src/main/res/xml/manual_paths.xml','utf8');
