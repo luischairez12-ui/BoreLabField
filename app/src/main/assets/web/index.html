@@ -637,7 +637,16 @@ async function exportBackup(){try{await refreshPhotos();downloadBlob(`BoreLab_ba
 async function importBackup(file){try{const obj=JSON.parse(await file.text());if(obj.type!=='borelab-backup'||!obj.state||!Array.isArray(obj.state.shots)||!Array.isArray(obj.photos))throw new Error('This is not a valid BoreLab backup.');if(!confirm('Replace all current job data, photos and time entries with this backup?'))return;await photoDB('clear');for(const p of obj.photos){if(typeof p.dataUrl==='string'&&p.dataUrl.startsWith('data:image/'))await photoDB('put',p)}state=obj.state;if(!Array.isArray(state.roster))state.roster=[];if(!Array.isArray(state.equipment))state.equipment=[];if(!['today','job'].includes(state.reportScope))state.reportScope='today';if(!Array.isArray(state.selectedCrewIds))state.selectedCrewIds=[];save();await refreshPhotos();setPage('home');notify('Backup restored successfully.')}catch(e){notify(`Restore failed: ${e.message}`)}}
 function reportCSS(){return `body{font:13px/1.5 system-ui,Arial;color:#152535;margin:28px auto;max-width:900px;padding:0 18px}h1{color:#df7d1f;border-bottom:3px solid #df7d1f;padding-bottom:12px}h2{margin-top:30px;background:#e8eff3;padding:8px 12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #acbbc5;padding:8px;text-align:left}th{background:#e8eff3}img{max-width:290px;max-height:220px;object-fit:cover;margin:8px 14px 8px 0}small{color:#516274}.print{padding:12px;background:#eee;border:0;border-radius:8px;cursor:pointer}@media print{.print{display:none}}`}
 async function exportReport(){await refreshPhotos();const today=new Date().toISOString().slice(0,10);const rows=state.shots.map(s=>`<tr><td>${esc(s.name)}</td><td>${feet(s)}</td><td>${pipeNeed(s)}</td><td>${esc(s.status)}</td><td>${esc(s.address||coordsText(s)||'Not provided')}</td><td>${esc(s.notes||'')}</td></tr>`).join('');const crew=state.crew.map(e=>`<tr><td>${esc(e.name)}</td><td>${esc(fullDate(e.start))}</td><td>${e.end?esc(fullDate(e.end)):'Still checked in'}</td><td>${fmt(e.lunch)} min</td><td>${fmt(hours(e),2)}</td></tr>`).join('');const imageHTML=photos.map(p=>{const s=state.shots.find(s=>s.id===p.shotId);const loc=s?.address||(p.lat!=null?`${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}`:'GPS unavailable');return `<div style="display:inline-block;vertical-align:top;width:310px;margin-bottom:12px;break-inside:avoid"><img src="${p.dataUrl}"><div><b>${esc(s?.name||'General job photo')}</b><br><small>${esc(fullDate(p.addedAt))}<br>${esc(loc)}</small></div></div>`}).join('');const html=`<!doctype html><html><head><meta charset="utf-8"><title>BoreLab · ${esc(state.jobName)}</title><style>${reportCSS()}</style></head><body><button class="print" onclick="window.print()">Print / Save as PDF</button><h1>BoreLab Field — Daily Report</h1><p><b>Job:</b> ${esc(state.jobName)}<br><b>Report created:</b> ${esc(fullDate(new Date().toISOString()))}<br><b>Shop:</b> ${esc(state.shopAddress||coordsText(shop())||'Not provided')}<br><b>Footage:</b> ${fmt(doneFeet())} / ${fmt(totalFeet())} ft completed<br><b>Estimated pipe allocations:</b> ${fmt(totalNeed())} ft, incl. +${fmt(extra())} ft per shot<br><b>Pipe on hand:</b> ${fmt(state.pipeAvailable)} ft</p><h2>Bore Log</h2><table><thead><tr><th>Shot</th><th>Feet</th><th>Pipe incl. extra</th><th>Status</th><th>Location</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table><h2>Crew Time Entries</h2><p>Saved roster: ${state.roster.map(x=>esc(x.name)).join(', ')||'None'}</p><table><thead><tr><th>Member</th><th>In</th><th>Out</th><th>Lunch</th><th>Hours</th></tr></thead><tbody>${crew}</tbody></table><p><b>Total crew-hours:</b> ${fmt(state.crew.reduce((a,e)=>a+hours(e),0),2)}</p><h2>Jobsite Photos</h2>${imageHTML||'<p>No photos added.</p>'}<p><small>Photo timestamps were recorded when added. GPS coordinates are included only when device location was available. Verify all field records before using for billing or compliance.</small></p></body></html>`;downloadBlob(`BoreLab_Report_${safeFile(state.jobName)}_${today}.html`,html,'text/html');notify('Report downloaded. Open it in your browser, then Print → Save as PDF.')}
-function setShotStatus(id){const s=state.shots.find(x=>x.id===id);if(!s)return;s.status=s.status==='planned'?'progress':s.status==='progress'?'complete':'planned';s.completedAt=s.status==='complete'?new Date().toISOString():null;save();closeModal();render();notify(`${s.name} is now ${s.status==='complete'?'complete':s.status==='progress'?'in progress':'pending'}.`)}
+function setShotStatus(id){
+ const shot=state.shots.find(x=>x.id===id);if(!shot)return;
+ const now=new Date().toISOString();
+ if(shot.status==='planned'){shot.status='progress';shot.startedAt=shot.startedAt||now;}
+ else if(shot.status==='progress'){shot.status='complete';shot.startedAt=shot.startedAt||now;shot.completedAt=now;}
+ else{shot.status='planned';shot.completedAt=null;}
+ shot.updatedAt=now;
+ save();closeModal();render();
+ notify(`${shot.name} is now ${shot.status==='complete'?'complete':shot.status==='progress'?'in progress':'pending'}.`);
+}
 async function resetData(demo){if(!confirm('This will replace ALL locally saved shots, photos and time entries. Continue?'))return;await photoDB('clear');state=seed();if(!demo){state.demo=false;state.shots=[];state.jobName='My HDD Job'}save();await refreshPhotos();setPage('home');notify(demo?'Demo reloaded.':'Fresh job created.')}
 async function saveShop(){
  const address=document.querySelector('#shopAddress').value.trim();
@@ -672,6 +681,10 @@ switch(action){
  case 'open-full-route':openMapUrl(mapsLink(orderedShots().order));break;
  case 'go-photos':setPage('photos');break;
  case 'go-crew':setPage('crew');break;
+ case 'open-equipment':setPage('settings');document.querySelector('#equipmentSettings')?.scrollIntoView({behavior:'smooth',block:'start'});break;
+ case 'add-equipment':equipmentForm();break;
+ case 'edit-equipment':equipmentForm(id);break;
+ case 'archive-equipment':{const gear=state.equipment.find(e=>e.id===id);if(gear&&confirm('Archive '+gear.name+'? Previous bore logs will keep its name.')){gear.archived=true;save();render();notify('Equipment archived.')}break;}
  case 'roadmap':showModal(`${modalHead('Coming in the Next Build')}<p class="smalltext muted">Equipment garage, manufacturer manual indexing, and manufacturer-verified mud mixing are on the BoreLab roadmap. They are not functional in v0.1.</p>`);break;
  case 'route-mode':state.routeMode=btn.dataset.mode;save();render();notify('Route preference: '+orderedShots().modeName);break;
  case 'edit-homebase':case 'scroll-shop':setPage('settings');document.querySelector('#homeBaseSettings')?.scrollIntoView({behavior:'smooth',block:'start'});break;
@@ -684,6 +697,7 @@ switch(action){
  case 'choose-photo':photoChoose('camera');break;
  case 'choose-gallery':photoChoose('gallery');break;
  case 'capture-for-shot':photoChoose('camera',id);break;
+ case 'gallery-for-shot':photoChoose('gallery',id);break;
  case 'start-picked-photo':startPickedPhoto();break;
  case 'photo-detail':photoDetail(id);break;
  case 'delete-photo':if(confirm('Permanently delete this photo from this device?')){await photoDB('delete',id);await refreshPhotos();closeModal();render();notify('Photo deleted.')}break;
@@ -703,10 +717,43 @@ switch(action){
  default:break;
 }
 }catch(e){console.error(e);notify('Could not complete action: '+e.message)}});
-document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
+document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='equipment'){
+ const name=String(values.name||'').trim(),type=String(values.type||'Other').trim();
+ if(!name)return notify('Enter an equipment name.');
+ if(!['Drill','Locator','Mixer','Truck','Trailer','Other'].includes(type))return notify('Choose an equipment type.');
+ const id=form.dataset.id,old=state.equipment.find(x=>x.id===id);
+ const gear={...old,id:old?.id||uid(),name:name.slice(0,90),type,serial:String(values.serial||'').trim().slice(0,80),notes:String(values.notes||'').trim().slice(0,1000),archived:old?.archived||false};
+ if(old)state.equipment=state.equipment.map(x=>x.id===id?gear:x);else state.equipment.push(gear);
+ save();closeModal();render();notify('Equipment saved.');
+}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
 }else if(form.dataset.form==='checkout'){const now=new Date().toISOString();const active=state.crew.filter(e=>!e.end);for(const entry of active){const lunch=Number(values['lunch_'+entry.id]);entry.lunch=Number.isFinite(lunch)?Math.max(0,Math.min(300,lunch)):0;entry.end=now}save();closeModal();render();notify(`${active.length} crew member${active.length===1?'':'s'} checked out.`);
 }else if(form.dataset.form==='shot'){
- const f=Number(values.feet);if(!Number.isFinite(f)||f<0)return notify('Enter a valid bore length.');const id=form.dataset.id;const old=state.shots.find(s=>s.id===id);const address=values.address.trim();let lat=values.lat.trim(),lon=values.lon.trim();if(old&&address!==old.address&&lat===String(old.lat??'')&&lon===String(old.lon??'')){lat='';lon=''}if((lat!==''||lon!=='')&&!coordsValid({lat,lon}))return notify('Enter a valid latitude AND longitude, or leave both blank.');const s={id:old?.id||uid(),name:values.name.trim(),feet:f,address,lat,lon,notes:values.notes.trim(),status:values.status,completedAt:values.status==='complete'?(old?.completedAt||new Date().toISOString()):null};if(old)state.shots=state.shots.map(x=>x.id===id?s:x);else state.shots.push(s);state.demo=false;save();closeModal();render();notify('Bore shot saved.');resolveShotAfterSave(s.id);
+ const f=Number(values.feet);
+ if(!Number.isFinite(f)||f<0)return notify('Enter a valid bore length.');
+ const id=form.dataset.id,old=state.shots.find(shot=>shot.id===id);
+ const address=String(values.address||'').trim();
+ let lat=String(values.lat||'').trim(),lon=String(values.lon||'').trim();
+ if(old&&address!==old.address&&lat===String(old.lat??'')&&lon===String(old.lon??'')){lat='';lon=''}
+ if((lat!==''||lon!=='')&&!coordsValid({lat,lon}))return notify('Enter valid latitude and longitude, or leave both blank.');
+ const num=(key,whole=false)=>{
+   const value=String(values[key]??'').trim();
+   if(!value)return '';
+   const parsed=Number(value);
+   if(!Number.isFinite(parsed)||parsed<0||(whole&&!Number.isInteger(parsed)))throw Error(key+' must be a nonnegative '+(whole?'whole number':'number'));
+   return parsed;
+ };
+ let pipeUsed,rodCount,entryDepth,exitDepth;
+ try{pipeUsed=num('pipeUsed');rodCount=num('rodCount',true);entryDepth=num('entryDepth');exitDepth=num('exitDepth');}
+ catch(e){return notify('Check bore measurements: '+e.message)}
+ const equipmentIds=Array.from(form.querySelectorAll('input[name="equipmentId"]:checked')).map(x=>x.value).filter(x=>state.equipment.some(e=>e.id===x));
+ const now=new Date().toISOString();
+ const status=values.status;
+ const startedAt=status==='planned'?old?.startedAt||null:old?.startedAt||now;
+ const completedAt=status==='complete'?old?.completedAt||now:null;
+ const shot={...old,id:old?.id||uid(),name:String(values.name||'').trim().slice(0,70),feet:f,address,lat,lon,pipeUsed,rodCount,entryDepth,exitDepth,equipmentIds,notes:String(values.notes||'').trim(),status,startedAt,completedAt,updatedAt:now};
+ if(old)state.shots=state.shots.map(x=>x.id===id?shot:x);else state.shots.push(shot);
+ state.demo=false;save();closeModal();render();notify('Bore shot and equipment saved.');
+ resolveShotAfterSave(shot.id);
 }else if(form.dataset.form==='time'){
  const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);save();closeModal();render();notify('Crew time saved.');
 }});
