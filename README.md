@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.5.0 (debug/test build)
+**Current version:** v0.6.0 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.5.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.6.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,18 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.6 — Native PDF, Daily Closeout, Job History
+
+**No multiple-job switching or management was added.** The app still has one active job.
+
+- **Real PDFs in the Android APK:** Native Android `PdfDocument` generates a multi-page .pdf containing searchable bore log text, crew hours, pipe movements, summary totals, notes and attached photos. The Android document picker lets the user select where to save it.
+- **Daily Closeout:** Review a specific work date, see open crew hours / missing pipe / drilling status / missing photo warnings, manually check four review items, enter day-end notes, and save an immutable dated snapshot. Saving a closeout does *not* automatically clock crew out or mark shots complete.
+- **History:** See chronological saved daily closeouts with view/export actions. A separate **Save Job Snapshot** captures current job progress without clearing or closing the active job, and without creating a second active job.
+- **Historical PDF export:** Uses the frozen closeout/job snapshot rather than live edited field records. Original photos are kept in local IndexedDB; saved history has photo references, so a deleted original image may be unavailable in a later export.
+- **Backups:** Exports include these new history snapshots alongside existing field records.
+
+The standalone browser preview has no Android native PDF bridge; it retains printable HTML (Print → Save as PDF) as a fallback. **The Android APK writes .pdf files directly.** Reports are saved locally, never automatically sent or submitted. The actual save location is chosen through Android's document picker.
 
 ## New in v0.5 — Reel Inventory and Company Truck Service
 
