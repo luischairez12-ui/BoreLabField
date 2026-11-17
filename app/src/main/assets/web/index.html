@@ -449,6 +449,52 @@ function renderMudMixer(){
  ${logs.length?logs.map(x=>`<div class="card spaced"><div class="between"><div><strong>${esc(fullDate(x.at))}</strong><small class="muted">${fmt(x.added,1)} gal added · ${esc(x.soil||'unknown')} soil</small></div><button class="btn micro ghost" data-action="mud-detail" data-id="${esc(x.id)}">View</button></div><p class="tiny muted spaced">${x.products.map(p=>`${fmt(p.dose,4)} ${p.unit} ${p.name}`).map(esc).join(' · ')}</p></div>`).join(''):'<div class="empty spaced"><strong>No batches logged</strong>Record a mix after additives have actually been measured and mixed.</div>'}
  ${footnote()}</div>`;
 }
+function saveMudProduct(form,values){
+ const rate=Number(values.rate),perGallons=Number(values.perGallons),name=String(values.name||'').trim();
+ const units=['lb','oz (weight)','fl oz','qt','gal','kg','L','mL','bags'];
+ if(!name||!units.includes(values.unit)||!Number.isFinite(rate)||rate<=0||!Number.isFinite(perGallons)||perGallons<=0)return notify('Enter a name, positive dose, units and gallons from the label.');
+ const id=form.dataset.id,existing=state.mudProducts.find(p=>p.id===id);
+ const product={...existing,id:existing?.id||uid(),name:name.slice(0,100),
+  manufacturer:String(values.manufacturer||'').trim().slice(0,100),rate,unit:values.unit,perGallons,
+  source:String(values.source||'').trim().slice(0,220),instructions:String(values.instructions||'').trim().slice(0,2000),archived:false};
+ if(existing)state.mudProducts=state.mudProducts.map(p=>p.id===id?product:p);
+ else{state.mudProducts.push(product);state.mudSelectedIds.push(product.id)}
+ save();closeModal();render();notify('Product rate saved from your entry.');
+}
+function saveMudPlan(form,values,record=false){
+ const config={
+  capacity:String(values.capacity??'').trim(),currentGallons:String(values.currentGallons??'').trim(),
+  targetGallons:String(values.targetGallons??'').trim(),mode:values.mode==='fresh'?'fresh':'topoff',
+  soil:['unknown','sand','clay','mixed','rock','other'].includes(values.soil)?values.soil:'unknown',
+  notes:String(values.notes||'').trim().slice(0,1000)
+ };
+ const ids=[...form.querySelectorAll('input[name="mudSelected"]:checked')].map(input=>input.value)
+  .filter(id=>state.mudProducts.some(p=>p.id===id&&!p.archived));
+ const plan=calculateMud(config,ids);
+ if(!plan.ok)return notify(plan.error);
+ if(record&&!plan.products.length)return notify('Select at least one product to record an actual mixed batch. A water-only calculation can still be previewed.');
+ if(record){
+  if(!confirm(`Record ${fmt(plan.added,2)} gallons of added water and ${plan.products.length} products as actually mixed? The tank level will become ${fmt(plan.target,2)} gallons.`))return;
+  state.mudLogs.push({id:uid(),at:new Date().toISOString(),jobName:state.jobName,
+   capacity:plan.capacity,before:plan.current,target:plan.target,added:plan.added,mode:plan.mode,soil:config.soil,
+   products:JSON.parse(JSON.stringify(plan.products)),notes:config.notes});
+  config.currentGallons=String(plan.target);
+  config.targetGallons=String(plan.target);
+ }
+ state.mudTank=config;state.mudSelectedIds=ids;save();render();
+ notify(record?'Actual mix logged; current tank level updated.':'Mix plan saved. Check the label and preview before dosing.');
+}
+function saveMudLevel(values){
+ const raw=String(values.currentGallons??'').trim(),g=Number(raw),tank=mudConfig(),cap=Number(tank.capacity);
+ if(!raw||!Number.isFinite(g)||g<0||!Number.isFinite(cap)||cap<=0||g>cap)return notify('Set a tank capacity first, then enter a current level between zero and capacity.');
+ state.mudTank={...tank,currentGallons:String(g),targetGallons:String(Math.max(g,Math.min(cap,Number(tank.targetGallons)||g)))};
+ save();closeModal();render();notify('Tank level updated. No additives were logged.');
+}
+function archiveMudProduct(id){
+ const product=state.mudProducts.find(p=>p.id===id);if(!product)return;
+ if(!confirm(`Archive ${product.name}? Saved mix logs remain unchanged.`))return;
+ product.archived=true;state.mudSelectedIds=state.mudSelectedIds.filter(x=>x!==id);save();closeModal();render();notify('Product archived.');
+}
 function mudLogDetail(id){
  const x=state.mudLogs.find(m=>m.id===id);if(!x)return;
  showModal(`${modalHead('Mud Mix · '+new Date(x.at).toLocaleDateString())}<div class="card"><h3>${esc(x.jobName||'Workday Mix')}</h3>${kv('Timestamp',esc(fullDate(x.at)))}
@@ -1278,6 +1324,12 @@ switch(action){
  case 'history-pdf':await exportRealPdf(id);break;
  case 'export-daily-pdf':await exportRealPdf('',closeoutDay||todayLocal());break;
  case 'go-pipe':setPage('pipe');break;
+ case 'go-mud':setPage('mud');break;
+ case 'mud-add-product':mudProductForm();break;
+ case 'mud-edit-product':mudProductForm(id);break;
+ case 'mud-archive-product':archiveMudProduct(id);break;
+ case 'mud-level':mudLevelForm();break;
+ case 'mud-detail':mudLogDetail(id);break;
  case 'new-reel':reelForm();break;
  case 'reel-edit':reelForm(id);break;
  case 'reel-use':reelActionForm(id,'use');break;
@@ -1294,7 +1346,7 @@ switch(action){
  case 'edit-equipment':equipmentForm(id);break;
  case 'log-oil':serviceLogForm(id);break;
  case 'archive-equipment':{const gear=state.equipment.find(e=>e.id===id);if(gear&&confirm('Archive '+gear.name+'? Previous bore logs will keep its name.')){gear.archived=true;save();render();notify('Equipment archived.')}break;}
- case 'roadmap':showModal(`${modalHead('Coming in the Next Build')}<p class="smalltext muted">Equipment garage, manufacturer manual indexing, and manufacturer-verified mud mixing are on the BoreLab roadmap. They are not functional in v0.1.</p>`);break;
+ case 'roadmap':showModal(`${modalHead('Coming in the Next Build')}<p class="smalltext muted">Manufacturer manual indexing and future workflow improvements are still planned. MixLab is now available in the Field Toolbox.</p>`);break;
  case 'toggle-route-menu':routeMenuOpen=!routeMenuOpen;render();break;
  case 'route-mode':state.routeMode=btn.dataset.mode;routeMenuOpen=false;save();render();notify('Route preference: '+orderedShots().modeName);break;
  case 'edit-homebase':case 'scroll-shop':setPage('settings');document.querySelector('#homeBaseSettings')?.scrollIntoView({behavior:'smooth',block:'start'});break;
@@ -1327,7 +1379,7 @@ switch(action){
  default:break;
 }
 }catch(e){console.error(e);notify('Could not complete action: '+e.message)}});
-document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='closeout'){saveCloseout(form,values);return}else if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
+document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='mud-product'){saveMudProduct(form,values);return}else if(form.dataset.form==='mud-level'){saveMudLevel(values);return}else if(form.dataset.form==='mud-batch'){saveMudPlan(form,values,e.submitter?.dataset?.mudCommit==='yes');return}else if(form.dataset.form==='closeout'){saveCloseout(form,values);return}else if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
 }else if(form.dataset.form==='checkout'){const now=new Date().toISOString();const active=state.crew.filter(e=>!e.end);for(const entry of active){const lunch=Number(values['lunch_'+entry.id]);entry.lunch=Number.isFinite(lunch)?Math.max(0,Math.min(300,lunch)):0;entry.end=now}save();closeModal();render();notify(`${active.length} crew member${active.length===1?'':'s'} checked out.`);
 }else if(form.dataset.form==='shot'){
  const f=Number(values.feet);
