@@ -357,7 +357,7 @@ const MANUAL_MACHINES=[
 /* Links are references to publicly viewable source pages; Scribd availability and rights vary. */
 const MANUAL_ALTERNATES={
  'vermeer-d7x11':{operator:[
-  {label:'D7×11 Series II Operator Manual',kind:'Online manual · ManualsLib',note:'Series II, serial 769+; verify your machine',url:'https://www.manualslib.com/manual/2054308/Vermeer-Navigator-D7-11-Series.html'},
+  {label:'D7×11 Series II · ManualsLib Reader',kind:'Read online · user-confirmed link',note:'Series II, serial 769+; verify your machine',url:'https://www.manualslib.com/manual/2054308/Vermeer-Navigator-D7-11-Series.html',featured:true},
   {label:'D7×11 Series II manual preview',kind:'Online document · SC-Journal',note:'164-page operator manual preview',url:'https://sc-journal.com/view/2296423/vermeer-navigator-d7-11-series-operator-s-manual-164/'}]},
  'vermeer-d23x30':{
   operator:[{label:'D23×30 Series III Operator Manual',kind:'Paid physical manual · NOT free PDF',note:'Series III only, verify machine version',url:'https://diyrepairmanuals.com/product/vermeer-navigator-d23x30-series-iii-drills-owner-operator-maintanance-manual/'}],
@@ -376,10 +376,12 @@ const MANUAL_ALTERNATES={
    {label:'Series II Parts P2.02',kind:'Scribd preview',note:'Verify serial applicability',url:'https://www.scribd.com/document/828892930/D24x40-Series-II-Navigator-Parts-Manual-P2-02'}]
  },
  'vermeer-d24x40-s3':{
+  parts:[{label:'D24×40 S3 Parts Manual PDF',kind:'Direct PDF · independent archive',note:'Parts diagrams, NOT operating instructions; verify machine revision',url:'https://partesyherramientas.us/Manuales/D24x40%20S3.pdf',featured:true}],
   maintenance:[{label:'D24×40 S3 Service Manual',kind:'Scribd preview · technician service',note:'D24×40 S3/D40×55 S3, serial 101+',url:'https://www.scribd.com/document/892966954/Manual-Servicio-DS3-d24x40s3-d40x55s3-sn101-s1-04'}],
   operator:[{label:'D24×40 S3 Machine Literature',kind:'Manufacturer page · NOT operator PDF',note:'Check VermeerOne for actual operator PDF',url:'https://www.vermeer.com/na/directional-drills/d24x40-s3'}]
  },
  'ditchwitch-jt20':{operator:[
+  {label:'JT20 · ManualsDir Operator Reader',kind:'Read online · user-confirmed link',note:'195-page operator manual, check JT20 revision',url:'https://www.manualsdir.com/manuals/735351/ditch-witch-jt20.html',featured:true},
   {label:'JT20/JT20XP Operator PDF',kind:'Direct PDF · Ditch Witch dealer',note:'Revision 6.0; confirm model/edition',url:'https://www.ditchwitchmidwest.com/fckimages/pdfs/manuals/Directional%20Drills/JT20%20operator_s%20manual%20%28ID0318836_09_SVC%29.pdf',featured:true},
   {label:'JT20 Operator PDF · NTSB',kind:'Direct PDF · government archive',note:'JT20/JT20XP version, check edition',url:'https://data.ntsb.gov/Docket/Document/docBLOB?FileExtension=pdf&FileName=JT20+Operations+Manual-Rel.pdf&ID=19673764'},
   {label:'JT20 Operator Online',kind:'Online document · Manualzz',note:'Older edition 3.0',url:'https://manualzz.com/doc/22619210/ditch-witch-jt-20-horizontal-directional-drilling-unit-op...'}]},
@@ -398,7 +400,7 @@ function openManualAlternative(slot,index){
  const item=manualAlternatives(match.id,type)[index];
  if(!item)return notify('Manual link unavailable.');
  const uri=new URL(item.url);
- const hosts=['www.scribd.com','manuals.plus','www.ditchwitchmidwest.com','manualmachine.com','www.manualslib.com','sc-journal.com','diyrepairmanuals.com','www.vermeer.com','www.ditchwitch.com','data.ntsb.gov'];
+ const hosts=['www.scribd.com','manuals.plus','www.ditchwitchmidwest.com','manualmachine.com','www.manualslib.com','www.manualsdir.com','partesyherramientas.us','sc-journal.com','diyrepairmanuals.com','www.vermeer.com','www.ditchwitch.com','data.ntsb.gov'];
  if(uri.protocol!=='https:'||!hosts.includes(uri.hostname))return notify('Untrusted manual source.');
  if(window.BoreLabNative?.openManualLink)window.BoreLabNative.openManualLink(item.url);
  else window.location.assign(item.url);
@@ -475,7 +477,7 @@ function renderManualLibrary(){
    '<p class="tiny muted spaced">'+(saved?'Available offline without service.':'Not yet stored in BoreLab.')+'</p></div>'+
    '<span class="'+(saved?'manual-ok':'manual-missing')+'">'+
    (saved?'✓ Saved offline':(!manualStatusKnown&&native?'Checking...':'○ Not saved'))+'</span></div>'+
-   '<div class="action-row"><button type="button" class="btn micro primary" data-action="manual-source" data-id="'+esc(machine.id)+'">↗ Manufacturer</button>'+
+   '<div class="action-row"><button type="button" class="btn micro ghost" data-action="manual-source" data-id="'+esc(machine.id)+'">↗ Official backup</button>'+
    '<button type="button" class="btn micro ghost" data-action="manual-import" data-id="'+esc(slot)+'" '+(native?'':'disabled')+'>'+
    (saved?'Replace PDF':'Import PDF')+'</button>'+
    (saved?'<button type="button" class="btn micro ghost" data-action="manual-open" data-id="'+esc(slot)+'">Open PDF</button>'+'<button type="button" class="btn micro ghost" data-action="manual-search" data-id="'+esc(slot)+'">⌕ Search PDF</button>'+
