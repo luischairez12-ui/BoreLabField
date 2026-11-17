@@ -237,6 +237,21 @@ html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;borde
 .mud-stock-check.short>strong{color:#c94b37}.mud-stock-check.enough>strong{color:#28865a}.mud-stock-check.untracked>strong{color:var(--muted)}
 .mud-recipe-line{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px}.mud-recipe-line>strong{flex-shrink:0}
 
+
+/* Disk-backed offline PDF manual badges. */
+.manual-machine-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.manual-machine{padding:12px;min-height:70px;border:1px solid var(--line);background:var(--surface2);color:var(--text);border-radius:12px;text-align:left}
+.manual-machine.active{border:2px solid var(--accent);background:var(--surface3)}
+.manual-machine strong{display:block;font-size:14px}
+.manual-machine small{color:var(--muted);font-size:11px}
+.manual-slot{padding:13px 0;border-bottom:1px solid var(--line)}
+.manual-slot:last-child{border:0}
+.manual-slot-info{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.manual-slot .action-row{margin-top:10px}
+.manual-ok{color:var(--mint);font-size:12px;font-weight:800}
+.manual-missing{color:var(--muted);font-size:12px;font-weight:700}
+@media(min-width:650px){.manual-machine-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -294,6 +309,7 @@ let resolvingAddresses=false,attemptedAutoAddressLookup=false,lookupQueue=Promis
 let routeMenuOpen=false; // display-only state
 let closeoutDay='';
 let pendingMudScan=null;
+let manualFiles={},manualStatusKnown=false,selectedManualMachine='vermeer-d24x40';
 const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(n,d=0)=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:d});
@@ -319,8 +335,78 @@ const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
 async function refreshPhotos(){try{photos=(await photoDB('list')).sort((a,b)=>b.addedAt.localeCompare(a.addedAt))}catch(e){console.warn('Photo storage unavailable:',e);photos=[]}}
-function setPage(p){page=p;closeModal();render();window.scrollTo({top:0,behavior:'instant'});if(p==='planner'&&!attemptedAutoAddressLookup){attemptedAutoAddressLookup=true;resolveMissingAddresses(false)}}
-function render(){document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,planner:renderPlanner,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();}
+function setPage(p){page=p;closeModal();render();if(p==='manuals')refreshManualFiles();window.scrollTo({top:0,behavior:'instant'});if(p==='planner'&&!attemptedAutoAddressLookup){attemptedAutoAddressLookup=true;resolveMissingAddresses(false)}}
+
+const MANUAL_MACHINES=[
+ {id:'vermeer-d7x11',make:'Vermeer',model:'D7×11',source:'https://www.vermeer.com/na/safety/product-manuals'},
+ {id:'vermeer-d23x30',make:'Vermeer',model:'D23×30',source:'https://www.vermeer.com/na/safety/product-manuals'},
+ {id:'vermeer-d24x40',make:'Vermeer',model:'D24×40',source:'https://www.vermeer.com/na/safety/product-manuals'},
+ {id:'vermeer-d24x40-s3',make:'Vermeer',model:'D24×40 S3',source:'https://www.vermeer.com/na/safety/product-manuals'},
+ {id:'ditchwitch-jt20',make:'Ditch Witch',model:'JT20',source:'https://ditchwitch.box.com/s/g9bek30r925q9x0nrdoask3wck6yd3k2'},
+ {id:'ditchwitch-jt21',make:'Ditch Witch',model:'JT21',source:'https://ditchwitch.box.com/s/51knhh1t9normuep0fi6sipu1x69ol5x'},
+ {id:'ditchwitch-jt24',make:'Ditch Witch',model:'JT24',source:'https://ditchwitch.box.com/s/odmw60lhqgp5t61vwvcw8vlec6n6d88q'}
+];
+const MANUAL_TYPES=[['operator','Operator / Safety'],['maintenance','Maintenance'],['parts','Parts']];
+const manualSlot=(machine,type)=>machine+'-'+type;
+const isManualSlot=id=>MANUAL_MACHINES.some(m=>MANUAL_TYPES.some(([type])=>manualSlot(m.id,type)===id));
+function refreshManualFiles(){
+ if(window.BoreLabNative?.listManuals)window.BoreLabNative.listManuals();
+}
+window.borelabOnManuals=function borelabOnManuals(files,message){
+ manualFiles=files&&typeof files==='object'?files:{};
+ manualStatusKnown=true;
+ if(page==='manuals')render();
+ if(message)notify(message);
+};
+function renderManualLibrary(){
+ const machine=MANUAL_MACHINES.find(m=>m.id===selectedManualMachine)||MANUAL_MACHINES[0];
+ const native=!!window.BoreLabNative?.importManual;
+ const countFor=m=>MANUAL_TYPES.filter(([type])=>manualFiles[manualSlot(m.id,type)]===true).length;
+ const choices=MANUAL_MACHINES.map(m=>
+  '<button class="manual-machine '+(m.id===machine.id?'active':'')+'" data-action="manual-machine" data-id="'+esc(m.id)+'">'+
+  '<small>'+esc(m.make)+'</small><strong>'+esc(m.model)+'</strong><small>'+
+  (countFor(m)?'✓ '+countFor(m)+' PDF(s) offline':(!manualStatusKnown&&native?'Checking...':'No PDFs saved'))+
+  '</small></button>'
+ ).join('');
+ const slots=MANUAL_TYPES.map(([type,title])=>{
+  const slot=manualSlot(machine.id,type),saved=manualFiles[slot]===true;
+  return '<div class="manual-slot"><div class="manual-slot-info"><div><strong>'+esc(title)+' Manual</strong>'+
+   '<p class="tiny muted spaced">'+(saved?'Available offline without service.':'Not yet stored in BoreLab.')+'</p></div>'+
+   '<span class="'+(saved?'manual-ok':'manual-missing')+'">'+
+   (saved?'✓ Saved offline':(!manualStatusKnown&&native?'Checking...':'○ Not saved'))+'</span></div>'+
+   '<div class="action-row"><button type="button" class="btn micro primary" data-action="manual-source" data-id="'+esc(machine.id)+'">↗ Find PDF</button>'+
+   '<button type="button" class="btn micro ghost" data-action="manual-import" data-id="'+esc(slot)+'" '+(native?'':'disabled')+'>'+
+   (saved?'Replace PDF':'Import PDF')+'</button>'+
+   (saved?'<button type="button" class="btn micro ghost" data-action="manual-open" data-id="'+esc(slot)+'">Open PDF</button>'+
+      '<button type="button" class="btn micro ghost" data-action="manual-remove" data-id="'+esc(slot)+'">Remove</button>':'')+
+   '</div></div>';
+ }).join('');
+ return '<div class="page"><div class="between"><div><span class="eyebrow">FIELD / EQUIPMENT</span>'+
+  '<h1>Manual Library</h1></div><button class="btn micro ghost" data-action="manual-refresh">↻ Check Files</button></div>'+
+  '<p class="smalltext muted spaced">Find official manuals by model. A green checkmark appears only when BoreLab confirms that PDF is saved in its private offline folder.</p>'+
+  (native?'':'<div class="note spaced">Offline PDF importing and file detection require the Android APK. This browser preview only has the manufacturer links.</div>')+
+  section('Select Rig','<span class="hint">'+MANUAL_MACHINES.length+' rig models</span>')+
+  '<div class="manual-machine-grid spaced">'+choices+'</div>'+
+  section(machine.make+' '+machine.model,'<span class="hint">'+countFor(machine)+'/3 saved</span>')+
+  '<div class="card spaced"><p class="tiny muted">Verify the correct manual against your exact model, year, and machine serial number before following instructions or ordering parts.</p>'+slots+'</div>'+
+  '<div class="note spaced"><strong>Download → Import → Checkmark</strong><p class="smalltext">'+
+  '1. Tap Find PDF to visit the manufacturer. 2. Download the correct manual from the website.'+
+  ' 3. Return here and tap Import PDF, then select it from Downloads/Files.'+
+  ' 4. BoreLab copies it to its private folder and checks it automatically.</p></div>'+
+  '<p class="tiny muted spaced">Android does not allow silent scanning of the public Downloads folder.'+
+  ' PDFs downloaded in Chrome are marked saved only after importing them into BoreLab. Checking is repeated when the app resumes.'+
+  ' Removing the app deletes its private manual copies. Keep the original PDFs elsewhere.'+
+  ' Some manufacturer resources require a registered account or serial number.</p>'+footnote()+'</div>';
+}
+function openManualSource(machineId){
+ const machine=MANUAL_MACHINES.find(m=>m.id===machineId);
+ if(!machine)return notify('Choose a rig model first.');
+ if(!/^https:\/\/(?:www\.vermeer\.com|ditchwitch\.box\.com)\//.test(machine.source))
+   return notify('Official manual source is unavailable.');
+ window.location.assign(machine.source);
+}
+
+function render(){document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,planner:renderPlanner,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();}
 function section(title,right=''){return `<div class="section-title"><h2><span class="accentbar"></span>${esc(title)}</h2>${right}</div>`}
 function quick(label,icon,sub,action){return `<button class="quick" data-action="${action}"><div class="qicon">${icon}</div><strong>${esc(label)}</strong><small>${esc(sub)}</small></button>`}
 function shotRow(s){return `<div class="shot"><div class="shot-icon">⌁</div><div><h3>${esc(s.name)} <span class="status ${s.status==='complete'?'complete':s.status==='progress'?'progress':'planned'}">${s.status==='complete'?'Complete':s.status==='progress'?'Drilling':'Pending'}</span></h3><small>${feet(s)} ft bore · ${pipeNeed(s)} ft with allowance<br>${esc(s.address||coordsText(s)||'No location set')}</small></div><div class="shot-actions"><span class="foot">${feet(s)}′</span><button data-action="shot-detail" data-id="${s.id}" aria-label="Open ${esc(s.name)}">›</button></div></div>`}
@@ -905,7 +991,7 @@ function renderHome(){const pct=totalFeet()?Math.round(doneFeet()/totalFeet()*10
 return `<div class="page"><div class="hero"><span class="eyebrow">HDD FIELD OPERATIONS</span><h1>Ready for today's shots?</h1><p>Plan the route. Count your pipe. Capture the work. Keep your crew organized.</p><div class="hero-tags"><span class="tag teal">● Works offline</span><span class="tag">📍 GPS photo records</span></div></div>
 ${oilWarnings()}${section("Today's Job",`<button class="btn micro ghost" data-action="edit-job">Edit job</button>`)}<div class="card"><div class="card-head"><div><div class="eyebrow">ACTIVE JOB</div><h2 style="margin-top:5px">${esc(state.jobName)}</h2><p class="muted tiny">${state.shots.length} bore shots · ${state.shots.filter(s=>s.status==='complete').length} completed</p></div><span class="status ${pct===100?'complete':'progress'}">${pct}%</span></div><div class="progress"><div style="width:${pct}%"></div></div><div class="stats"><div class="stat"><span>Completed footage</span><strong class="teal">${fmt(doneFeet())}′</strong></div><div class="stat"><span>Planned footage</span><strong>${fmt(totalFeet())}′</strong></div><div class="stat"><span>Pipe required (+${extra()}′/shot)</span><strong class="orange">${fmt(totalNeed())}′</strong></div></div></div>${hasDemo}
 ${section('Daily Job Board',`<button class="btn micro" data-action="new-shot">+ Add shot</button>`)}<div class="shot-list">${state.shots.length?state.shots.map(shotRow).join(''):`<div class="empty"><div class="emptyicon">⌁</div><strong>No shots yet</strong>Tap Add shot to plan your first bore.</div>`}</div><div class="action-row"><button class="btn cyan" data-page="planner">⌁ Smart Shot Planner</button><button class="btn ghost" data-action="export-report">▤ Daily Report</button></div>
-${section('Field Toolbox')}<div class="quick-grid">${quick('Route Planner','⌁','Shot order & travel','go-planner')}${quick('Bore Logs','▤','Footage & notes','new-shot')}${quick('Pipe Inventory','◈','Reel-by-reel footage','go-pipe')}${quick('Job Photos','▣','GPS & timestamps','go-photos')}${quick('Crew Check-In','◷','Roster & timesheets','go-crew')}${quick('Daily Report','▧','PDF export','export-report')}${quick('Daily Closeout','✓','Review the day','open-closeout')}${quick('Job History','▤','Saved workdays','open-history')}${quick('Equipment','⚙','Trucks, service & drills','open-equipment')}${quick('MixLab','◉','Mixing & tank top-offs','go-mud')}${quick('Manual Library','▤','Coming in next build','roadmap')}</div>${footnote()}</div>`}
+${section('Field Toolbox')}<div class="quick-grid">${quick('Route Planner','⌁','Shot order & travel','go-planner')}${quick('Bore Logs','▤','Footage & notes','new-shot')}${quick('Pipe Inventory','◈','Reel-by-reel footage','go-pipe')}${quick('Job Photos','▣','GPS & timestamps','go-photos')}${quick('Crew Check-In','◷','Roster & timesheets','go-crew')}${quick('Daily Report','▧','PDF export','export-report')}${quick('Daily Closeout','✓','Review the day','open-closeout')}${quick('Job History','▤','Saved workdays','open-history')}${quick('Equipment','⚙','Trucks, service & drills','open-equipment')}${quick('MixLab','◉','Mixing & tank top-offs','go-mud')}${quick('Manual Library','▤','PDFs saved offline','go-manuals')}</div>${footnote()}</div>`}
 function coordsValid(o){return o&&o.lat!==''&&o.lon!==''&&o.lat!=null&&o.lon!=null&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lon))&&Math.abs(Number(o.lat))<=90&&Math.abs(Number(o.lon))<=180}
 function coordsText(s){return coordsValid(s)?`${Number(s.lat).toFixed(5)}, ${Number(s.lon).toFixed(5)}`:''}
 function hav(a,b){if(!coordsValid(a)||!coordsValid(b))return NaN;const R=3958.7613,lat1=Number(a.lat)*Math.PI/180,lat2=Number(b.lat)*Math.PI/180,dlat=(Number(b.lat)-Number(a.lat))*Math.PI/180,dlon=(Number(b.lon)-Number(a.lon))*Math.PI/180,q=Math.sin(dlat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dlon/2)**2;return R*2*Math.asin(Math.sqrt(q))}
@@ -1724,6 +1810,13 @@ switch(action){
  case 'export-daily-pdf':await exportRealPdf('',closeoutDay||todayLocal());break;
  case 'go-pipe':setPage('pipe');break;
  case 'go-mud':setPage('mud');break;
+ case 'go-manuals':setPage('manuals');break;
+ case 'manual-machine':if(MANUAL_MACHINES.some(m=>m.id===id)){selectedManualMachine=id;render();refreshManualFiles();}break;
+ case 'manual-refresh':refreshManualFiles();break;
+ case 'manual-source':openManualSource(id);break;
+ case 'manual-import':if(isManualSlot(id)&&window.BoreLabNative?.importManual)window.BoreLabNative.importManual(id);break;
+ case 'manual-open':if(isManualSlot(id)&&manualFiles[id]===true)window.BoreLabNative?.openManual(id);break;
+ case 'manual-remove':if(isManualSlot(id)&&manualFiles[id]===true&&confirm('Remove this offline PDF from BoreLab? Your original downloaded PDF will not be affected.'))window.BoreLabNative?.removeManual(id);break;
  case 'go-mud-stock':setPage('mudstock');break;
  case 'mud-stock-edit':mudStockForm(id);break;
  case 'scan-mud-label':chooseMudLabelSource();break;
@@ -1826,7 +1919,7 @@ for(const inputId of ['mudCameraFile','mudGalleryFile']){
  $('#'+inputId).addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await scanMudLabelFile(file);e.target.value=''});
 }
 window.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if((e.key==='Enter'||e.key===' ')&&e.target.matches('.map-pin')){e.preventDefault();e.target.click()}});
-async function init(){applyTheme();await refreshPhotos();render();setTimeout(notifyServiceOnOpen,300);setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
+async function init(){applyTheme();await refreshPhotos();render();refreshManualFiles();setTimeout(notifyServiceOnOpen,300);setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
 init();
 })();
 
