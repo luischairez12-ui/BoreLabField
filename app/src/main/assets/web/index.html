@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="daylight">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -12,6 +12,90 @@
 
 /* Crew check-in / roster additions */
 .crew-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.crew-pick{display:flex;gap:8px;align-items:center;padding:11px 9px;border:1px solid #385668;border-radius:11px;background:#0d2333;font-size:13px;min-width:0}.crew-pick input{accent-color:#18c7b4;width:18px;height:18px;flex:none}.crew-pick span{overflow-wrap:anywhere;flex:1}.onshift{color:#75e8b6;font-size:10px;white-space:nowrap}.checkout-row{display:grid;grid-template-columns:minmax(0,1fr) 140px;align-items:center;gap:10px;border-bottom:1px solid #2a4558;padding:9px 0}.checkout-row .field{font-size:11px}.btn:disabled{opacity:.45;filter:grayscale(.6);cursor:not-allowed}@media(max-width:360px){.crew-picker{grid-template-columns:1fr}}
+
+
+/* v0.3 DAYLIGHT MODE — high contrast white/orange for outdoor HDD work. */
+html[data-theme="daylight"]{
+ --bg:#f4f7fa;--surface:#fff;--surface2:#edf3f7;--surface3:#e4edf4;--line:#c7d4df;
+ --text:#142533;--muted:#526778;--accent:#db6700;--accent2:#a94a00;--cyan:#007e85;
+ --mint:#067b5d;--danger:#b52e36;--shadow:0 6px 18px #17304814;color-scheme:light
+}
+html[data-theme="daylight"] body{background:#e8eef3;color:var(--text)}
+html[data-theme="daylight"] .app-shell{background:linear-gradient(180deg,#fff,#f4f7fa 38%);box-shadow:0 0 36px #223c5115}
+html[data-theme="daylight"] .topbar{background:#fffffff5;border-color:#c9d6df}
+html[data-theme="daylight"] .brand small{color:#4c6271}
+html[data-theme="daylight"] .bottom-nav{background:#fffffffa;border-top:1px solid #c5d3dd;box-shadow:0 -5px 20px #233d5116}
+html[data-theme="daylight"] .nav-link{color:#455c6d}
+html[data-theme="daylight"] .nav-link.active{color:#bb5100}
+html[data-theme="daylight"] .new-shot-nav{border-color:#fff;box-shadow:0 4px 16px #c56b3061}
+html[data-theme="daylight"] .icon-btn{background:#f4f7fa;border-color:#c4d3dd}
+html[data-theme="daylight"] .eyebrow{color:#a94800}
+html[data-theme="daylight"] .hero{background:linear-gradient(115deg,#17364acb,#10283feb),radial-gradient(circle at 70% 55%,#d9693280,transparent 40%);color:#fff;border-color:#3d6478}
+html[data-theme="daylight"] .hero p{color:#e1edf3}
+html[data-theme="daylight"] .hero .eyebrow{color:#ffc78e}
+html[data-theme="daylight"] .tag{background:#e8eff3;color:#263f50;border-color:#bbcbd5}
+html[data-theme="daylight"] .hero .tag{background:#244151;color:#f4f9fc;border-color:#547085}
+html[data-theme="daylight"] .tag.teal{background:#d7f3f0;color:#006b67;border-color:#6ebfbb}
+html[data-theme="daylight"] .status{background:#e8eef2;color:#263e4c;border-color:#bdd0dc;white-space:nowrap}
+html[data-theme="daylight"] .status.complete{background:#d5f3e3;color:#0a6344;border-color:#86d7b1}
+html[data-theme="daylight"] .status.progress{background:#fff0d4;color:#8f4a00;border-color:#e9b564}
+html[data-theme="daylight"] .status.planned{color:#3a505e}
+html[data-theme="daylight"] .card{background:#fff;border-color:#cfdae3;box-shadow:0 3px 12px #1d455012}
+html[data-theme="daylight"] .stat{background:#f4f7fa;border-color:#d6e0e7}
+html[data-theme="daylight"] .stat span{color:#4b6070}
+html[data-theme="daylight"] .stat strong.teal{color:#007c7c}
+html[data-theme="daylight"] .stat strong.orange{color:#c15b00}
+html[data-theme="daylight"] .quick{background:#fff;border-color:#d1dce4}
+html[data-theme="daylight"] .quick .qicon{color:#cf6300}
+html[data-theme="daylight"] .shot{background:#fff;border-color:#d1dce4}
+html[data-theme="daylight"] .shot .shot-icon{background:#fff0df;color:#c75a00}
+html[data-theme="daylight"] .shot .foot{color:#00757c}
+html[data-theme="daylight"] .shot-actions button{color:#355569}
+html[data-theme="daylight"] .progress{background:#dde8ef}
+html[data-theme="daylight"] .progress>div{background:linear-gradient(90deg,#f5a12e,#e57908)}
+html[data-theme="daylight"] .btn{background:#f2f6f9;border-color:#b7cbd7;color:#173042}
+html[data-theme="daylight"] .btn.primary{color:#fff;border-color:#d46b0a;background:linear-gradient(135deg,#f28b1d,#c85700)}
+html[data-theme="daylight"] .btn.cyan{background:#007e84;border-color:#006b70;color:#fff}
+html[data-theme="daylight"] .btn.ghost{background:#fff}
+html[data-theme="daylight"] .btn.danger{background:#fff1f1;color:#a72831;border-color:#d6a0a4}
+html[data-theme="daylight"] .note{background:#fff5df;border-color:#e0c27e;color:#695017}
+html[data-theme="daylight"] .note.good{background:#e8f7ed;border-color:#9acbac;color:#175f43}
+html[data-theme="daylight"] .note.error{background:#fff1f1;border-color:#d2a1a5;color:#982a33}
+html[data-theme="daylight"] .field{color:#314b5d}
+html[data-theme="daylight"] .field input,
+html[data-theme="daylight"] .field select,
+html[data-theme="daylight"] .field textarea{background:#fff;color:#182e3f;border-color:#b8ccd8}
+html[data-theme="daylight"] .field input:focus,
+html[data-theme="daylight"] .field select:focus,
+html[data-theme="daylight"] .field textarea:focus{border-color:#d77207;box-shadow:0 0 0 2px #f3a54b50}
+html[data-theme="daylight"] .chip{background:#f1f6fa;border-color:#c8d7e0;color:#314c5e}
+html[data-theme="daylight"] .chip.active{background:#fff0df;border-color:#d47b12;color:#975000}
+html[data-theme="daylight"] .route-map{background:linear-gradient(140deg,#e9f2f5,#dce8ed);border-color:#bcd0dc}
+html[data-theme="daylight"] .map-caption{background:#173344d9;color:white}
+html[data-theme="daylight"] .route-item{border-color:#d3e0e7}
+html[data-theme="daylight"] .route-item .right strong{color:#00757a}
+html[data-theme="daylight"] .empty{background:#f6f9fb;border-color:#bdcdd7}
+html[data-theme="daylight"] .empty strong{color:#233c4b}
+html[data-theme="daylight"] .photo-tile{background:#fff;border-color:#c3d3dd;color:#142c3b}
+html[data-theme="daylight"] .photo-tile img{background:#e5edf2}
+html[data-theme="daylight"] .modal{background:#fff;border-color:#bbccd7;box-shadow:0 -18px 48px #09202d38}
+html[data-theme="daylight"] .divider,
+html[data-theme="daylight"] .settings-item,
+html[data-theme="daylight"] .checkout-row{border-color:#d8e1e7;background-color:transparent}
+html[data-theme="daylight"] th,
+html[data-theme="daylight"] td{border-color:#dce5eb}
+html[data-theme="daylight"] th{color:#4a6070}
+html[data-theme="daylight"] .crew-pick{background:#f7fafc;border-color:#c8d8e1}
+html[data-theme="daylight"] .onshift{color:#13704c}
+html[data-theme="daylight"] .footer-note{color:#5f7586}
+html[data-theme="daylight"] #toast{color:white;background:#1d384b;border-color:#d07919}
+html[data-theme="daylight"] .kbd{color:#617688}
+html[data-theme="daylight"] .toggle-item{border-color:#d3e1e9}
+@media(max-width:420px){
+ .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ .table-wrap table{min-width:420px}
+ .status{font-size:10px;padding:4px 6px}
+}
 
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
@@ -51,6 +135,7 @@ if(!Array.isArray(state.selectedCrewIds))state.selectedCrewIds=state.roster.map(
 if(typeof state.autoLunchEnabled!=='boolean')state.autoLunchEnabled=false;
 if(!Number.isFinite(Number(state.defaultLunchMinutes)))state.defaultLunchMinutes=60;
 state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(state.defaultLunchMinutes)));
+if(state.theme!=='dark'&&state.theme!=='daylight')state.theme='daylight';
 let page='home',modal='',photos=[],pendingPhotoShot='',pendingPhotoKind='camera',geocodeWaitUntil=0,toastTimeout;
 const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -63,6 +148,13 @@ const totalFeet=()=>state.shots.reduce((n,s)=>n+feet(s),0);
 const doneFeet=()=>state.shots.filter(s=>s.status==='complete').reduce((n,s)=>n+feet(s),0);
 const totalNeed=()=>state.shots.reduce((n,s)=>n+pipeNeed(s),0);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch{notify('Storage full. Export a backup to preserve your records.')}};
+function applyTheme(){
+ const mode=state.theme==='dark'?'dark':'daylight';
+ document.documentElement.dataset.theme=mode;
+ const meta=document.querySelector('meta[name="theme-color"]');
+ if(meta)meta.setAttribute('content',mode==='daylight'?'#ffffff':'#0b1722');
+ if(window.BoreLabNative?.setTheme)window.BoreLabNative.setTheme(mode);
+}
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
 const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.3 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
@@ -125,6 +217,14 @@ function manageRoster(){showModal(`${modalHead('Saved Crew Roster')}<p class="sm
 function checkInCrew(){const people=selectedRoster();if(!people.length)return notify('Add or select crew members first.');const now=new Date().toISOString(),day=todayLocal();let count=0,already=[];for(const p of people){if(state.crew.some(e=>(e.memberId===p.id||(!e.memberId&&e.name.toLowerCase()===p.name.toLowerCase()))&&localDay(e.start)===day)){already.push(p.name);continue}state.crew.push({id:uid(),memberId:p.id,name:p.name,start:now,end:'',lunch:0,notes:'Checked in with crew',kind:'checkin'});count++}save();render();notify(count?`${count} crew member${count===1?'':'s'} checked in at ${new Date().toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}.${already.length?' Already recorded today: '+already.join(', '):''}`:'Selected crew already has entries for today.');}
 function checkoutForm(){const active=state.crew.filter(e=>!e.end);if(!active.length)return notify('No active crew check-ins.');showModal(`${modalHead('Check Out Crew')}<p class="smalltext muted">All working crew will clock out at the current time. ${state.autoLunchEnabled?`Automatic lunch deduction is ON (${state.defaultLunchMinutes} min per person).`:'Automatic lunch deduction is OFF.'} You can override lunch minutes for anyone before checking out and edit entries later.</p><form data-form="checkout" class="spaced">${active.map(e=>`<div class="checkout-row"><strong>${esc(e.name)}</strong><label class="field">Unpaid lunch (min)<input name="lunch_${esc(e.id)}" type="number" min="0" max="300" value="${automaticLunch()}" required></label></div>`).join('')}<div class="modal-footer"><button type="button" class="btn ghost" data-action="close-modal">Cancel</button><button class="btn cyan" type="submit">✓ Check Out ${active.length}</button></div></form>`)}
 function renderSettings(){return `<div class="page"><span class="eyebrow">BORELAB / SETTINGS</span><h1 style="margin:5px 0 16px">Job & Data</h1><div class="card"><label class="field">Active job name<input id="jobName" value="${esc(state.jobName)}" maxlength="90"></label><div class="action-row"><button class="btn primary" data-action="save-job">Save Job Name</button></div><div class="divider"></div>
+<h3>Appearance</h3>
+<p class="smalltext muted spaced">High-contrast daylight mode is designed for bright outdoor job sites.</p>
+<label class="field spaced">App theme
+<select data-theme-select>
+<option value="daylight" ${state.theme==='daylight'?'selected':''}>Daylight — White & Orange</option>
+<option value="dark" ${state.theme==='dark'?'selected':''}>Night — Navy & Orange</option>
+</select></label>
+<div class="divider"></div>
 <h3>Automatic Lunch</h3>
 <p class="smalltext muted spaced">When enabled, BoreLab pre-fills an unpaid lunch deduction for everyone during crew checkout. You can override it for individual workers. Already saved shifts do not change.</p>
 <div class="settings-item"><label for="autoLunchEnabled"><strong class="smalltext">Apply lunch automatically</strong><br><span class="tiny muted">Deduct when clocking out crew</span></label><input id="autoLunchEnabled" type="checkbox" data-lunch-enabled ${state.autoLunchEnabled?'checked':''} style="width:21px;height:21px;accent-color:#18c7b4" /></div>
@@ -214,12 +314,12 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
 }else if(form.dataset.form==='time'){
  const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);save();closeModal();render();notify('Crew time saved.');
 }});
-document.addEventListener('change',e=>{if(e.target.matches('[data-lunch-enabled]')){state.autoLunchEnabled=e.target.checked;save();render();notify(state.autoLunchEnabled?'Automatic lunch enabled.':'Automatic lunch disabled.');return}if(e.target.matches('[data-lunch-minutes]')){state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(e.target.value)||0));save();render();notify('Lunch default saved.');return}if(e.target.matches('[data-roster-select]')){const id=e.target.dataset.rosterSelect;state.selectedCrewIds=e.target.checked?[...new Set([...state.selectedCrewIds,id])]:state.selectedCrewIds.filter(x=>x!==id);save();render();return}if(e.target.matches('[data-setting]')){const k=e.target.dataset.setting;state[k]=Math.max(0,Number(e.target.value)||0);save();render()}});
+document.addEventListener('change',e=>{if(e.target.matches('[data-theme-select]')){state.theme=e.target.value==='dark'?'dark':'daylight';applyTheme();save();render();notify(state.theme==='daylight'?'Daylight mode enabled.':'Night mode enabled.');return}if(e.target.matches('[data-lunch-enabled]')){state.autoLunchEnabled=e.target.checked;save();render();notify(state.autoLunchEnabled?'Automatic lunch enabled.':'Automatic lunch disabled.');return}if(e.target.matches('[data-lunch-minutes]')){state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(e.target.value)||0));save();render();notify('Lunch default saved.');return}if(e.target.matches('[data-roster-select]')){const id=e.target.dataset.rosterSelect;state.selectedCrewIds=e.target.checked?[...new Set([...state.selectedCrewIds,id])]:state.selectedCrewIds.filter(x=>x!==id);save();render();return}if(e.target.matches('[data-setting]')){const k=e.target.dataset.setting;state[k]=Math.max(0,Number(e.target.value)||0);save();render()}});
 $('#cameraFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#galleryFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#importFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await importBackup(file);e.target.value=''});
 window.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
-async function init(){await refreshPhotos();render();if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
+async function init(){applyTheme();await refreshPhotos();render();if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
 init();
 })();
 
