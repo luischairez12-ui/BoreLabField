@@ -2,12 +2,14 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.3.1 (debug/test build)
+**Current version:** v0.3.2 (debug/test build)
 
 ## Features
 
 - Daily job board with bore footage, progress and notes
-- Smart Shot Planner with selectable order preferences and location-based distance estimates
+- Smart Shot Planner with selectable order preferences, partial GPS pin map and location-based distance estimates
+- Address geocoding when shop / shot addresses are saved, with an explicit fallback when unavailable
+- Open address-based routes in Google Maps even before all internal GPS positions are confirmed
 - Configurable extra pipe allowance (default +10 ft per shot) and pipe stock calculations
 - GPS-tagged jobsite photos with timestamp, coordinates and optional address
 - Saved crew roster, remembered crew selection and one-tap check-in/check-out
@@ -18,14 +20,14 @@ Android prototype for horizontal directional drilling (HDD) crews.
 - Compact home header for better sunlit field use
 - Local data backup/restore and printable daily reports
 
-The prototype works offline for locally stored records. It is **not** a production payroll app, and shot-order distances are **straight-line estimates**, not actual road driving time.
+The planner shows schematic GPS pin positions, **not a live street map**. Online address-to-GPS lookup uses a rate-limited public service, may fail offline or under network/provider restrictions, and needs a production geocoding provider before a wide release. Entered addresses can still open in Google Maps for verification. The prototype works offline for locally stored records. It is **not** a production payroll app, and shot-order distances are **straight-line estimates**, not actual road driving time.
 
 ## Download a debug APK
 
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.3.1-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.3.2-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 

@@ -140,6 +140,13 @@ html[data-theme="daylight"] .crew-entry{border-color:#dce5eb}
  .crew-entry-foot{gap:6px}
 }
 
+
+/* Partially available map pins and assisted address lookups */
+.route-map{background:#eaf1f5}
+html:not([data-theme="daylight"]) .route-map{background:#142638}
+.route-map .map-caption{max-width:calc(100% - 24px);white-space:normal;line-height:1.3}
+.empty .btn{margin-top:12px}
+
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -180,6 +187,7 @@ if(!Number.isFinite(Number(state.defaultLunchMinutes)))state.defaultLunchMinutes
 state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(state.defaultLunchMinutes)));
 if(state.theme!=='dark'&&state.theme!=='daylight')state.theme='daylight';
 let page='home',modal='',photos=[],pendingPhotoShot='',pendingPhotoKind='camera',geocodeWaitUntil=0,toastTimeout;
+let resolvingAddresses=false,attemptedAutoAddressLookup=false,lookupQueue=Promise.resolve();
 const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(n,d=0)=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:d});
@@ -200,12 +208,12 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.3.1 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.3.2 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
 async function refreshPhotos(){try{photos=(await photoDB('list')).sort((a,b)=>b.addedAt.localeCompare(a.addedAt))}catch(e){console.warn('Photo storage unavailable:',e);photos=[]}}
-function setPage(p){page=p;closeModal();render();window.scrollTo({top:0,behavior:'instant'})}
+function setPage(p){page=p;closeModal();render();window.scrollTo({top:0,behavior:'instant'});if(p==='planner'&&!attemptedAutoAddressLookup){attemptedAutoAddressLookup=true;resolveMissingAddresses(false)}}
 function render(){document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,planner:renderPlanner,photos:renderPhotos,crew:renderCrew,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();}
 function section(title,right=''){return `<div class="section-title"><h2><span class="accentbar"></span>${esc(title)}</h2>${right}</div>`}
 function quick(label,icon,sub,action){return `<button class="quick" data-action="${action}"><div class="qicon">${icon}</div><strong>${esc(label)}</strong><small>${esc(sub)}</small></button>`}
@@ -233,14 +241,46 @@ else if(mode==='short'||mode==='short_near'){
 }
 return{order,allGeo:true,estimate:routeScore(order)}
 }
-function routeMap(order){if(!coordsValid(shop())||!order.every(coordsValid)||order.length===0)return `<div class="empty" style="margin-top:12px"><div class="emptyicon">⌖</div><strong>Map preview needs coordinates</strong><p>Enter your shop and shot locations, or capture their GPS position at each site.</p></div>`;
- const all=[shop(),...order],ls=all.map(p=>Number(p.lat)),lon=all.map(p=>Number(p.lon)),minLat=Math.min(...ls),maxLat=Math.max(...ls),minLon=Math.min(...lon),maxLon=Math.max(...lon);const marginLat=Math.max(.004,(maxLat-minLat)*.15),marginLon=Math.max(.004,(maxLon-minLon)*.15);const x=p=>20+(Number(p.lon)-(minLon-marginLon))/(maxLon-minLon+2*marginLon)*320,y=p=>205-(Number(p.lat)-(minLat-marginLat))/(maxLat-minLat+2*marginLat)*180;const poly=all.map(p=>`${x(p)},${y(p)}`).join(' ')+' '+`${x(shop())},${y(shop())}`;
-return `<div class="route-map spaced"><svg viewBox="0 0 360 230" role="img" aria-label="Relative geographic positions of shop and shots; no road network"><defs><pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0 L0 0 0 24" fill="none" stroke="#476579" opacity=".35" stroke-width=".7"/></pattern></defs><rect width="360" height="230" fill="url(#grid)"/><polyline points="${poly}" class="route-line"/>${all.map((p,i)=>`<g><circle cx="${x(p)}" cy="${y(p)}" r="12" fill="${i?'#e68b23':'#29bba2'}" stroke="#dceef5" stroke-width="2"/><text x="${x(p)}" y="${y(p)+4}" text-anchor="middle" fill="white" font-size="10" font-weight="900">${i||'S'}</text></g>`).join('')}</svg><span class="map-caption">Relative GPS locations · not a road map</span></div>`}
-function mapsLink(order){const places=[shop(),...order,shop()];if(!places.every(coordsValid))return '';const path=p=>`${p.lat},${p.lon}`;const q=new URLSearchParams({api:'1',origin:path(places[0]),destination:path(places.at(-1)),travelmode:'driving'});if(order.length)q.set('waypoints',order.map(path).join('|'));return`https://www.google.com/maps/dir/?${q}`}
+function mapPoint(o){return coordsValid(o)?`${Number(o.lat)},${Number(o.lon)}`:(o.address||'').trim()}
+function routeMap(order){
+ const known=[];
+ if(coordsValid(shop()))known.push({id:'S',label:'Shop',lat:Number(state.shopLat),lon:Number(state.shopLon),home:true});
+ order.forEach((p,i)=>{if(coordsValid(p))known.push({id:String(i+1),label:p.name,lat:Number(p.lat),lon:Number(p.lon),home:false})});
+ const needed=(coordsValid(shop())?0:1)+order.filter(p=>!coordsValid(p)).length;
+ if(!known.length){
+   const link=state.shopAddress?`<a class="btn micro ghost spaced" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(state.shopAddress)}" target="_blank" rel="noopener noreferrer">↗ View saved shop address in Maps</a>`:'';
+   return `<div class="empty spaced"><div class="emptyicon">⌖</div><strong>No GPS pins yet</strong><p>${state.shopAddress?'Shop address saved, but coordinates have not been confirmed. Try Locate Saved Addresses or use GPS.':'Save the shop address or current GPS location to start the map.'}</p>${link}</div>`;
+ }
+ const lats=known.map(p=>p.lat),lons=known.map(p=>p.lon);
+ const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLon=Math.min(...lons),maxLon=Math.max(...lons);
+ const padLat=Math.max(0.004,(maxLat-minLat)*.15),padLon=Math.max(0.004,(maxLon-minLon)*.15);
+ const x=p=>20+(p.lon-(minLon-padLon))/(maxLon-minLon+2*padLon)*320;
+ const y=p=>205-(p.lat-(minLat-padLat))/(maxLat-minLat+2*padLat)*180;
+ const complete=needed===0;
+ const connected=complete&&known.length>1?`<polyline points="${[...known,known[0]].map(p=>`${x(p)},${y(p)}`).join(' ')}" class="route-line"/>`:'';
+ return `<div class="route-map spaced"><svg viewBox="0 0 360 230" role="img" aria-label="Schematic geographic pin positions, not road navigation"><defs><pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0 L0 0 0 24" fill="none" stroke="#476579" opacity=".35" stroke-width=".7"/></pattern></defs><rect width="360" height="230" fill="url(#grid)"/>${connected}${known.map(p=>`<g><circle cx="${x(p)}" cy="${y(p)}" r="13" fill="${p.home?'#05857c':'#e68b23'}" stroke="#ffffff" stroke-width="2"/><text x="${x(p)}" y="${y(p)+4}" text-anchor="middle" fill="white" font-size="11" font-weight="900">${p.id}</text></g>`).join('')}</svg><span class="map-caption">${known.length} located pin${known.length===1?'':'s'} · ${needed?`${needed} still missing GPS`:'route positions ready'} · schematic, not streets</span></div>`;
+}
+function mapsLink(order){
+ const start=coordsValid(shop())?mapPoint(shop()):(state.shopAddress||'').trim();
+ const stops=order.map(mapPoint);
+ if(!start||!stops.length||stops.some(x=>!x))return '';
+ const q=new URLSearchParams({api:'1',origin:start,destination:start,travelmode:'driving'});
+ q.set('waypoints',stops.join('|'));
+ return `https://www.google.com/maps/dir/?${q.toString()}`;
+}
+function locateMessage(){
+ const missingShop=!coordsValid(shop());
+ const missing=state.shots.filter(x=>x.status!=='complete'&&!coordsValid(x));
+ if(!missingShop&&!missing.length)return 'All current stops have coordinates. The order uses geographic distances; driving time comes from a separate map service.';
+ const pieces=[];
+ if(missingShop)pieces.push(state.shopAddress?'Shop address saved, GPS not confirmed':'Shop location missing');
+ if(missing.length)pieces.push(`${missing.length} pending shot${missing.length===1?'':'s'} still need${missing.length===1?'s':''} GPS coordinates`);
+ return `${pieces.join(' · ')}. Tap Locate Saved Addresses to look up entered addresses online, or use GPS at the location.`;
+}
 function renderPlanner(){const {order,allGeo,estimate}=orderedShots(),available=Math.max(0,Number(state.pipeAvailable)||0),short=totalNeed()-available,planned=state.shots.filter(s=>s.status!=='complete'),sLat=state.shopLat??'',sLon=state.shopLon??'',modes=[['toward','Far away → toward shop'],['short','Shortest shot last'],['drive','Least total distance'],['short_near','Short shot near shop last']];return `<div class="page"><div class="between"><div><span class="eyebrow">FIELD / ROUTING</span><h1 style="margin-top:5px">Smart Shot Planner</h1></div><button class="btn micro ghost" data-action="edit-job">Edit job</button></div><p class="muted smalltext spaced">Get the shot order you prefer, then check your pipe before the crew leaves.</p>
-${section('Home Base')}<div class="card"><div class="form-grid"><label class="field wide">Shop address<input id="shopAddress" value="${esc(state.shopAddress||'')}" placeholder="Enter shop address"></label><label class="field">Latitude<input id="shopLat" inputmode="decimal" type="number" step="any" value="${esc(sLat)}" placeholder="26.12345"></label><label class="field">Longitude<input id="shopLon" inputmode="decimal" type="number" step="any" value="${esc(sLon)}" placeholder="-81.12345"></label></div><div class="action-row"><button class="btn micro" data-action="save-shop">Save shop</button><button class="btn micro ghost" data-action="geocode-shop">Find GPS from address</button><button class="btn micro ghost" data-action="gps-shop">Use my GPS</button></div></div>
-${section('Plan My Route')}<div class="card"><p class="subheading">Choose how you'd like to finish your day:</p><div class="select-row">${modes.map(([id,label])=>`<button class="chip ${state.routeMode===id?'active':''}" data-action="route-mode" data-mode="${id}">${esc(label)}</button>`).join('')}</div><div style="margin-top:13px" class="note">${allGeo?`Route order is based on GPS positions and straight-line distances (${fmt(estimate,1)} mi round trip). Road times require a live maps service.`:'Add GPS coordinates for the shop and every pending shot for location-aware ordering. You can still organize by shot length now.'}</div>${routeMap(order)}<div class="section-title"><h2 style="font-size:15px">Recommended Order</h2><span class="hint">${order.length} pending</span></div>${order.length?order.map((s,i)=>`<div class="route-item"><span class="bubble">${i+1}</span><div><strong>${esc(s.name)}</strong><div><small>${esc(s.address||coordsText(s)||'Location needed')}</small></div></div><div class="right"><strong>${feet(s)} ft</strong><div><small>${pipeNeed(s)} ft incl. extra</small></div></div></div>`).join(''):`<p class="muted smalltext">All shots are complete, or no shots have been created.</p>`}
-${allGeo?`<div class="action-row"><a class="btn cyan full" href="${mapsLink(order)}" target="_blank" rel="noopener noreferrer">↗ Open Driving Route in Maps</a></div>`:''}</div>
+${section('Home Base')}<div class="card"><div class="form-grid"><label class="field wide">Shop address<input id="shopAddress" value="${esc(state.shopAddress||'')}" placeholder="Enter shop address"></label><label class="field">Latitude<input id="shopLat" inputmode="decimal" type="number" step="any" value="${esc(sLat)}" placeholder="26.12345"></label><label class="field">Longitude<input id="shopLon" inputmode="decimal" type="number" step="any" value="${esc(sLon)}" placeholder="-81.12345"></label></div><p class="tiny muted spaced">${coordsValid(shop())?'✓ Shop GPS saved':'Shop address alone is not a GPS pin yet. Saving will try to locate it online.'}</p><div class="action-row"><button class="btn micro" data-action="save-shop">Save & locate shop</button><button class="btn micro ghost" data-action="geocode-shop">Find GPS from address</button><button class="btn micro ghost" data-action="gps-shop">Use my GPS</button></div></div>
+${section('Plan My Route')}<div class="card"><p class="subheading">Choose how you'd like to finish your day:</p><div class="select-row">${modes.map(([id,label])=>`<button class="chip ${state.routeMode===id?'active':''}" data-action="route-mode" data-mode="${id}">${esc(label)}</button>`).join('')}</div><div class="action-row"><button class="btn ghost" data-action="resolve-addresses">⌖ Locate Saved Addresses</button></div><div style="margin-top:13px" class="note">${allGeo?`Route order is based on GPS positions and straight-line distances (${fmt(estimate,1)} mi round trip). Road times require a live maps service.`:esc(locateMessage())}</div>${routeMap(order)}<div class="section-title"><h2 style="font-size:15px">Recommended Order</h2><span class="hint">${order.length} pending</span></div>${order.length?order.map((s,i)=>`<div class="route-item"><span class="bubble">${i+1}</span><div><strong>${esc(s.name)}</strong><div><small>${esc(s.address||coordsText(s)||'Location needed')}</small></div></div><div class="right"><strong>${feet(s)} ft</strong><div><small>${pipeNeed(s)} ft incl. extra</small></div></div></div>`).join(''):`<p class="muted smalltext">All shots are complete, or no shots have been created.</p>`}
+${mapsLink(order)?`<div class="action-row"><a class="btn cyan full" href="${mapsLink(order)}" target="_blank" rel="noopener noreferrer">↗ Preview Stops in Google Maps — verify route</a></div>`:''}</div>
 ${section('Pipe Inventory')}<div class="card"><div class="form-grid"><label class="field">Pipe on hand (ft)<input type="number" min="0" step="1" value="${esc(state.pipeAvailable)}" data-setting="pipeAvailable"></label><label class="field">Extra per shot (ft)<input type="number" min="0" step="1" value="${esc(state.allowance)}" data-setting="allowance"></label></div><div class="table-wrap spaced"><table><thead><tr><th>Shot</th><th>Bore</th><th>Extra</th><th>Pipe needed</th></tr></thead><tbody>${state.shots.map(s=>`<tr><td>${esc(s.name)}</td><td>${feet(s)} ft</td><td>+${extra()} ft</td><td><b>${pipeNeed(s)} ft</b></td></tr>`).join('')}</tbody></table></div>${kv('Total required',`${fmt(totalNeed())} ft`)}${kv('Pipe available',`${fmt(available)} ft`)}<div class="note ${short<=0?'good':'error'}" style="margin-top:8px">${short>0?`You'll need ${fmt(short)} more feet of pipe to complete all shots without replenishment.`:`Pipe inventory covers the planned shots, with ${fmt(-short)} ft remaining (assuming each allocation is consumed).`}</div><p class="tiny muted spaced">This is an initial material allocation, not a guarantee of recoverable pipe. Allowance can be edited for the whole job. Actual rod lengths and reel handling vary.</p></div>${footnote()}</div>`}
 function renderPhotos(){return `<div class="page"><span class="eyebrow">FIELD / DOCUMENTATION</span><h1 style="margin:6px 0 8px">Jobsite Photos</h1><p class="muted smalltext">Photos are timestamped when added. GPS is captured with permission; if an address isn't provided, coordinates are displayed instead.</p><div class="action-row"><button class="btn primary" data-action="choose-photo">▣ Capture Photo</button><button class="btn ghost" data-action="choose-gallery">＋ Add from Gallery</button></div>${section('Photo Records',`<span class="hint">${photos.length} saved</span>`)}${photos.length?`<div class="photo-grid">${photos.map(p=>{const s=state.shots.find(s=>s.id===p.shotId);return `<button class="photo-tile" data-action="photo-detail" data-id="${p.id}"><img src="${p.dataUrl}" alt="Job photo" loading="lazy"><div class="photo-text"><strong>${esc(s?.name||'Unassigned photo')}</strong><small>${esc(new Date(p.addedAt).toLocaleDateString())} · ${p.lat!=null?'GPS saved':'GPS unavailable'}</small></div></button>`}).join('')}</div>`:`<div class="empty"><div class="emptyicon">▣</div><strong>No job photos yet</strong>Take a photo and link it to a bore shot. The app stores it on this device.</div>`}<div class="note spaced">Location collection requires device permission and a secure browser context (HTTPS or localhost). If GPS isn't available, the photo is saved without inventing a location.</div>${footnote()}</div>`}
 function hours(e){const start=new Date(e.start).getTime(),end=e.end?new Date(e.end).getTime():NaN;if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return 0;return Math.max(0,(end-start)/3600000-Math.max(0,Number(e.lunch)||0)/60)}
@@ -325,7 +365,85 @@ function startPickedPhoto(){pendingPhotoShot=$('#photoShotPicker')?.value||'';cl
 function photoDetail(id){const p=photos.find(p=>p.id===id);if(!p)return;const s=state.shots.find(s=>s.id===p.shotId);const hasLoc=p.lat!=null&&p.lon!=null;const coordinates=hasLoc?`${Number(p.lat).toFixed(6)}, ${Number(p.lon).toFixed(6)}`:'GPS unavailable';const address=s?.address||'';showModal(`${modalHead('Jobsite Photo')}<img src="${p.dataUrl}" alt="Captured site photo" class="photo-preview"><div class="card spaced">${kv('Shot',esc(s?.name||'General job photo'))}${kv(p.kind==='gallery'?'Added at':'Recorded at',esc(fullDate(p.addedAt)))}${kv('Address',esc(address||'No address provided'))}${kv('GPS',esc(coordinates))}${hasLoc?kv('Estimated accuracy',`${fmt(p.accuracy,1)} meters`):''}</div><div class="action-row">${hasLoc?`<a class="btn ghost" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.lat},${p.lon}`)}">Map coordinates</a>`:''}${hasLoc&&s&&!coordsValid(s)?`<button class="btn cyan" data-action="use-photo-gps" data-id="${p.id}">Use GPS for Shot</button>`:''}<button class="btn danger" data-action="delete-photo" data-id="${p.id}">Delete Photo</button></div>`)}
 function getPosition(){return new Promise((resolve,reject)=>{if(!navigator.geolocation)return reject(new Error('GPS unavailable in this browser.'));navigator.geolocation.getCurrentPosition(pos=>resolve({lat:pos.coords.latitude,lon:pos.coords.longitude,accuracy:pos.coords.accuracy}),err=>reject(new Error(err.code===1?'Location permission denied.':'Unable to get GPS position.')),{enableHighAccuracy:true,timeout:13000,maximumAge:0})})}
 async function gpsFill(target){try{notify('Requesting current GPS position…');const pos=await getPosition();const lat=$(`#${target}Lat`),lon=$(`#${target}Lon`);if(!lat||!lon)return;lat.value=pos.lat.toFixed(6);lon.value=pos.lon.toFixed(6);notify(`GPS captured (accuracy ±${Math.round(pos.accuracy)} m)`)}catch(err){notify(err.message+' Enter coordinates manually if needed.')}}
-async function geocode(target){const addr=$(`#${target}Address`)?.value?.trim();if(!addr)return notify('Enter an address first.');if(Date.now()<geocodeWaitUntil)return notify('Try again in a moment (geocoder rate limit).');geocodeWaitUntil=Date.now()+1400;notify('Looking up the address…');try{const u=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(addr)}`;const r=await fetch(u,{headers:{Accept:'application/json'}});if(!r.ok)throw new Error(`lookup unavailable (${r.status})`);const results=await r.json();if(!results.length)return notify('No match found. Check the address or enter GPS coordinates.');$(`#${target}Lat`).value=Number(results[0].lat).toFixed(6);$(`#${target}Lon`).value=Number(results[0].lon).toFixed(6);notify('Found approximate coordinates. Check the pin before routing.')}catch(e){notify(`Online lookup unavailable: ${e.message}`)}}
+function lookupAddressCoordinates(address){
+ const addr=String(address||'').trim();
+ if(!addr)return Promise.reject(Error('Enter an address.'));
+ const task=lookupQueue.then(async()=>{
+   const wait=Math.max(0,geocodeWaitUntil-Date.now());
+   if(wait)await new Promise(done=>setTimeout(done,wait));
+   geocodeWaitUntil=Date.now()+1250;
+   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),14000);
+   try{
+     const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(addr)}`;
+     const res=await fetch(url,{headers:{Accept:'application/json'},signal:controller.signal});
+     if(!res.ok)throw Error('Online lookup unavailable ('+res.status+').');
+     const rows=await res.json();
+     if(!Array.isArray(rows)||!rows.length)throw Error('Address not found; check spelling or use GPS.');
+     const p={lat:Number(rows[0].lat),lon:Number(rows[0].lon)};
+     if(!coordsValid(p))throw Error('Geocoder returned invalid coordinates.');
+     return {lat:p.lat.toFixed(6),lon:p.lon.toFixed(6)};
+   }catch(e){if(e.name==='AbortError')throw Error('Address lookup timed out.');throw e}
+   finally{clearTimeout(timeout)}
+ });
+ lookupQueue=task.catch(()=>{});
+ return task;
+}
+async function resolveMissingAddresses(manual=true){
+ if(resolvingAddresses){if(manual)notify('Location lookup is already running.');return}
+ const tasks=[];
+ if(state.shopAddress?.trim()&&!coordsValid(shop()))tasks.push({type:'shop',address:state.shopAddress.trim()});
+ for(const shot of state.shots.filter(x=>x.status!=='complete'&&x.address?.trim()&&!coordsValid(x)))tasks.push({type:'shot',id:shot.id,address:shot.address.trim()});
+ if(!tasks.length){if(manual)notify('No saved addresses awaiting GPS. Add shop and shot addresses first.');return}
+ resolvingAddresses=true;let good=0,failed=0,firstError='';
+ notify(`Looking up ${tasks.length} saved address${tasks.length===1?'':'es'}…`);
+ try{
+ for(const t of tasks){
+   try{
+     const p=await lookupAddressCoordinates(t.address);
+     if(t.type==='shop'){
+       if(state.shopAddress.trim()!==t.address)continue;
+       state.shopLat=p.lat;state.shopLon=p.lon;
+     }else{
+       const shot=state.shots.find(x=>x.id===t.id);
+       if(!shot||shot.address.trim()!==t.address)continue;
+       shot.lat=p.lat;shot.lon=p.lon;
+     }
+     good++;save();if(page==='planner')render();
+   }catch(e){failed++;firstError ||= e.message}
+ }
+ }finally{resolvingAddresses=false}
+ notify(good?`${good} location${good===1?'':'s'} added to the map.${failed?` ${failed} unresolved.`:''}`:`Could not resolve addresses. ${firstError} You can enter GPS manually.`);
+}
+async function geocode(target){
+ const addr=document.querySelector(`#${target}Address`)?.value?.trim();
+ if(!addr)return notify('Enter an address first.');
+ notify('Looking up the address…');
+ try{
+   const point=await lookupAddressCoordinates(addr);
+   if(target==='shop'){
+     state.shopAddress=addr;state.shopLat=point.lat;state.shopLon=point.lon;
+     save();if(page==='planner')render();
+     notify('Shop GPS located and saved.');
+   }else{
+     const lat=document.querySelector('#shotLat'),lon=document.querySelector('#shotLon');
+     if(!lat||!lon)return;
+     lat.value=point.lat;lon.value=point.lon;
+     notify('Address located. Tap Save Shot to keep the GPS pin.');
+   }
+ }catch(e){notify(`Address lookup failed: ${e.message}`)}
+}
+async function resolveShotAfterSave(id){
+ const shot=state.shots.find(x=>x.id===id);
+ if(!shot||!shot.address?.trim()||coordsValid(shot))return;
+ const address=shot.address.trim();
+ try{
+  const p=await lookupAddressCoordinates(address);
+  const latest=state.shots.find(x=>x.id===id);
+  if(!latest||latest.address.trim()!==address||coordsValid(latest))return;
+  latest.lat=p.lat;latest.lon=p.lon;save();if(page==='planner')render();
+  notify(`${latest.name} GPS added to map.`);
+ }catch(e){notify('Shot saved, but GPS lookup failed: '+e.message)}
+}
 async function compressImage(file){if(file.size>30*1024*1024)throw new Error('Image is too large (30 MB limit).');return new Promise((resolve,reject)=>{const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{URL.revokeObjectURL(url);const scale=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*scale));c.height=Math.max(1,Math.round(img.naturalHeight*scale));const ctx=c.getContext('2d');ctx.drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.76))};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Could not read image.'))};img.src=url})}
 async function addPhoto(file){if(!file||!file.type.startsWith('image/'))return notify('Please select a photo file.');notify('Saving jobsite photo…');let pos=null;try{pos=await getPosition()}catch(e){console.info('Saving without GPS:',e.message)}try{const dataUrl=await compressImage(file);const rec={id:uid(),shotId:pendingPhotoShot||'',kind:pendingPhotoKind,addedAt:new Date().toISOString(),lat:pos?.lat??null,lon:pos?.lon??null,accuracy:pos?.accuracy??null,dataUrl};await photoDB('put',rec);await refreshPhotos();closeModal();setPage('photos');notify(pos?`Photo saved with GPS (±${Math.round(pos.accuracy)} m)`:'Photo saved without GPS. You can add shot coordinates manually.')}catch(e){notify('Photo could not be saved: '+e.message)}}
 function safeFile(s){return String(s).replace(/[^a-z0-9-_]/gi,'_').slice(0,60)}
@@ -336,7 +454,22 @@ function reportCSS(){return `body{font:13px/1.5 system-ui,Arial;color:#152535;ma
 async function exportReport(){await refreshPhotos();const today=new Date().toISOString().slice(0,10);const rows=state.shots.map(s=>`<tr><td>${esc(s.name)}</td><td>${feet(s)}</td><td>${pipeNeed(s)}</td><td>${esc(s.status)}</td><td>${esc(s.address||coordsText(s)||'Not provided')}</td><td>${esc(s.notes||'')}</td></tr>`).join('');const crew=state.crew.map(e=>`<tr><td>${esc(e.name)}</td><td>${esc(fullDate(e.start))}</td><td>${e.end?esc(fullDate(e.end)):'Still checked in'}</td><td>${fmt(e.lunch)} min</td><td>${fmt(hours(e),2)}</td></tr>`).join('');const imageHTML=photos.map(p=>{const s=state.shots.find(s=>s.id===p.shotId);const loc=s?.address||(p.lat!=null?`${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}`:'GPS unavailable');return `<div style="display:inline-block;vertical-align:top;width:310px;margin-bottom:12px;break-inside:avoid"><img src="${p.dataUrl}"><div><b>${esc(s?.name||'General job photo')}</b><br><small>${esc(fullDate(p.addedAt))}<br>${esc(loc)}</small></div></div>`}).join('');const html=`<!doctype html><html><head><meta charset="utf-8"><title>BoreLab · ${esc(state.jobName)}</title><style>${reportCSS()}</style></head><body><button class="print" onclick="window.print()">Print / Save as PDF</button><h1>BoreLab Field — Daily Report</h1><p><b>Job:</b> ${esc(state.jobName)}<br><b>Report created:</b> ${esc(fullDate(new Date().toISOString()))}<br><b>Shop:</b> ${esc(state.shopAddress||coordsText(shop())||'Not provided')}<br><b>Footage:</b> ${fmt(doneFeet())} / ${fmt(totalFeet())} ft completed<br><b>Estimated pipe allocations:</b> ${fmt(totalNeed())} ft, incl. +${fmt(extra())} ft per shot<br><b>Pipe on hand:</b> ${fmt(state.pipeAvailable)} ft</p><h2>Bore Log</h2><table><thead><tr><th>Shot</th><th>Feet</th><th>Pipe incl. extra</th><th>Status</th><th>Location</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table><h2>Crew Time Entries</h2><p>Saved roster: ${state.roster.map(x=>esc(x.name)).join(', ')||'None'}</p><table><thead><tr><th>Member</th><th>In</th><th>Out</th><th>Lunch</th><th>Hours</th></tr></thead><tbody>${crew}</tbody></table><p><b>Total crew-hours:</b> ${fmt(state.crew.reduce((a,e)=>a+hours(e),0),2)}</p><h2>Jobsite Photos</h2>${imageHTML||'<p>No photos added.</p>'}<p><small>Photo timestamps were recorded when added. GPS coordinates are included only when device location was available. Verify all field records before using for billing or compliance.</small></p></body></html>`;downloadBlob(`BoreLab_Report_${safeFile(state.jobName)}_${today}.html`,html,'text/html');notify('Report downloaded. Open it in your browser, then Print → Save as PDF.')}
 function setShotStatus(id){const s=state.shots.find(x=>x.id===id);if(!s)return;s.status=s.status==='planned'?'progress':s.status==='progress'?'complete':'planned';s.completedAt=s.status==='complete'?new Date().toISOString():null;save();closeModal();render();notify(`${s.name} is now ${s.status==='complete'?'complete':s.status==='progress'?'in progress':'pending'}.`)}
 async function resetData(demo){if(!confirm('This will replace ALL locally saved shots, photos and time entries. Continue?'))return;await photoDB('clear');state=seed();if(!demo){state.demo=false;state.shots=[];state.jobName='My HDD Job'}save();await refreshPhotos();setPage('home');notify(demo?'Demo reloaded.':'Fresh job created.')}
-function saveShop(){state.shopAddress=$('#shopAddress').value.trim();state.shopLat=$('#shopLat').value.trim();state.shopLon=$('#shopLon').value.trim();save();render();notify('Shop location saved.')}
+async function saveShop(){
+ const address=document.querySelector('#shopAddress').value.trim();
+ let lat=document.querySelector('#shopLat').value.trim(),lon=document.querySelector('#shopLon').value.trim();
+ if((lat||lon)&&!coordsValid({lat,lon}))return notify('Please enter both valid GPS coordinates or leave them empty.');
+ if(address!==state.shopAddress&&lat===String(state.shopLat||'')&&lon===String(state.shopLon||'')){lat='';lon=''}
+ state.shopAddress=address;state.shopLat=lat;state.shopLon=lon;save();render();
+ if(coordsValid(shop()))return notify('Shop coordinates saved. Pin updated.');
+ if(!address)return notify('Shop cleared. Add an address or GPS position.');
+ notify('Shop saved. Looking up its GPS coordinates…');
+ try{
+   const p=await lookupAddressCoordinates(address);
+   if(state.shopAddress!==address)return;
+   state.shopLat=p.lat;state.shopLon=p.lon;save();render();
+   notify('Shop pin added to map. Now add your shot locations.');
+ }catch(e){render();notify(`Shop address saved, but GPS lookup failed: ${e.message}`)}
+}
 const getForm=(form)=>Object.fromEntries(new FormData(form).entries());
 document.addEventListener('click',async event=>{const p=event.target.closest('[data-page]');if(p){setPage(p.dataset.page);return}const btn=event.target.closest('[data-action]');if(!btn)return;if(btn.dataset.action==='backdrop'&&event.target!==btn)return;const action=btn.dataset.action,id=btn.dataset.id;event.preventDefault();try{
 switch(action){
@@ -359,6 +492,7 @@ switch(action){
  case 'gps-shot':gpsFill('shot');break;
  case 'geocode-shop':geocode('shop');break;
  case 'geocode-shot':geocode('shot');break;
+ case 'resolve-addresses':resolveMissingAddresses(true);break;
  case 'choose-photo':photoChoose('camera');break;
  case 'choose-gallery':photoChoose('gallery');break;
  case 'capture-for-shot':photoChoose('camera',id);break;
@@ -384,7 +518,7 @@ switch(action){
 document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
 }else if(form.dataset.form==='checkout'){const now=new Date().toISOString();const active=state.crew.filter(e=>!e.end);for(const entry of active){const lunch=Number(values['lunch_'+entry.id]);entry.lunch=Number.isFinite(lunch)?Math.max(0,Math.min(300,lunch)):0;entry.end=now}save();closeModal();render();notify(`${active.length} crew member${active.length===1?'':'s'} checked out.`);
 }else if(form.dataset.form==='shot'){
- const f=Number(values.feet);if(!Number.isFinite(f)||f<0)return notify('Enter a valid bore length.');const lat=values.lat.trim(),lon=values.lon.trim();if((lat!==''||lon!=='')&&!coordsValid({lat,lon}))return notify('Enter a valid latitude AND longitude, or leave both blank.');const id=form.dataset.id;const old=state.shots.find(s=>s.id===id),s={id:old?.id||uid(),name:values.name.trim(),feet:f,address:values.address.trim(),lat,lon,notes:values.notes.trim(),status:values.status,completedAt:values.status==='complete'?(old?.completedAt||new Date().toISOString()):null};if(old)state.shots=state.shots.map(x=>x.id===id?s:x);else state.shots.push(s);state.demo=false;save();closeModal();render();notify('Bore shot saved.');
+ const f=Number(values.feet);if(!Number.isFinite(f)||f<0)return notify('Enter a valid bore length.');const id=form.dataset.id;const old=state.shots.find(s=>s.id===id);const address=values.address.trim();let lat=values.lat.trim(),lon=values.lon.trim();if(old&&address!==old.address&&lat===String(old.lat??'')&&lon===String(old.lon??'')){lat='';lon=''}if((lat!==''||lon!=='')&&!coordsValid({lat,lon}))return notify('Enter a valid latitude AND longitude, or leave both blank.');const s={id:old?.id||uid(),name:values.name.trim(),feet:f,address,lat,lon,notes:values.notes.trim(),status:values.status,completedAt:values.status==='complete'?(old?.completedAt||new Date().toISOString()):null};if(old)state.shots=state.shots.map(x=>x.id===id?s:x);else state.shots.push(s);state.demo=false;save();closeModal();render();notify('Bore shot saved.');resolveShotAfterSave(s.id);
 }else if(form.dataset.form==='time'){
  const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);save();closeModal();render();notify('Crew time saved.');
 }});
