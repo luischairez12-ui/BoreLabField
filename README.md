@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.7.2 (debug/test build)
+**Current version:** v0.8.0 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.7.2-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.8.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,19 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.8 — MixLab Pro: Product Inventory and Tank Mixing History
+
+- **Product Inventory** accessed from MixLab: track each saved mud product's stock in the same units used by its verified dosage. Existing saved products are treated as **untracked stock** until you enter a physical count; BoreLab never guesses how many bags or buckets you have.
+- **Package-based receiving:** enter the number of containers and their actual label quantity (e.g., **8 × 50 lb bags** or **2 × 5 US-gallon buckets**). Compatible mass (lb/oz/kg) and US volume (fl oz/qt/gal/L/mL) units are converted; counted bags are handled as a count-only category, not an assumed weight. Partial containers can be entered as fractional packages.
+- **Stock adjustments with history:** count starting inventory, receive deliveries, remove/deduct damaged or returned product, and recount total. Prevents a negative stock balance. Each movement records timestamp, units and quantities.
+- **Mix Preview shows Enough / Short / Unknown** for each selected product. Plans and previews never deduct inventory.
+- **Record Actual Mix** validates available tracked stock, stops if it would run short, and deducts the calculated amount per product only after confirmation. Unknown/untracked stock is flagged; it cannot be automatically deducted. A dated, itemized ledger ties deductions to the batch.
+- **Tank history:** the latest recorded batch's product additions remain viewable in MixLab. This is **not** a calculation of residual mud concentration. Pumping or changing tank level flags unknown/adjusted contents, and emptying the tank clears the active batch association.
+- **Daily closeouts, saved snapshots and native PDFs** include the product stock movement ledger as well as the existing mixing logs.
+- Preserves earlier stock-untracked MixLab products, scanned label photos, pipe reels, job history, truck maintenance and routes without enabling multiple jobs or real-road routing.
+
+**Material handling warning:** These quantities depend on actual container sizes, recorded usage and manually entered stock. Verify product chemistry, packaging, mixing rates, actual volume, and any remaining fluid's condition before preparing a batch. A stock count does not prove treatment suitability, and previously mixed tank contents are never assigned a calculated concentration.
 
 ## New in v0.7.2 — Quick Fractional Tank Levels for Premixed Mud
 

@@ -29,6 +29,8 @@ jobs:
         run: node tests/mud-scanner.test.cjs
       - name: Test premixed tank fraction shortcuts
         run: node tests/mud-level-presets.test.cjs
+      - name: Test MixLab Pro product inventory and stock deductions
+        run: node tests/mud-inventory.test.cjs
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -56,6 +58,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BoreLab-Field-v0.7.2-Debug-APK
+          name: BoreLab-Field-v0.8.0-Debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
