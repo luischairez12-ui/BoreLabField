@@ -976,7 +976,7 @@ function renderCloseout(){
  <div><strong>${r.shots.length}</strong><small>Bores updated</small></div><div><strong>${fmt(r.crew.reduce((n,x)=>n+hours(x),0),2)}</strong><small>Crew-hours</small></div>
  <div><strong>${r.photos.length}</strong><small>Photos</small></div><div><strong>${r.mud.length}</strong><small>Mud batches</small></div><div><strong>${fmt(r.pipe.filter(x=>x.type==='installed').reduce((n,x)=>n+Number(x.feet||0),0),1)}'</strong><small>Pipe used</small></div></div>
  ${issues.length?`<div class="closeout-warning"><strong>Check before closing:</strong>${issues.map(x=>`<p>• ${esc(x)}</p>`).join('')}</div>`:'<div class="note good spaced">No obvious outstanding items detected.</div>'}
- ${window.BoreLabFieldOps?.renderDayReview(activeJob(),date)||''}
+ ${typeof window!=='undefined'?window.BoreLabFieldOps?.renderDayReview(activeJob(),date)||'':''}
  </div>
  <form class="card spaced" data-form="closeout">
  <h3>Closeout Checklist</h3><p class="smalltext muted">Check each box only after you have reviewed the records.</p>
@@ -1668,7 +1668,7 @@ function renderJobWorkspace(){
   <div><span>Today's crew hours</span><strong>${fmt(hoursToday,1)}</strong></div>
  </div>
  ${state.jobNotes?`<div class="note spaced"><strong>Job notes</strong><p class="smalltext">${esc(state.jobNotes)}</p></div>`:''}
- ${window.BoreLabFieldOps?.renderQuickActions()||''}
+ ${typeof window!=='undefined'?window.BoreLabFieldOps?.renderQuickActions()||'':''}
  <div class="ux-section-heading"><h2>Bores on this job</h2><button class="btn micro primary" data-action="new-shot">+ Add Bore</button></div>
  ${state.shots.length?`<div class="ux-workspace-shots">${state.shots.map(shot=>`<div class="ux-workspace-shot">
   <button type="button" class="ux-workspace-shot-main" data-action="shot-detail" data-id="${esc(shot.id)}">
@@ -1879,7 +1879,7 @@ function renderDayAssistant(){
    <div class="between"><h3>${esc(job.name)}</h3><span class="status ${job.warnings.length?'progress':job.hasWork?'complete':'planned'}">
     ${job.warnings.length?'Needs Review':job.hasWork?'Ready to review':'No work logged'}</span></div>
    <p class="smalltext muted spaced">${job.shots} bores updated · ${fmt(job.footage,1)} ft completed · ${fmt(job.crewHours,2)} crew-hours · ${job.photos} photos</p>
-   ${window.BoreLabFieldOps?.renderDayReview(state.jobs.find(j=>j.id===job.id),day)||''}
+   ${typeof window!=='undefined'?window.BoreLabFieldOps?.renderDayReview(state.jobs.find(j=>j.id===job.id),day)||'':''}
    ${job.warnings.length?`<div class="ux-assist-issues">${job.warnings.map(w=>`<p>! ${esc(w)}</p>`).join('')}</div>`:
      job.hasWork?'<p class="smalltext muted">No automatic issues detected. Check records before confirming.</p>':
      '<p class="smalltext muted">No activity recorded for this date.</p>'}
@@ -2610,8 +2610,8 @@ function shotDetail(id){
  ${shot.notes?`<div class="lightline smalltext">${esc(shot.notes)}</div>`:''}</div>
  <div class="action-row"><button class="btn primary" data-action="edit-shot" data-id="${esc(shot.id)}">Edit Bore Log</button><button class="btn ghost" data-action="next-status" data-id="${esc(shot.id)}">${shot.status==='planned'?'Start Drilling':shot.status==='progress'?'Finish Shot':'Reopen Shot'}</button>
  ${mapsPinUrl(shot)?`<button class="btn ghost" data-action="open-map-pin" data-id="${esc(shot.id)}">↗ Google Maps</button>`:''}</div>
- ${window.BoreLabFieldOps?.renderReadiness(shot)||''}
- ${window.BoreLabFieldOps?.renderTimeline(shot.id)||''}
+ ${typeof window!=='undefined'?window.BoreLabFieldOps?.renderReadiness(shot)||'':''}
+ ${typeof window!=='undefined'?window.BoreLabFieldOps?.renderTimeline(shot.id)||'':''}
  <div class="action-row"><button class="btn ghost" data-action="capture-for-shot" data-id="${esc(shot.id)}">▣ Take Photo</button><button class="btn ghost" data-action="gallery-for-shot" data-id="${esc(shot.id)}">+ From Gallery</button></div>
  <p class="tiny muted spaced">Shot status, reel-logged pipe, crew hours, selected equipment, and linked photos feed the one-tap report. If pipe is logged from reels, it overrides manual footage shown for that shot.</p>`);
 }
