@@ -11,13 +11,15 @@ const androidWorkday=fs.readFileSync('app/src/main/assets/web/workday.js','utf8'
 assert.equal(html,app);assert.equal(mod,android);assert.equal(address,phoneAddress);assert.equal(workday,androidWorkday);
 new Function(html.split('<script>')[1].split('</script>')[0]);
 for(const script of [mod,address,workday])new Function(script);
-for(const marker of ["data-form=\"quick-bore\"","data-form=\"complete-bore\"","window.BoreLabFieldOps?.renderTimeline(shot.id)",
+for(const marker of ["window.BoreLabFieldOps?.renderTimeline(shot.id)",
  "window.BoreLabFieldOps?.renderReadiness(shot)","window.BoreLabFieldOps?.renderQuickActions()",
  "window.BoreLabFieldOps?.journal('Bore status updated'","window.BoreLabFieldOps?.dayWarnings(job,day)",
- "fieldRecovery","kind:pendingPhotoKind,stage:pendingPhotoStage||''","data-photo-stage-update",
+ "kind:pendingPhotoKind,stage:pendingPhotoStage||''","data-photo-stage-update",
  "window.BoreLabFieldOps?.renderDayReview(activeJob(),date)"]){
  assert(html.includes(marker),'Missing core field upgrade: '+marker);
 }
+assert(mod.includes('data-form="quick-bore"')&&mod.includes('data-form="complete-bore"'),'New forms must be present in field module');
+assert(mod.includes('fieldRecovery'),'Recovery journal must persist in saved state');
 assert(address.includes('form[data-form="quick-bore"]'),'Working address-only scanner must support Quick Bore');
 assert(workday.includes("window.BoreLabFieldOps.beginCompletion(jobId,shotId)"),'Board must use confirmed completion');
 assert(html.includes("window.BoreLabFieldOps?.journal(type==='installed'"),'Manual reel changes need Undo');
