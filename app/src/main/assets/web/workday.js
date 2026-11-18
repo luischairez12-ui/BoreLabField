@@ -47,7 +47,10 @@ function transition(jobId,shotId){
  if(!job)return b.notify('Job not found.');
  const shot=(job.shots||[]).find(x=>x.id===shotId);
  if(!shot)return b.notify('Shot not found.');
+ if(shot.status==='progress'&&window.BoreLabFieldOps){window.BoreLabFieldOps.beginCompletion(jobId,shotId);return}
+ if(shot.status==='planned'&&window.BoreLabFieldOps&&!window.BoreLabFieldOps.warnBeforeStart(jobId,shotId))return;
  if(shot.status==='complete'&&!window.confirm('Reopen '+shot.name+'? This changes its recorded completion status.'))return;
+ const before=JSON.parse(JSON.stringify(shot));
  const now=new Date().toISOString();
  const next=shot.status==='complete'?'planned':shot.status==='progress'?'complete':'progress';
  const change=x=>{
@@ -59,6 +62,7 @@ function transition(jobId,shotId){
  };
  change(shot);
  if(jobId===state.activeJobId){const active=state.shots.find(x=>x.id===shotId);if(active&&active!==shot)change(active)}
+ window.BoreLabFieldOps?.journal('Bore status updated',jobId,shotId,before,shot);
  b.save();b.render();b.notify(shot.name+' → '+(next==='planned'?'Pending':next==='progress'?'Drilling':'Completed')+'.');
 }
 function renderGpsPanel(plan){
