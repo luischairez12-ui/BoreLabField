@@ -1502,6 +1502,28 @@ function manageRoster(){showModal(`${modalHead('Saved Crew Roster')}<p class="sm
 function checkInCrew(){const people=selectedRoster();if(!people.length)return notify('Add or select crew members first.');const now=new Date().toISOString(),day=todayLocal();let count=0,already=[];for(const p of people){if(state.crew.some(e=>(e.memberId===p.id||(!e.memberId&&e.name.toLowerCase()===p.name.toLowerCase()))&&localDay(e.start)===day)){already.push(p.name);continue}state.crew.push({id:uid(),memberId:p.id,name:p.name,start:now,end:'',lunch:0,notes:'Checked in with crew',kind:'checkin'});count++}save();render();notify(count?`${count} crew member${count===1?'':'s'} checked in at ${new Date().toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}.${already.length?' Already recorded today: '+already.join(', '):''}`:'Selected crew already has entries for today.');}
 function checkoutForm(){const active=state.crew.filter(e=>!e.end);if(!active.length)return notify('No active crew check-ins.');showModal(`${modalHead('Check Out Crew')}<p class="smalltext muted">All working crew will clock out at the current time. ${state.autoLunchEnabled?`Automatic lunch deduction is ON (${state.defaultLunchMinutes} min per person).`:'Automatic lunch deduction is OFF.'} You can override lunch minutes for anyone before checking out and edit entries later.</p><form data-form="checkout" class="spaced">${active.map(e=>`<div class="checkout-row"><strong>${esc(e.name)}</strong><label class="field">Unpaid lunch (min)<input name="lunch_${esc(e.id)}" type="number" min="0" max="300" value="${automaticLunch()}" required></label></div>`).join('')}<div class="modal-footer"><button type="button" class="btn ghost" data-action="close-modal">Cancel</button><button class="btn cyan" type="submit">✓ Check Out ${active.length}</button></div></form>`)}
 function renderSettings(){return `<div class="page"><span class="eyebrow">BORELAB / SETTINGS</span><h1 style="margin:5px 0 16px">Field Settings</h1>
+<p class="ux-settings-intro">Choose your experience. All the existing field tools and saved records remain available.</p>
+<div class="card spaced" id="experienceSettings">
+ <div class="between"><div><span class="eyebrow">PERSONALIZE BORELAB</span><h2>My Experience</h2></div><span class="status complete">Saves locally</span></div>
+ <p class="smalltext muted spaced">Simple Mode guides new users through a bore. Advanced Mode shows the full form with every field.</p>
+ <div class="ux-mode-picker" role="radiogroup" aria-label="Experience mode">
+  <label><input type="radio" name="uxMode" data-ux-mode value="simple" ${state.uxMode==='simple'?'checked':''}> Simple · Guided</label>
+  <label><input type="radio" name="uxMode" data-ux-mode value="advanced" ${state.uxMode==='advanced'?'checked':''}> Advanced · Full forms</label>
+ </div>
+ <div class="settings-item spaced"><div><strong>Glove-Friendly Field Mode</strong>
+  <p class="tiny muted">Larger buttons and form controls for fieldwork.</p></div>
+  <input type="checkbox" data-field-mode aria-label="Glove-friendly field mode" ${state.fieldMode?'checked':''} style="width:24px;height:24px;accent-color:#008d8d"></div>
+ <div class="settings-item"><div><strong>Large Text</strong>
+  <p class="tiny muted">Bigger labels and notes in the field.</p></div>
+  <input type="checkbox" data-large-text aria-label="Large text" ${state.largeText?'checked':''} style="width:24px;height:24px;accent-color:#008d8d"></div>
+ <div class="divider"></div><div class="between"><h3>My Home Shortcuts</h3><span class="tiny muted">Up to six</span></div>
+ <p class="smalltext muted spaced">Choose your most-used tools on Home. Every tool stays available in the Tools tab.</p>
+ <div class="ux-favorite-grid">${UX_ACTIONS.map(t=>`<label>
+  <input type="checkbox" data-ux-favorite="${esc(t.id)}" ${(state.uxFavorites||UX_DEFAULT_FAVORITES).includes(t.id)?'checked':''}>
+  <span>${esc(t.icon)} ${esc(t.label)}</span></label>`).join('')}</div>
+ <div class="action-row spaced"><button class="btn micro ghost" data-action="ux-reset-favorites">Restore default shortcuts</button>
+  <button class="btn micro ghost" data-action="guided-tour">Show me how BoreLab works</button></div>
+</div>
 <div id="homeBaseSettings" class="card"><div class="card-head"><div><span class="eyebrow">SAVED LOCATION</span><h2 style="margin-top:5px">Home Base</h2></div><span class="status ${coordsValid(shop())?'complete':'planned'}">${coordsValid(shop())?'GPS Ready':'Needs GPS'}</span></div>
 <p class="smalltext muted">Set your shop once. The Smart Shot Planner will reuse it automatically for every workday.</p>
 <div class="form-grid spaced">
@@ -2191,6 +2213,7 @@ switch(action){
  case 'guided-back':if(guidedDraft&&guidedStep>1){guidedStep--;showGuidedBore();}break;
  case 'guided-advanced':guidedDraft=null;shotForm();break;
  case 'guided-tour':showFirstRunTour();break;
+ case 'ux-reset-favorites':state.uxFavorites=[...UX_DEFAULT_FAVORITES];save();render();notify('Default home shortcuts restored.');break;
  case 'shot-detail':shotDetail(id);break;
  case 'edit-shot':shotForm(id);break;
  case 'next-status':setShotStatus(id);break;
@@ -2319,7 +2342,27 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
  const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);save();closeModal();render();notify('Crew time saved.');
 }});
 document.addEventListener('input',e=>{if(e.target.matches('form[data-form="mud-batch"] input[name="capacity"]')){const form=e.target.closest('form');updateMudLevelForm(e.target.closest('form'));updateMudTargetForm(form);}});
-document.addEventListener('change',e=>{if(e.target.matches('[data-closeout-day]')){closeoutDay=e.target.value||todayLocal();render();return}if(e.target.matches('[data-equipment-type]')){const wrap=e.target.closest('form')?.querySelector('[data-truck-fields]');if(wrap)wrap.hidden=e.target.value!=='Truck';return}if(e.target.matches('[data-report-scope]')){state.reportScope=e.target.value==='job'?'job':'today';save();render();notify('Report scope saved.');return}if(e.target.matches('[data-theme-select]')){state.theme=e.target.value==='dark'?'dark':'daylight';applyTheme();save();render();notify(state.theme==='daylight'?'Daylight mode enabled.':'Night mode enabled.');return}if(e.target.matches('[data-lunch-enabled]')){state.autoLunchEnabled=e.target.checked;save();render();notify(state.autoLunchEnabled?'Automatic lunch enabled.':'Automatic lunch disabled.');return}if(e.target.matches('[data-lunch-minutes]')){state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(e.target.value)||0));save();render();notify('Lunch default saved.');return}if(e.target.matches('[data-roster-select]')){const id=e.target.dataset.rosterSelect;state.selectedCrewIds=e.target.checked?[...new Set([...state.selectedCrewIds,id])]:state.selectedCrewIds.filter(x=>x!==id);save();render();return}if(e.target.matches('[data-setting]')){const k=e.target.dataset.setting;state[k]=Math.max(0,Number(e.target.value)||0);save();render()}});
+document.addEventListener('change',e=>{if(e.target.matches('[data-ux-mode]')){
+ state.uxMode=e.target.value==='advanced'?'advanced':'simple';save();applyTheme();
+ notify(state.uxMode==='advanced'?'Full bore form enabled.':'Guided bore entry enabled.');return;
+}if(e.target.matches('[data-field-mode]')){
+ state.fieldMode=!!e.target.checked;save();applyTheme();notify(state.fieldMode?'Field Mode enabled.':'Field Mode disabled.');return;
+}if(e.target.matches('[data-large-text]')){
+ state.largeText=!!e.target.checked;save();applyTheme();notify(state.largeText?'Large text enabled.':'Standard text restored.');return;
+}if(e.target.matches('[data-ux-favorite]')){
+ const id=e.target.dataset.uxFavorite;
+ if(!UX_ACTIONS.some(x=>x.id===id))return;
+ const current=[...new Set((state.uxFavorites||[]).filter(x=>UX_ACTIONS.some(t=>t.id===x)))];
+ if(e.target.checked){
+  if(current.includes(id))return;
+  if(current.length>=6){e.target.checked=false;notify('Choose up to six shortcuts. Uncheck one first.');return;}
+  state.uxFavorites.push(id);
+ }else{
+  if(current.length<=1){e.target.checked=true;notify('Keep at least one shortcut on Home.');return;}
+  state.uxFavorites=current.filter(x=>x!==id);
+ }
+ save();notify('Home shortcuts updated.');return;
+}if(e.target.matches('[data-closeout-day]')){closeoutDay=e.target.value||todayLocal();render();return}if(e.target.matches('[data-equipment-type]')){const wrap=e.target.closest('form')?.querySelector('[data-truck-fields]');if(wrap)wrap.hidden=e.target.value!=='Truck';return}if(e.target.matches('[data-report-scope]')){state.reportScope=e.target.value==='job'?'job':'today';save();render();notify('Report scope saved.');return}if(e.target.matches('[data-theme-select]')){state.theme=e.target.value==='dark'?'dark':'daylight';applyTheme();save();render();notify(state.theme==='daylight'?'Daylight mode enabled.':'Night mode enabled.');return}if(e.target.matches('[data-lunch-enabled]')){state.autoLunchEnabled=e.target.checked;save();render();notify(state.autoLunchEnabled?'Automatic lunch enabled.':'Automatic lunch disabled.');return}if(e.target.matches('[data-lunch-minutes]')){state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(e.target.value)||0));save();render();notify('Lunch default saved.');return}if(e.target.matches('[data-roster-select]')){const id=e.target.dataset.rosterSelect;state.selectedCrewIds=e.target.checked?[...new Set([...state.selectedCrewIds,id])]:state.selectedCrewIds.filter(x=>x!==id);save();render();return}if(e.target.matches('[data-setting]')){const k=e.target.dataset.setting;state[k]=Math.max(0,Number(e.target.value)||0);save();render()}});
 $('#cameraFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#galleryFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#importFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await importBackup(file);e.target.value=''});
