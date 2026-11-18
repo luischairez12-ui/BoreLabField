@@ -18,6 +18,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.speech.RecognizerIntent;
+import java.util.ArrayList;
 import android.util.Base64;
 import android.view.View;
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
@@ -57,6 +59,7 @@ public class BoreLabActivity extends Activity {
     private static final int REQ_FILE = 42;
     private static final int REQ_SAVE = 43;
     private static final int REQ_MANUAL = 44;
+    private static final int REQ_VOICE = 45;
     private static final long MAX_MANUAL_BYTES = 80L * 1024L * 1024L;
 
     private WebView webView;
@@ -229,6 +232,12 @@ public class BoreLabActivity extends Activity {
             } else {
                 sendManualStatus(null);
             }
+        } else if (code == REQ_VOICE) {
+            ArrayList<String> results = resultCode == RESULT_OK && data != null
+                ? data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS) : null;
+            String transcript = results != null && !results.isEmpty() ? results.get(0) : "";
+            if (webView != null) webView.evaluateJavascript(
+                "window.borelabVoiceResult && window.borelabVoiceResult(" + JSONObject.quote(transcript) + ");", null);
         } else if (code == REQ_SAVE) {
             if (resultCode == RESULT_OK && data != null && exportBytes != null) {
                 try (OutputStream stream = getContentResolver().openOutputStream(data.getData())) {
@@ -486,6 +495,18 @@ public class BoreLabActivity extends Activity {
     }
 
     final class FileExportBridge {
+        /** The user's speech-recognition app handles one requested voice command. */
+        @JavascriptInterface public void startVoiceCommand() {
+            runOnUiThread(() -> {
+                Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+                intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Ask BoreLab about your field work");
+                try { startActivityForResult(intent, REQ_VOICE); }
+                catch (ActivityNotFoundException e) { toast("No speech recognition app installed. Type your question instead."); }
+                catch (Exception e) { toast("Voice unavailable. Type your question instead."); }
+            });
+        }
 
 
         @JavascriptInterface public void searchManual(String slot, String query, String requestId) {
