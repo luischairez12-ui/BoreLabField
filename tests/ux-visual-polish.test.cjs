@@ -8,7 +8,7 @@ assert(js,'Missing JS');new Function(js);
 
 assert(!android.includes('</nav>nav>'),'No visible stray nav> after the closing tag');
 assert.match(android,/<\/nav>\s*<\/div>/,'Navigation must close directly into its shell');
-assert.match(android,/BoreLab Field · v0\.12\.1 · Records stay on this device/,'Footer version updated');
+assert.match(android,/BoreLab Field · v0\.12\.2 · Records stay on this device/,'Footer version updated');
 assert(!android.includes('Android preview v0.9.4'),'Old footer version left in app');
 assert(android.includes('function uxRigArt()'),'Landscape detail should be drawn from bundled SVG');
 assert(android.includes('function uxIconSvg(id)'),'Unified offline SVG icon helper missing');
@@ -34,7 +34,7 @@ const ui=factory(state,escape,()=>'',v=>String(v),()=>10,x=>x.feet+10,()=>330,()
 const home=ui.renderHome();
 assert(home.includes('Demo Job · South Glades'),'Existing job should stay visible');
 assert(home.includes('35')||home.includes('53'),'Some progress should remain visible');
-assert(home.includes('<svg class="ux-rig-art"'),'Home hero illustration missing');
+assert(home.includes('<img class="ux-rig-art"'),'Home hero illustration missing');
 assert(home.includes('ux-progress-track'),'Compact progress track missing');
 assert(home.includes('ux-job-meta'),'Compact job metrics missing');
 assert(!home.includes('You are viewing sample shots.'),'Verbose demo warning must not dominate the dashboard');
@@ -46,7 +46,7 @@ assert(home.includes('Offline-friendly · Your field records stay on this device
 assert(!home.includes('Android preview v0.9.4'));
 assert(ui.renderTools().includes('Every BoreLab feature'));
 assert(ui.uxIconSvg('go-manuals').includes('<svg'));
-assert(ui.uxRigArt().includes('viewBox="0 0 320 140"'));
+assert(ui.uxRigArt().includes('assets/crew-hero.png'));
 assert(js.includes('data-form="guided-bore"')&&js.includes("case 'new-shot':if(state.uxMode==='advanced')shotForm();else beginGuidedBore();break;"));
 assert(js.includes("const KEY='borelab-field-v0.1'"),'Do not change local storage key or lose saved work');
 assert(js.includes('window.borelabOnManualSearch'),'PDF manual features preserved');
