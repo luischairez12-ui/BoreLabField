@@ -388,6 +388,7 @@ let closeoutDay='';
 let pendingMudScan=null;
 let manualFiles={},manualStatusKnown=false,selectedManualMachine='vermeer-d24x40';
 let manualSearchSeq=0,activeManualSearch=null;
+let guidedStep=1,guidedDraft=null;
 const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(n,d=0)=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:d});
@@ -1808,6 +1809,68 @@ function equipmentSettings(){
  ${archive.length?`<p class="tiny muted spaced">${archive.length} archived equipment item(s) kept for past logs.</p>`:''}
  </div>`;
 }
+
+function beginGuidedBore(){
+ guidedStep=1;
+ guidedDraft={feet:'',name:`Shot ${String(state.shots.length+1).padStart(2,'0')}`,address:''};
+ showGuidedBore();
+}
+function showGuidedBore(){
+ if(!guidedDraft)beginGuidedBore();
+ const step=guidedStep;
+ const progress=`<div class="ux-guide-step">STEP ${step} OF 3 · ${step===1?'LENGTH':step===2?'LOCATION':'REVIEW'}</div>
+ <div class="ux-guide-track" aria-label="Step ${step} of 3">
+  ${[1,2,3].map(x=>`<span class="${x<=step?'active':''}"></span>`).join('')}</div>`;
+ const middle=step===1?
+  `<h2>How long is the bore?</h2>
+   <p class="smalltext muted">Measure from the entry point to the exit point.</p>
+   <label class="field spaced">Bore length (feet)
+    <input class="ux-guide-big-input" name="feet" type="number" min="0.1" step="0.1" inputmode="decimal" required autofocus placeholder="175" value="${esc(guidedDraft.feet)}">
+   </label><div class="ux-guide-tip">💡 BoreLab automatically adds your usual ${fmt(extra())} ft pipe allowance for planning. You can adjust it in Settings.</div>`:
+ step===2?
+  `<h2>Give this bore a name</h2><p class="smalltext muted">You can add GPS, depths, photos, and rod counts afterward.</p>
+   <label class="field spaced">Bore name<input name="name" required maxlength="70" placeholder="Shot 01" value="${esc(guidedDraft.name)}"></label>
+   <label class="field spaced">Jobsite address or landmark (optional)
+     <input name="address" placeholder="Street, crossing, or landmark" value="${esc(guidedDraft.address)}"></label>
+   <div class="ux-guide-tip">📍 You can leave the address blank and add it later from the bore log.</div>`:
+  `<h2>Ready to save this bore?</h2>
+    <div class="card spaced">${kv('Bore',esc(guidedDraft.name))}${kv('Length',fmt(guidedDraft.feet,1)+' ft')}
+    ${kv('Pipe to plan',fmt(Number(guidedDraft.feet)+extra(),1)+' ft')}
+    ${kv('Location',esc(guidedDraft.address||'Not set yet'))}</div>
+    <div class="ux-guide-tip">✓ Saves as Pending. Later, open the bore log to start drilling or record progress.</div>`;
+ showModal(modalHead('Add Your First Bore')+progress+
+  `<form data-form="guided-bore">${middle}
+   <div class="modal-footer">
+    ${step>1?'<button type="button" class="btn ghost" data-action="guided-back">Back</button>':
+     '<button type="button" class="btn ghost" data-action="guided-advanced">Full form</button>'}
+    <button type="submit" class="btn primary">${step===3?'Save Bore':'Next →'}</button>
+   </div></form>`);
+}
+function saveGuidedBore(){
+ if(!guidedDraft)return;
+ const f=Number(guidedDraft.feet);
+ if(!Number.isFinite(f)||f<=0)return notify('Enter a bore length greater than zero.');
+ const name=String(guidedDraft.name||'').trim();
+ if(!name)return notify('Give this bore a name.');
+ const shot={id:uid(),name:name.slice(0,70),feet:f,address:String(guidedDraft.address||'').trim(),
+  lat:'',lon:'',notes:'',status:'planned',pipeUsed:'',rodCount:'',entryDepth:'',exitDepth:'',
+  equipmentIds:[],startedAt:null,completedAt:null,updatedAt:new Date().toISOString()};
+ state.shots.push(shot);
+ state.demo=false;save();closeModal();guidedDraft=null;render();
+ notify('Bore saved ✓ You can add details any time.');
+ if(shot.address)resolveShotAfterSave(shot.id);
+}
+function showFirstRunTour(){
+ showModal(modalHead('Welcome to BoreLab')+
+  `<div class="ux-guide-step">START HERE · THREE EASY TASKS</div>
+   <div class="card spaced"><h3>1. Plan a bore</h3><p class="smalltext muted">Enter the footage. BoreLab calculates planned pipe with your allowance.</p></div>
+   <div class="card spaced"><h3>2. Record field work</h3><p class="smalltext muted">Save photos, bore details, and crew time as the day progresses.</p></div>
+   <div class="card spaced"><h3>3. Find your tools</h3><p class="smalltext muted">Use the large buttons on Home, or open Tools for every feature and a rig manual.</p></div>
+   <div class="ux-guide-tip">Nothing is uploaded to a cloud account. Export a backup to protect local records.</div>
+   <div class="modal-footer"><button class="btn ghost" data-action="close-modal">Maybe later</button>
+    <button class="btn primary" data-action="start-guided-bore">Try Add a Bore</button></div>`);
+}
+
 function shotForm(id){
  const shot=state.shots.find(x=>x.id===id);
  const s=shot||{name:`Shot ${String(state.shots.length+1).padStart(2,'0')}`,feet:'',address:'',lat:'',lon:'',notes:'',status:'planned',pipeUsed:'',rodCount:'',entryDepth:'',exitDepth:'',equipmentIds:[]};
@@ -2123,7 +2186,11 @@ switch(action){
  case 'close-modal':closeModal();break;
  case 'open-settings':case 'edit-job':setPage('settings');break;
  case 'save-job':state.jobName=$('#jobName').value.trim()||'My HDD Job';state.demo=false;save();notify('Job updated.');render();break;
- case 'new-shot':shotForm();break;
+ case 'new-shot':if(state.uxMode==='advanced')shotForm();else beginGuidedBore();break;
+ case 'start-guided-bore':beginGuidedBore();break;
+ case 'guided-back':if(guidedDraft&&guidedStep>1){guidedStep--;showGuidedBore();}break;
+ case 'guided-advanced':guidedDraft=null;shotForm();break;
+ case 'guided-tour':showFirstRunTour();break;
  case 'shot-detail':shotDetail(id);break;
  case 'edit-shot':shotForm(id);break;
  case 'next-status':setShotStatus(id);break;
@@ -2213,7 +2280,13 @@ switch(action){
  default:break;
 }
 }catch(e){console.error(e);notify('Could not complete action: '+e.message)}});
-document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='manual-link'){saveManualLink(values,form.dataset.id||'');return}else if(form.dataset.form==='manual-search'){const slot=form.dataset.slot,query=String(values.query||'').trim();if(!isManualSlot(slot)||manualFiles[slot]!==true)return notify('Manual missing. Import it again.');if(query.length<2||query.length>80)return notify('Enter 2–80 characters.');const requestId=String(++manualSearchSeq);activeManualSearch={slot,requestId};showManualSearch(slot,query,null,true);window.BoreLabNative?.searchManual(slot,query,requestId);return}else if(form.dataset.form==='mud-stock'){saveMudStock(form,values);return}else if(form.dataset.form==='mud-product'){saveMudProduct(form,values);return}else if(form.dataset.form==='mud-level'){saveMudLevel(values);return}else if(form.dataset.form==='mud-batch'){saveMudPlan(form,values,e.submitter?.dataset?.mudCommit==='yes');return}else if(form.dataset.form==='closeout'){saveCloseout(form,values);return}else if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
+document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='guided-bore'){
+  if(!guidedDraft)beginGuidedBore();
+  if(guidedStep===1){const length=Number(values.feet);if(!Number.isFinite(length)||length<=0||length>100000)return notify('Enter a valid bore length above zero.');guidedDraft.feet=String(length);guidedStep=2;showGuidedBore();return;}
+  if(guidedStep===2){const name=String(values.name||'').trim();if(!name)return notify('Enter a name for this bore.');guidedDraft.name=name.slice(0,70);guidedDraft.address=String(values.address||'').trim().slice(0,250);guidedStep=3;showGuidedBore();return;}
+  if(guidedStep===3){saveGuidedBore();return;}
+  return;
+ }else if(form.dataset.form==='manual-link'){saveManualLink(values,form.dataset.id||'');return}else if(form.dataset.form==='manual-search'){const slot=form.dataset.slot,query=String(values.query||'').trim();if(!isManualSlot(slot)||manualFiles[slot]!==true)return notify('Manual missing. Import it again.');if(query.length<2||query.length>80)return notify('Enter 2–80 characters.');const requestId=String(++manualSearchSeq);activeManualSearch={slot,requestId};showManualSearch(slot,query,null,true);window.BoreLabNative?.searchManual(slot,query,requestId);return}else if(form.dataset.form==='mud-stock'){saveMudStock(form,values);return}else if(form.dataset.form==='mud-product'){saveMudProduct(form,values);return}else if(form.dataset.form==='mud-level'){saveMudLevel(values);return}else if(form.dataset.form==='mud-batch'){saveMudPlan(form,values,e.submitter?.dataset?.mudCommit==='yes');return}else if(form.dataset.form==='closeout'){saveCloseout(form,values);return}else if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
 }else if(form.dataset.form==='checkout'){const now=new Date().toISOString();const active=state.crew.filter(e=>!e.end);for(const entry of active){const lunch=Number(values['lunch_'+entry.id]);entry.lunch=Number.isFinite(lunch)?Math.max(0,Math.min(300,lunch)):0;entry.end=now}save();closeModal();render();notify(`${active.length} crew member${active.length===1?'':'s'} checked out.`);
 }else if(form.dataset.form==='shot'){
  const f=Number(values.feet);
