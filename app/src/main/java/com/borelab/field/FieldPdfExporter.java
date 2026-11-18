@@ -220,6 +220,7 @@ public final class FieldPdfExporter {
                  "Bore " + str(shot, "feet") + " ft  |  Planned pipe " + str(shot, "plannedPipe") +
                  " ft  |  Actual pipe " + str(shot, "actualPipe") + " ft",
                  str(shot, "notes"));
+            label("Conduit size", str(shot, "pipeDiameter"));
             label("Equipment", str(shot, "equipment"));
             label("Rod count / entry / exit", str(shot, "rodCount") + " / " + str(shot, "entryDepth") + " / " + str(shot, "exitDepth"));
             label("Started / finished", str(shot, "startedAt") + " / " + str(shot, "completedAt"));
