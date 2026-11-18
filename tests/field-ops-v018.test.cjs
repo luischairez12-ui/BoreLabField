@@ -13,7 +13,7 @@ new Function(html.split('<script>')[1].split('</script>')[0]);
 for(const script of [mod,address,workday])new Function(script);
 for(const marker of ["window.BoreLabFieldOps?.renderTimeline(shot.id)",
  "window.BoreLabFieldOps?.renderReadiness(shot)","window.BoreLabFieldOps?.renderQuickActions()",
- "window.BoreLabFieldOps?.journal('Bore status updated'","window.BoreLabFieldOps?.dayWarnings(job,day)",
+ "window.BoreLabFieldOps?.journal('Bore status updated'","window.BoreLabFieldOps.dayWarnings(job,day)",
  "kind:pendingPhotoKind,stage:pendingPhotoStage||''","data-photo-stage-update",
  "window.BoreLabFieldOps?.renderDayReview(activeJob(),date)"]){
  assert(html.includes(marker),'Missing core field upgrade: '+marker);
