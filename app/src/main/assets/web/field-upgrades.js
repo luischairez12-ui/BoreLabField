@@ -50,6 +50,7 @@ function installScanButtons(){
  if(!address)return;
  const buttons=document.createElement('div');buttons.className='ba-scan-tools';
  buttons.innerHTML=oneButton('📷 Scan folder / paper','scan-camera')+oneButton('▣ Choose address photo','scan-gallery')+oneButton('⌖ Plus Code / GPS','enter-location');
+ buttons.title='For better OCR, photograph the printed address box or handwritten folder tab close-up and in good light.';
  const label=address.closest('label');
  if(label)label.insertAdjacentElement('afterend',buttons);else form.insertBefore(buttons,form.firstChild);
 }
@@ -102,6 +103,7 @@ async function scanFile(file){
  scanBusy=true;scanNotice('Reading photo on this device…');
  try{
   const data=await resizeScan(file);
+  scanContext.lastImage=data;
   if(!api()||!window.BoreLabNative?.scanAddressPhoto){
    scanNotice('Address text recognition requires the Android app. You can still type the address.');
    scanBusy=false;return;
@@ -110,33 +112,46 @@ async function scanFile(file){
  }catch(error){scanNotice(String(error.message||error));scanBusy=false}
 }
 for(const input of [camera,gallery])input.addEventListener('change',e=>{const f=e.target.files?.[0];if(f)scanFile(f);e.target.value=''});
-function showLocationReview(raw,error){
+function showLocationReview(raw,error,enhanced=''){
  const form=scanContext?.form,address=scanContext?.input;
  if(!form||!form.isConnected||!address||!address.isConnected)return;
- const text=String(raw||'').slice(0,10000);
- const detected=window.BoreLabLocations?.locationCandidates(text)||[];
- const fallback=candidateAddress(text);
- if(fallback&&!detected.some(c=>c.value===fallback)){
-  const isGps=/^-?\d{1,2}\.\d+,\s*-?\d{1,3}\.\d+$/.test(fallback);
-  if(!isGps&&!fallback.includes('+'))detected.unshift({kind:'street',label:'Street address / printed label',value:fallback});
+ const original=String(raw||'').slice(0,10000),contrast=String(enhanced||'').slice(0,10000);
+ const sources=[original,contrast].filter(Boolean);
+ const detected=[];
+ for(const source of sources){
+  const options=window.BoreLabLocations?.locationCandidates(source)||[];
+  const fallback=candidateAddress(source);
+  if(fallback&&!options.some(x=>x.value.toLowerCase()===fallback.toLowerCase()))
+   options.unshift({kind:'street',label:'Address on paperwork',value:fallback});
+  for(const c of options){
+   if(!detected.some(v=>v.kind===c.kind&&v.value.toLowerCase()===c.value.toLowerCase()))detected.push(c);
+  }
  }
+ // A nearby street number can be split into multiple OCR text blocks. Leave it editable.
+ const first=detected[0];
+ const suggestion=first?.value||'';
  scanContext.options=detected;
- const suggestion=detected[0]?.value||fallback||'';
+ const gps=detected.filter(x=>x.kind==='coords');
  const old=form.querySelector('.ba-address-review');if(old)old.remove();
  const card=document.createElement('div');card.className='ba-address-review';
- card.innerHTML='<strong>Review job location</strong><p class="smalltext muted">Choose the printed address, Google Plus Code or GPS pin. Nothing is saved automatically. Verify the location in Maps before saving.</p>'+
- (detected.length?'<label class="field">Location detected in photo<select data-ba-location-choice>'+
- detected.map((choice,i)=>'<option value="'+i+'">'+escapeHtml(choice.label+': '+choice.value)+'</option>').join('')+
- '<option value="manual">Enter a location manually</option></select></label>':'<p class="smalltext muted">No confident address found. Paste a Google Plus Code with nearby town, GPS coordinates, or type the street address.</p>')+
- '<label class="field">Location (editable)<input id="ba-proposed-address" maxlength="250" value="'+escapeHtml(suggestion)+'" placeholder="225 N Mayoral St · 7XRX+RWP Big Cypress, Florida · 26.292092,-81.000171"></label>'+
- (text?'<details><summary>Recognized text (tap to inspect)</summary><pre>'+escapeHtml(text)+'</pre></details>':'')+
- (error?'<p class="smalltext muted">OCR issue: '+escapeHtml(error)+'</p>':'')+
- '<div class="action-row">'+oneButton('Open in Google Maps','verify-location')+oneButton('Use this location','apply-address')+'</div>';
+ card.innerHTML='<strong>Review scanned paperwork</strong><p class="smalltext muted">Choose a detected address or Plus Code, then check it against the original document. Nothing is saved automatically.</p>'+
+ (detected.length?'<label class="field">Detected locations<select data-ba-location-choice>'+
+ detected.map((c,i)=>'<option value="'+i+'">'+escapeHtml(c.label+': '+c.value)+'</option>').join('')+
+ '<option value="manual">Type location manually</option></select></label>':
+ '<p class="smalltext muted">The scanner could not confidently read the street or house number. You can type it below without losing the form.</p>')+
+ '<label class="field">Correct address, Plus Code or GPS<input id="ba-proposed-address" maxlength="250" value="'+escapeHtml(suggestion)+'" placeholder="225 N Mayoral St or 7XRX+RWP Big Cypress, Florida"></label>'+
+ (gps.length?'<label class="field"><input type="checkbox" data-ba-use-scanned-gps checked> Use GPS pin detected in the same photo for distance planning: '+escapeHtml(gps[0].value)+'</label>':'')+
+ (scanContext.lastImage?'<details><summary>View scanned photo</summary><img src="'+escapeHtml(scanContext.lastImage)+'" alt="Document submitted for on-device recognition" style="width:100%;max-height:350px;object-fit:contain;border-radius:10px;margin-top:7px"></details>':'')+
+ (original?'<details><summary>Original OCR text — compare with photo</summary><pre>'+escapeHtml(original)+'</pre></details>':'')+
+ (contrast&&contrast!==original?'<details><summary>High-contrast OCR text — alternate reading</summary><pre>'+escapeHtml(contrast)+'</pre></details>':'')+
+ (!sources.length?'<p class="smalltext muted">No text was recognized. For handwritten folder tabs, take a close-up photo with the full label centered, good light and no shadows.</p>':'')+
+ (error?'<p class="smalltext muted">Scanner note: '+escapeHtml(error)+'</p>':'')+
+ '<div class="action-row">'+oneButton('Check in Maps','verify-location')+oneButton('Use reviewed location','apply-address')+'</div>';
  form.querySelector('.ba-scan-tools')?.insertAdjacentElement('afterend',card);
- scanNotice(suggestion?'Location suggestion ready. Review it before applying.':'Type the address, short Plus Code + locality, or GPS pin.');
+ scanNotice(suggestion?'Review the extracted location before applying.':'Enter the address manually or a Plus Code + nearby town.');
 }
-window.borelabOnAddressScan=function onAddressScan(text,error){
- scanBusy=false;showLocationReview(text,error);
+window.borelabOnAddressScan=function onAddressScan(text,error,alternate){
+ scanBusy=false;showLocationReview(text,error,alternate);
 };
 document.addEventListener('click',event=>{
  const button=event.target.closest('[data-field-upgrade]');if(!button)return;
@@ -161,20 +176,24 @@ document.addEventListener('click',event=>{
   api()?.openMapUrl(api()?.mapsPinUrl({address:value}));return;
  }
  if(what==='apply-address'){
-  const proposed=button.closest('.ba-address-review')?.querySelector('#ba-proposed-address')?.value.trim()||'';
+  const review=button.closest('.ba-address-review');
+  const proposed=review?.querySelector('#ba-proposed-address')?.value.trim()||'';
   if(!scanContext?.input?.isConnected||!proposed)return;
-  if(proposed!==scanContext.input.value){
-   scanContext.input.value=proposed.slice(0,250);
-   const plus=window.BoreLabLocations?.locationKind(proposed)==='plus';
-   if(plus&&!window.BoreLabLocations.isUsablePlusCode(proposed)){
-    scanNotice('A short Plus Code needs a nearby town or region. Add “Big Cypress, Florida”, for example.');return;
-   }
-   const gps=window.BoreLabLocations?.parseCoords(proposed);
-   const lat=scanContext.form.querySelector('#shotLat'),lon=scanContext.form.querySelector('#shotLon');
-   if(lat&&lon){lat.value=gps?.lat||'';lon.value=gps?.lon||'';}
-   scanContext.input.dispatchEvent(new Event('input',{bubbles:true}));
+  const plus=window.BoreLabLocations?.locationKind(proposed)==='plus';
+  if(plus&&!window.BoreLabLocations.isUsablePlusCode(proposed)){
+   scanNotice('A short Plus Code needs the nearby town or region, like “Big Cypress, Florida”.');return;
   }
-  button.closest('.ba-address-review')?.remove();scanNotice('Address applied to the form. Tap Save to store it.');return;
+  const checked=review?.querySelector('[data-ba-use-scanned-gps]')?.checked;
+  const extractedGps=checked?scanContext.options?.find(c=>c.kind==='coords'):null;
+  const gps=window.BoreLabLocations?.parseCoords(proposed)||
+    (extractedGps?window.BoreLabLocations?.parseCoords(extractedGps.value):null);
+  scanContext.input.value=proposed.slice(0,250);
+  const lat=scanContext.form.querySelector('#shotLat'),lon=scanContext.form.querySelector('#shotLon');
+  if(lat&&lon){lat.value=gps?.lat||'';lon.value=gps?.lon||'';}
+  scanContext.input.dispatchEvent(new Event('input',{bubbles:true}));
+  review.remove();
+  scanNotice('Location applied to form. Tap Save to keep it. GPS pin is '+(gps?'included.':'not confirmed yet.'));
+  return;
  }
  if(what==='view-shot'||what==='navigate'){
   const state=api().state(),job=(state.jobs||[]).find(x=>x.id===button.dataset.job),shot=(job?.shots||[]).find(x=>x.id===button.dataset.shot);

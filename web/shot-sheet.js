@@ -5,7 +5,7 @@ const api=()=>window.BoreLabAssistantBridge;
 const conduits=()=>window.BoreLabConduits;
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clamp=(x,n=250)=>String(x??'').trim().slice(0,n);
-let pendingRows=[],ocrText='',sourceError='',sourceName='',scanning=false;
+let pendingRows=[],ocrText='',sourceError='',sourceName='',scanning=false,scanPreview='';
 const root=document.createElement('div');root.id='bl-shot-sheet';root.hidden=true;document.body.appendChild(root);
 const css=document.createElement('style');
 css.textContent='#bl-shot-sheet[hidden]{display:none!important}#bl-shot-sheet{position:fixed;inset:0;overflow:auto;overscroll-behavior:contain;z-index:10500;background:var(--bg,#09141f);color:var(--text,#f4f8fb);font-family:system-ui,sans-serif;padding:18px 14px 80px}#bl-shot-sheet *{box-sizing:border-box}#bl-shot-sheet .bls-wrap{max-width:760px;margin:auto}#bl-shot-sheet button{cursor:pointer}#bl-shot-sheet .bls-header{display:flex;gap:12px;align-items:center;margin-bottom:15px}#bl-shot-sheet h1{font-size:24px;margin:0}#bl-shot-sheet h2{font-size:17px}#bl-shot-sheet .bls-card{background:var(--surface2,#162839);border:1px solid var(--line,#294258);padding:14px;border-radius:16px;margin:12px 0}#bl-shot-sheet .bls-muted{font-size:12px;color:var(--muted,#95acbd);line-height:1.5}#bl-shot-sheet .bls-btn{border:1px solid var(--line,#294258);color:var(--text,#f4f8fb);background:var(--surface3,#203448);border-radius:11px;padding:11px 13px;font-weight:750}#bl-shot-sheet .bls-primary{border-color:transparent;background:var(--accent,#ff992c);color:#10202b}#bl-shot-sheet .bls-row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}#bl-shot-sheet .bls-shot{border-bottom:1px solid var(--line,#294258);padding:13px 0}#bl-shot-sheet .bls-shot:last-child{border-bottom:0}#bl-shot-sheet .bls-fields{display:grid;grid-template-columns:minmax(110px,1fr) minmax(75px,.4fr);gap:9px}#bl-shot-sheet .bls-fields .bls-wide{grid-column:1/-1}#bl-shot-sheet label{font-size:12px;font-weight:750;display:block}#bl-shot-sheet input[type=text],#bl-shot-sheet input[type=number],#bl-shot-sheet textarea{display:block;width:100%;margin-top:5px;min-width:0;padding:11px;border:1px solid var(--line,#294258);border-radius:10px;background:var(--surface,#111f2d);color:var(--text)}#bl-shot-sheet input[type=checkbox]{width:17px;height:17px}#bl-shot-sheet .bls-status{margin:12px 0;font-size:13px}#bl-shot-sheet .bls-raw{max-height:160px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-size:11px}#bl-shot-sheet .bls-finish{position:sticky;bottom:0;background:var(--bg,#09141f);padding:9px 0;border-top:1px solid var(--line,#294258)}';
@@ -113,20 +113,20 @@ function captureEditorDrafts(){
 }
 function openScanner(){
  if(!api())return;
- pendingRows=[];ocrText='';sourceError='';sourceName='';scanning=false;
+ pendingRows=[];ocrText='';sourceError='';sourceName='';scanning=false;scanPreview='';
  root.hidden=false;
  document.body.style.overflow='hidden';
  render();
  root.scrollTop=0;
 }
-function closeScanner(){root.hidden=true;root.innerHTML='';document.body.style.overflow=''}
+function closeScanner(){root.hidden=true;root.innerHTML='';scanPreview='';document.body.style.overflow=''}
 function render(){
  const job=api()?.state()?.jobName||'Active job';
  root.innerHTML='<div class="bls-wrap"><div class="bls-header"><button type="button" class="bls-btn" data-bls-action="back">‹ Back</button><div><small class="bls-muted">BORELAB FIELD / IMPORT</small><h1>Scan Shot Sheet</h1></div></div>'+
  '<div class="bls-card"><p>Scan printed or handwritten paperwork. BoreLab will suggest multiple shots, then you review and choose which ones to import into <strong>'+esc(job)+'</strong>.</p>'+
  '<div class="bls-row"><button type="button" class="bls-btn bls-primary" data-bls-action="camera">📷 Take photo</button><button type="button" class="bls-btn" data-bls-action="gallery">▣ Choose photo</button>'+
  '<button type="button" class="bls-btn" data-bls-action="manual">+ Add draft manually</button></div>'+
- '<p class="bls-muted">Photo OCR runs on-device in the Android app. Writing and table columns may be imperfect. Nothing is imported automatically.</p></div>'+
+ '<p class="bls-muted">Camera tip: capture a close-up of the work-order header or folder tab first. For a long shot sheet, scan one readable page at a time. Original and high-contrast OCR can be reviewed below. Nothing is imported automatically.</p></div>'+
  (sourceName||sourceError?'<p class="bls-status">'+esc(sourceName||'')+(sourceError?' · '+esc(sourceError):'')+'</p>':'')+
  (scanning?'<div class="bls-card">Reading shot sheet…</div>':'')+
  (pendingRows.length?'<div class="bls-card"><h2>Review '+pendingRows.length+' proposed shot(s)</h2><p class="bls-muted">Correct every name, length, address and conduit before selecting Import. Any missing length must be entered manually.</p>'+
@@ -134,7 +134,8 @@ function render(){
  '<label class="bls-row" style="margin-top:12px"><input type="checkbox" id="bls-confirm"> I reviewed the selected shots against the original sheet.</label></div>'+
  '<div class="bls-finish">'+(sourceError?'<p class="bls-muted">'+esc(sourceError)+'</p>':'')+
  '<button type="button" class="bls-btn bls-primary" data-bls-action="import">Import reviewed shots into '+esc(job)+'</button></div>':'')+
- (ocrText?'<details class="bls-card"><summary>Original recognized text · check OCR accuracy</summary><pre class="bls-raw">'+esc(ocrText)+'</pre></details>':'')+
+ (scanPreview?'<details class="bls-card"><summary>Review the photo you scanned</summary><img alt="Scanned shot-sheet photo" src="'+esc(scanPreview)+'" style="display:block;width:100%;max-height:390px;object-fit:contain;margin-top:9px;border-radius:9px"></details>':'')+
+ (ocrText?'<details class="bls-card"><summary>Original and high-contrast OCR text · check accuracy</summary><pre class="bls-raw">'+esc(ocrText)+'</pre></details>':'')+
  '<p class="bls-muted">Footage must be verified. Addresses are not geocoded or treated as safety clearance. Please check 811 marks and drill plans before work.</p></div>';
 }
 async function resizeFile(file){
@@ -154,18 +155,38 @@ async function scanFile(file){
  try{
   scanning=true;sourceError='';sourceName=file.name||'Camera capture';render();
   const data=await resizeFile(file);
+  scanPreview=data;
   if(!window.BoreLabNative?.scanShotSheet){scanning=false;sourceError='Automatic text recognition requires the Android APK. Add entries manually in the preview.';render();return}
   window.BoreLabNative.scanShotSheet(data);
  }catch(e){scanning=false;sourceError=String(e.message||e);render()}
 }
 for(const input of [fileCamera,fileGallery])input.addEventListener('change',e=>{const file=e.target.files?.[0];e.target.value='';if(file)scanFile(file)});
-window.borelabOnShotSheetScan=function(text,error){
+function pickBestPaperworkReadings(original,enhanced){
+ const first=parseSheet(original||''),second=parseSheet(enhanced||'');
+ const points=rows=>rows.reduce((n,r)=>n+(Number(r.feet)>0?5:0)+(r.address?3:0)+(r.conduitText?2:0),0);
+ const winner=points(second)>points(first)?second:first;
+ const backup=winner===first?second:first;
+ if(winner.length===backup.length){
+  for(let i=0;i<winner.length;i++){
+   if(!winner[i].address&&backup[i].address)winner[i].address=backup[i].address;
+   if(!winner[i].feet&&backup[i].feet)winner[i].feet=backup[i].feet;
+   if(!winner[i].conduitText&&backup[i].conduitText)winner[i].conduitText=backup[i].conduitText;
+  }
+ }
+ return winner;
+}
+window.borelabOnShotSheetScan=function(text,error,alternate){
  if(root.hidden)return;
  scanning=false;
- ocrText=String(text||'').slice(0,15000);
+ const original=String(text||'').slice(0,15000);
+ const enhanced=String(alternate||'').slice(0,15000);
+ ocrText=original+(enhanced&&enhanced!==original?'\n\n— High-contrast reading —\n'+enhanced:'');
  sourceError=error?'Text reading issue: '+String(error).slice(0,200):'';
- pendingRows=parseSheet(ocrText);
- if(!pendingRows.length){sourceError+=' No clear shots detected. Try a closer photo or add entries manually.';pendingRows=[{name:'Shot 01',feet:'',address:'',conduitText:'',selected:false}]} 
+ pendingRows=pickBestPaperworkReadings(original,enhanced);
+ if(!pendingRows.length){
+  sourceError+=(sourceError?' ':'')+'No confirmed shots found. Take a closer photo of the address section or add a reviewed draft manually.';
+  pendingRows=[{name:'Shot 01',feet:'',address:'',conduitText:'',selected:false}];
+ }
  render();
 };
 function importReviewed(){

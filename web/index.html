@@ -617,7 +617,7 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · v0.16.0 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · v0.16.1 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
@@ -2010,7 +2010,7 @@ ${section('Plan My Route')}<div class="card">
 </div>
   <div class="route-result-note" role="status">${!usable?`<span class="route-result-warning">${esc(message)}</span>`:routeMenuOpen?`<span>${esc(message)}</span>`:''}${allGeo?`<small>Approx. ${fmt(estimate,1)} mi round trip (straight-line)</small>`:''}</div>
   <div class="action-row"><button class="btn ghost" data-action="resolve-addresses">⌖ Locate Saved Addresses</button>${!homeReady?`<button class="btn micro ghost" data-action="edit-homebase">⌖ Set Shop GPS in Settings</button>`:''}</div>
-  ${!allGeo&&usable?`<div class="note spaced" style="font-size:12px">GPS incomplete: ${!homeReady?'shop':' '} ${plan.missingShotCount?`· ${plan.missingShotCount} shot(s)`:''}. Tap “Locate Saved Addresses” for missing pins.</div>`:''}${routeMap(order)}<div class="section-title"><h2 style="font-size:15px">${usable?'Suggested Shot Order':'Shot Order — Needs Location'}</h2><span class="hint">${order.length} pending</span></div>${order.length?order.map((s,i)=>`<div class="route-item"><span class="bubble">${i+1}</span><div style="min-width:0;flex:1"><strong>${esc(s.name)}</strong><div><small>${esc(s.address||coordsText(s)||'Location needed')}</small></div></div><div class="right"><strong>${feet(s)} ft</strong><div><small>${pipeNeed(s)} ft incl. extra</small></div>${mapPoint(s)?`<button class="btn micro ghost" data-action="open-map-pin" data-id="${esc(s.id)}" style="margin-top:6px">Navigate</button>`:''}</div></div>`).join(''):`<p class="muted smalltext">All shots are complete, or no shots have been created.</p>`}
+  ${!allGeo&&usable?`<div class="note spaced" style="font-size:12px">GPS incomplete: ${!homeReady?'shop':' '} ${plan.missingShotCount?`· ${plan.missingShotCount} shot(s)`:''}. Tap “Locate Saved Addresses” for missing pins.</div>`:''}${routeMap(order)}${missingGpsPanel()}<div class="section-title"><h2 style="font-size:15px">${usable?'Suggested Shot Order':'Shot Order — Needs Location'}</h2><span class="hint">${order.length} pending</span></div>${order.length?order.map((s,i)=>`<div class="route-item"><span class="bubble">${i+1}</span><div style="min-width:0;flex:1"><strong>${esc(s.name)}</strong><div><small>${esc(s.address||coordsText(s)||'Location needed')}</small></div></div><div class="right"><strong>${feet(s)} ft</strong><div><small>${pipeNeed(s)} ft incl. extra</small></div>${mapPoint(s)?`<button class="btn micro ghost" data-action="open-map-pin" data-id="${esc(s.id)}" style="margin-top:6px">Navigate</button>`:''}</div></div>`).join(''):`<p class="muted smalltext">All shots are complete, or no shots have been created.</p>`}
 ${mapsLink(order)?`<div class="action-row"><button class="btn cyan full" data-action="open-full-route">↗ Google Maps: shop → shots → shop</button></div>`:''}</div>
 ${window.BoreLabDailyReels?.renderSection()||''}
 ${window.BoreLabConduits?.renderPlannerSummary()||''}
@@ -2625,35 +2625,82 @@ function lookupAddressCoordinates(address){
  return task;
 }
 async function resolveMissingAddresses(manual=true){
- if(resolvingAddresses){if(manual)notify('Location lookup is already running.');return}
- const tasks=[];
- if(state.shopAddress?.trim()&&!coordsValid(shop()))tasks.push({type:'shop',address:state.shopAddress.trim()});
- for(const shot of state.shots.filter(x=>x.status!=='complete'&&x.address?.trim()&&!coordsValid(x)))tasks.push({type:'shot',id:shot.id,address:shot.address.trim()});
- if(!tasks.length){if(manual)notify('No saved addresses awaiting GPS. Add shop and shot addresses first.');return}
- resolvingAddresses=true;let good=0,failed=0,firstError='';
- notify(`Looking up ${tasks.length} saved address${tasks.length===1?'':'es'}…`);
- try{
- for(const t of tasks){
-   try{
-     const p=await lookupAddressCoordinates(t.address);
-     if(t.type==='shop'){
-       if(state.shopAddress.trim()!==t.address)continue;
-       state.shopLat=p.lat;state.shopLon=p.lon;
-     }else{
-       const shot=state.shots.find(x=>x.id===t.id);
-       if(!shot||shot.address.trim()!==t.address)continue;
-       shot.lat=p.lat;shot.lon=p.lon;
-     }
-     good++;save();if(page==='planner')render();
-   }catch(e){failed++;firstError ||= e.message}
+ if(resolvingAddresses){if(manual)notify('A GPS lookup is already running.');return}
+ const tasks=[],plus=[],empty=[];
+ let fromGps=0,changed=false;
+ const loc=typeof window!=='undefined'?window.BoreLabLocations:null;
+ function collect(type,address,id){
+  const value=String(address||'').trim();
+  if(!value){empty.push({type,id});return}
+  const gps=loc?.parseCoords(value);
+  if(gps){
+   if(type==='shop'){state.shopLat=gps.lat;state.shopLon=gps.lon}
+   else{const sh=state.shots.find(s=>s.id===id);if(sh){sh.lat=gps.lat;sh.lon=gps.lon}}
+   fromGps++;changed=true;return;
+  }
+  if(loc?.isNonStreetLocation(value)){
+   plus.push({type,id,address:value});return;
+  }
+  tasks.push({type,id,address:value});
  }
+ if(!coordsValid(shop()))collect('shop',state.shopAddress||'');
+ for(const sh of state.shots.filter(s=>s.status!=='complete'&&!coordsValid(s)))collect('shot',sh.address,sh.id);
+ if(changed){save();if(page==='planner')render()}
+ if(!tasks.length){
+  if(manual){
+   const notes=[];
+   if(fromGps)notes.push(fromGps+' GPS pin'+(fromGps===1?'':'s')+' saved');
+   if(plus.length)notes.push(plus.length+' Plus Code'+(plus.length===1?' needs':'s need')+' coordinates for distance routing');
+   if(empty.length)notes.push(empty.length+' stop'+(empty.length===1?' needs':'s need')+' a location');
+   notify(notes.join(' · ')||'Every pending stop has GPS.');
+  }
+  return{found:fromGps,plus:plus.length,missing:empty.length,failed:0};
+ }
+ resolvingAddresses=true;let good=0,failed=0;
+ if(manual)notify('Checking '+tasks.length+' street address'+(tasks.length===1?'':'es')+'…');
+ try{
+  for(const t of tasks){
+   try{
+    const p=await lookupAddressCoordinates(t.address);
+    if(t.type==='shop'){
+     if(state.shopAddress.trim()!==t.address)continue;
+     state.shopLat=p.lat;state.shopLon=p.lon;
+    }else{
+     const sh=state.shots.find(s=>s.id===t.id);
+     if(!sh||sh.address.trim()!==t.address)continue;
+     sh.lat=p.lat;sh.lon=p.lon;
+    }
+    good++;save();if(page==='planner')render();
+   }catch(e){failed++;console.info('BoreLab address lookup unavailable for',t.type,String(e.message||e))}
+  }
  }finally{resolvingAddresses=false}
- notify(good?`${good} location${good===1?'':'s'} added to the map.${failed?` ${failed} unresolved.`:''}`:`Could not resolve addresses. ${firstError} You can enter GPS manually.`);
+ const parts=[];
+ if(good+fromGps)parts.push((good+fromGps)+' GPS pin'+(good+fromGps===1?'':'s')+' saved');
+ if(failed)parts.push(failed+' address'+(failed===1?'':'es')+' not found');
+ if(plus.length)parts.push(plus.length+' Plus Code'+(plus.length===1?' needs':'s need')+' GPS for routing');
+ if(empty.length)parts.push(empty.length+' location'+(empty.length===1?' missing':'s missing'));
+ if(manual)notify(parts.join(' · ')||'No new GPS pins were found. Open each missing shot to add coordinates.');
+ return{found:good+fromGps,failed,plus:plus.length,missing:empty.length};
+}
+function missingGpsPanel(){
+ const missing=state.shots.filter(sh=>sh.status!=='complete'&&!coordsValid(sh));
+ if(!missing.length)return'';
+ return '<div class="card spaced"><div class="between"><h3>Shots That Need GPS</h3><span class="tiny muted">'+missing.length+' missing</span></div>'+
+ '<p class="tiny muted">Street addresses can be looked up online. Plus Codes can open in Google Maps, but short Plus Codes need confirmed coordinates for local distance planning. Tap Edit GPS to enter them.</p>'+
+ missing.map(sh=>'<div class="between" style="padding:9px 0;border-top:1px solid var(--line)"><div style="min-width:0"><strong>'+esc(sh.name)+'</strong><small class="tiny muted" style="display:block;overflow-wrap:anywhere">'+esc(sh.address||'No address or Plus Code saved')+'</small></div>'+
+ '<button class="btn micro ghost" data-action="edit-shot" data-id="'+esc(sh.id)+'">Edit GPS</button></div>').join('')+'</div>';
 }
 async function geocode(target){
  const addr=document.querySelector(`#${target}Address`)?.value?.trim();
  if(!addr)return notify('Enter an address first.');
- notify('Looking up the address…');
+ const direct=window.BoreLabLocations?.parseCoords(addr);
+ if(direct){
+  if(target==='shop'){state.shopAddress=addr;state.shopLat=direct.lat;state.shopLon=direct.lon;save();if(page==='planner')render();notify('Shop GPS coordinates saved.');}
+  else{const lat=document.querySelector('#shotLat'),lon=document.querySelector('#shotLon');if(lat&&lon){lat.value=direct.lat;lon.value=direct.lon;notify('GPS coordinates entered. Tap Save Shot to keep them.')}}
+  return;
+ }
+ if(window.BoreLabLocations?.isNonStreetLocation(addr))return notify('Plus Code can open in Google Maps. For shot-distance routing, enter its GPS coordinates under Edit GPS.');
+ notify('Looking up the street address…');
  try{
    const point=await lookupAddressCoordinates(addr);
    if(target==='shop'){

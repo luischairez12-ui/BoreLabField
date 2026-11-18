@@ -22,17 +22,21 @@ function findStreet(raw){
  const rural=/\b((?:COUNTY ROAD|STATE ROAD|CR|SR|US HIGHWAY|US HWY|HIGHWAY|HWY)\s*[-#]?\s*\d{1,6}[A-Z]?)\b/i;
  let best=null;
  for(let i=0;i<lines.length;i++){
-  const inputs=[lines[i],lines[i]+' '+(lines[i+1]||'')];
-  for(const combo of inputs){
+  // A printed work-order cell often appears as "225 N" / "MAYORAL" / "ST".
+  // Rejoin adjacent OCR lines, but never infer a missing house number.
+  for(let span=1;span<=Math.min(4,lines.length-i);span++){
+   const combo=lines.slice(i,i+span).join(' ');
    const m=combo.match(street)||combo.match(rural);
    if(!m)continue;
    const address=m[1].replace(/\s+/g,' ').replace(/\s+\./g,'.').trim();
-   let score=address.length>4?1:0;
-   if(/\baddress\b/i.test(lines[i]))score+=6;
-   if(i>0&&/\baddress\b/i.test(lines[i-1]))score+=5;
-   if(combo===lines[i])score++;
-   if(address.length>95)score-=5;
-   if(!best||score>best.score)best={score,value:address.slice(0,250)};
+   let score=1;
+   if(/\baddress\b/i.test(lines.slice(Math.max(0,i-3),i+1).join(' ')))score+=6;
+   if(span===1)score+=2;
+   score-=span-1;
+   if((address.match(/\d{2,}/g)||[]).length>1)score-=5;
+   if(address.length>95)score-=6;
+   if(!best||score>best.score||score===best.score&&address.length<best.value.length)
+     best={score,value:address.slice(0,250)};
   }
  }
  return best?.value||'';
