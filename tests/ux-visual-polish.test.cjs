@@ -1,0 +1,53 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const android=fs.readFileSync('app/src/main/assets/web/index.html','utf8');
+const browser=fs.readFileSync('web/index.html','utf8');
+assert.equal(android,browser,'Android and browser preview must use the same interface');
+const js=android.split('<script>')[1]?.split('</script>')[0];
+assert(js,'Missing JS');new Function(js);
+
+assert(!android.includes('</nav>nav>'),'No visible stray nav> after the closing tag');
+assert.match(android,/<\/nav>\s*<\/div>/,'Navigation must close directly into its shell');
+assert.match(android,/BoreLab Field · v0\.10\.1 · Records stay on this device/,'Footer version updated');
+assert(!android.includes('Android preview v0.9.4'),'Old footer version left in app');
+assert(android.includes('function uxRigArt()'),'Landscape detail should be drawn from bundled SVG');
+assert(android.includes('function uxIconSvg(id)'),'Unified offline SVG icon helper missing');
+assert(android.includes('uxIconSvg(tool.id)'),'Field tiles must use consistent icons instead of Unicode symbols');
+assert(android.includes('uxIconSvg(t.id)'),'Settings favorites must use matching symbols');
+assert(android.includes('data-page="tools"')&&android.includes('data-page="settings"'));
+assert(android.includes('min-height:83px'),'Default field tiles should be compact');
+assert(android.includes('ux-next-cta'),'Compact contextual action missing');
+assert(android.includes('.ux-home .ux-welcome'),'Compact themed header missing');
+assert(android.includes('@media(max-width:365px)'),'Narrow phone layout requires its own compact rules');
+assert(android.includes('@media (prefers-reduced-motion:reduce)'),'Accessibility: reduced motion option missing');
+assert(android.includes('html[data-field-mode="on"] .ux-tile'),'Glove-friendly mode must still enlarge tappable controls');
+
+const beginning=js.indexOf('const UX_ACTIONS=');
+const ending=js.indexOf('function coordsValid(o){',beginning);
+assert(beginning>=0&&ending>beginning,'Home UI definitions missing');
+const state={demo:true,uxMode:'simple',uxFavorites:['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'],
+ jobName:'Demo Job · South Glades',shots:[{id:'a',name:'Shot A',feet:175,status:'complete'},{id:'b',name:'Shot B',feet:155,status:'planned'}]};
+const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const factory=new Function('state','esc','footnote','fmt','extra','pipeNeed','totalFeet','doneFeet','totalNeed','pipeOnTruck','oilWarnings','shotRow',
+ js.slice(beginning,ending)+'return {renderHome,renderTools,uxIconSvg,uxRigArt,UX_ACTIONS};');
+const ui=factory(state,escape,()=>'',v=>String(v),()=>10,x=>x.feet+10,()=>330,()=>175,()=>350,()=>350,()=>'',s=>s.name);
+const home=ui.renderHome();
+assert(home.includes('Demo Job · South Glades'),'Existing job should stay visible');
+assert(home.includes('35')||home.includes('53'),'Some progress should remain visible');
+assert(home.includes('<svg class="ux-rig-art"'),'Home hero illustration missing');
+assert(home.includes('ux-progress-track'),'Compact progress track missing');
+assert(home.includes('ux-job-meta'),'Compact job metrics missing');
+assert(!home.includes('You are viewing sample shots.'),'Verbose demo warning must not dominate the dashboard');
+assert(home.includes('Demo job · sample records'),'Demo disclosure retained in compact form');
+assert(home.includes('What do you need to do?'));
+assert.equal((home.match(/class="ux-tile"/g)||[]).length,6,'Simple Home should show exactly six favorites');
+for(const id of state.uxFavorites)assert(home.includes('data-action="'+id+'"'),'Missing favorite action '+id);
+assert(home.includes('Offline-friendly · Your field records stay on this device.'),'Concise home footer');
+assert(!home.includes('Android preview v0.9.4'));
+assert(ui.renderTools().includes('Every BoreLab feature'));
+assert(ui.uxIconSvg('go-manuals').includes('<svg'));
+assert(ui.uxRigArt().includes('viewBox="0 0 320 140"'));
+assert(js.includes('data-form="guided-bore"')&&js.includes("case 'new-shot':if(state.uxMode==='advanced')shotForm();else beginGuidedBore();break;"));
+assert(js.includes("const KEY='borelab-field-v0.1'"),'Do not change local storage key or lose saved work');
+assert(js.includes('window.borelabOnManualSearch'),'PDF manual features preserved');
+console.log('BoreLab 0.10.1 visual polish: compact home, correct nav/footer, SVG assets, narrow-screen styles and existing actions passed.');
