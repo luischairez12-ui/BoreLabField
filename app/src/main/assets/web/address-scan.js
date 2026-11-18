@@ -88,7 +88,7 @@ window.borelabOnShotSheetScan=function(text,error,alternate){
 document.addEventListener('click',e=>{
  const btn=e.target.closest('[data-address-scan]');
  if(!btn)return;
- const form=btn.closest('form[data-form="shot"],form[data-form="guided-bore"]');
+ const form=btn.closest('form[data-form="shot"],form[data-form="guided-bore"],form[data-form="quick-bore"]');
  open(form?.querySelector('input[name="address"]'));
 });
 const style=document.createElement('style');
