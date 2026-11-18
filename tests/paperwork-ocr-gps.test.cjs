@@ -9,7 +9,7 @@ for(const word of ['highContrastPaperwork(Bitmap source)','recognizer.process(In
 assert(upgrade.includes('window.borelabOnAddressScan=function onAddressScan(text,error,alternate)'));
 assert(upgrade.includes('View scanned photo')&&upgrade.includes('High-contrast OCR text'));
 assert(sheet.includes('window.borelabOnShotSheetScan=function(text,error,alternate)')&&sheet.includes('Review the photo you scanned'));
-assert(html.includes('function missingGpsPanel()')&&html.includes('missingGpsPanel()}'));
+assert(html.includes('function missingGpsPanel()')&&html.includes('window.BoreLabWorkday?.renderGpsPanel(plan)'), 'Compact GPS panel should replace the old expanded planner warning');
 const part=locations.slice(locations.indexOf('function parseCoords('),locations.indexOf('function todayKey()'));
 const loc=new Function(part+'return {findStreet,locationCandidates,parseCoords,isNonStreetLocation};')();
 assert.equal(loc.findStreet('Work Order 870980\nAddress\n225 N MAYORAL ST\nPhone Number'),'225 N MAYORAL ST');
