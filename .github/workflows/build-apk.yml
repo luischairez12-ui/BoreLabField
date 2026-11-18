@@ -37,6 +37,8 @@ jobs:
         run: node tests/manual-library.test.cjs
       - name: Test offline manual search and in-app PDF reader integration
         run: node tests/manual-search.test.cjs
+      - name: Test field-friendly UI, guided bore, and saved preferences
+        run: node tests/ux-redesign.test.cjs
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -64,6 +66,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BoreLab-Field-v0.9.4-Debug-APK
+          name: BoreLab-Field-v0.10.0-Debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
