@@ -1715,6 +1715,152 @@ function renderSearch(){
  </div>`;
 }
 
+
+function renderJobs(){
+ const jobs=state.jobs.filter(j=>!j.archived);
+ const archived=state.jobs.filter(j=>j.archived);
+ const jobCard=(j,old=false)=>{
+  const completed=j.shots.filter(s=>s.status==='complete').length;
+  const pending=j.shots.filter(s=>s.status!=='complete').length;
+  const isActive=j.id===state.activeJobId;
+  return `<div class="ux-multi-job-card ${isActive?'ux-current-job':''}">
+   <div><div class="between"><span class="eyebrow">${isActive?'ACTIVE JOB':old?'ARCHIVED JOB':'SAVED JOB'}</span>
+    <span class="tiny muted">${j.shots.length} bores</span></div>
+    <h2>${esc(j.jobName)}</h2>
+    <p class="smalltext muted">${esc(j.jobAddress||'No location set')}</p>
+    <p class="tiny muted spaced">${completed} complete · ${pending} pending · ${j.crew.length} time entries</p>
+   </div>
+   <div class="action-row">
+    ${old?`<button class="btn micro primary" data-action="restore-job" data-id="${esc(j.id)}">Restore Job</button>`:
+    `<button class="btn micro primary" data-action="switch-job" data-id="${esc(j.id)}">${isActive?'Open Workspace':'Switch to Job'}</button>
+     ${!isActive?`<button class="btn micro ghost" data-action="archive-job" data-id="${esc(j.id)}">Archive</button>`:''}`}
+   </div>
+  </div>`;
+ };
+ return `<div class="page ux-jobs-page">
+  <div class="between"><div><span class="eyebrow">FIELD / JOB MANAGEMENT</span><h1>My Jobs</h1></div>
+   <button class="btn primary" data-action="new-job">+ New Job</button></div>
+  <p class="muted smalltext spaced">Each job has its own bores, crew hours and photos. Pipe reels and equipment stay shared.</p>
+  <div class="ux-jobs-grid">${jobs.map(j=>jobCard(j)).join('')}</div>
+  ${archived.length?`<details class="ux-details spaced"><summary>Archived jobs (${archived.length})</summary>
+   <div class="ux-jobs-grid spaced">${archived.map(j=>jobCard(j,true)).join('')}</div></details>`:''}
+  <div class="action-row spaced"><button class="btn ghost" data-page="dayassist">Review Today's Jobs</button>
+   <button class="btn ghost" data-action="export-backup">Back Up All Jobs</button></div>
+  ${footnote()}</div>`;
+}
+function jobRecordsForDay(job,day,all=false){
+ const inDay=x=>x&&localDay(x)===day;
+ return {
+  shots:(job.shots||[]).filter(sh=>all||[sh.startedAt,sh.completedAt,sh.updatedAt].some(inDay)),
+  crew:(job.crew||[]).filter(e=>all||[e.start,e.end].some(inDay)),
+  pipe:(state.pipeMoves||[]).filter(m=>belongsToJob(m,job.id)&&(all||inDay(m.at))),
+  mud:(state.mudLogs||[]).filter(m=>belongsToJob(m,job.id)&&(all||inDay(m.at))),
+  mudStock:(state.mudStockMoves||[]).filter(m=>belongsToJob(m,job.id)&&(all||inDay(m.at))),
+  photos:photos.filter(p=>belongsToJob(p,job.id)&&(all||inDay(p.addedAt)))
+   .map(({id,shotId,jobId,addedAt,lat,lon,accuracy,kind})=>({id,shotId,jobId,addedAt,lat,lon,accuracy,kind}))
+ };
+}
+function jobDayIssues(job,day){
+ const r=jobRecordsForDay(job,day);
+ const issues=[];
+ const unclosed=(job.crew||[]).filter(e=>!e.end&&localDay(e.start)<=day).length;
+ if(unclosed)issues.push(unclosed+' crew member(s) still clocked in');
+ const drilling=(job.shots||[]).filter(sh=>sh.status==='progress').length;
+ if(drilling)issues.push(drilling+' bore(s) still in progress — carry over, do not auto-complete');
+ const missing=r.shots.filter(sh=>sh.status==='complete'&&
+  !r.pipe.some(m=>m.type==='installed'&&m.shotId===sh.id)&&
+  (sh.pipeUsed==null||sh.pipeUsed==='')).length;
+ if(missing)issues.push(missing+' completed bore(s) missing recorded pipe');
+ return issues;
+}
+function jobDaySummary(job,day){
+ const r=jobRecordsForDay(job,day);
+ return {id:job.id,name:job.jobName,address:job.jobAddress||'',shots:r.shots.length,
+  completed:r.shots.filter(s=>s.status==='complete').length,
+  footage:r.shots.filter(s=>s.status==='complete').reduce((n,s)=>n+Number(s.feet||0),0),
+  crewHours:r.crew.reduce((n,e)=>n+hours(e),0),photos:r.photos.length,pipe:r.pipe.filter(m=>m.type==='installed').reduce((n,m)=>n+Number(m.feet||0),0),
+  warnings:jobDayIssues(job,day),hasWork:!!(r.shots.length||r.crew.length||r.photos.length||r.pipe.length||r.mud.length)};
+}
+function buildMultiDaySnapshot(day){
+ const entries=state.jobs.map(job=>({job,r:jobRecordsForDay(job,day),sum:jobDaySummary(job,day)}))
+  .filter(x=>x.sum.hasWork);
+ const copy=x=>JSON.parse(JSON.stringify(x));
+ const combined={shots:[],crew:[],pipe:[],photos:[],mud:[],mudStock:[]};
+ for(const {job,r} of entries){
+  combined.shots.push(...r.shots.map(sh=>({...copy(sh),name:job.jobName+' · '+sh.name,
+   plannedAllowance:Number(job.allowance)||0,jobId:job.id})));
+  combined.crew.push(...r.crew.map(e=>({...copy(e),name:job.jobName+' · '+e.name,jobId:job.id})));
+  for(const key of ['pipe','photos','mud','mudStock'])combined[key].push(...copy(r[key]));
+ }
+ const notes=entries.map(({sum})=>
+  sum.name+': '+sum.shots+' bores updated, '+fmt(sum.footage,1)+' ft completed, '+
+  fmt(sum.crewHours,2)+' crew-hours, '+sum.photos+' photos'+
+  (sum.warnings.length?' — Attention: '+sum.warnings.join('; '):' — No flagged issues')).join('\n');
+ const done=combined.shots.filter(sh=>sh.status==='complete');
+ return {id:uid(),kind:'multi',day,createdAt:new Date().toISOString(),
+  jobName:entries.length+' Jobs · Combined Daily Report',jobSummaries:entries.map(x=>x.sum),
+  notes,checks:[],...combined,reels:copy(state.reels),equipment:copy(state.equipment),
+  allowance:0,homeBase:state.shopAddress||'',
+  summary:{shots:combined.shots.length,completed:done.length,
+   completedFeet:done.reduce((n,s)=>n+Number(s.feet||0),0),
+   crewHours:combined.crew.reduce((n,e)=>n+hours(e),0),
+   installedPipe:combined.pipe.filter(p=>p.type==='installed').reduce((n,p)=>n+Number(p.feet||0),0),
+   photos:combined.photos.length,mudBatches:combined.mud.length,mudStockMoves:combined.mudStock.length}
+ };
+}
+function saveMultiDayCloseout(exportPdf=false){
+ const day=closeoutDay||todayLocal();
+ const snapshot=buildMultiDaySnapshot(day);
+ if(!snapshot.jobSummaries.length)return notify('No recorded work on this date to close out.');
+ const open=snapshot.jobSummaries.filter(x=>x.warnings.length);
+ const msg='Save a combined report for '+snapshot.jobSummaries.length+' job(s) on '+day+'?'+
+  (open.length?'\n\n'+open.length+' job(s) have outstanding issues. They remain open, and no crew or bore status will change.':'')+
+  '\n\nIndividual job records will stay editable. Continue?';
+ if(!confirm(msg))return;
+ state.history.push(snapshot);save();
+ if(exportPdf){exportRealPdf(snapshot.id)}else{setPage('history');notify('Combined daily summary saved for '+day+'.')}
+}
+function renderDayAssistant(){
+ const day=closeoutDay||todayLocal();
+ const all=state.jobs.map(j=>({...jobDaySummary(j,day),archived:!!j.archived}));
+ const relevant=all.filter(j=>j.hasWork||j.id===state.activeJobId);
+ const worked=all.filter(j=>j.hasWork);
+ const totalBores=worked.reduce((n,j)=>n+j.shots,0);
+ const totalHours=worked.reduce((n,j)=>n+j.crewHours,0);
+ const totalPhotos=worked.reduce((n,j)=>n+j.photos,0);
+ const flagged=worked.filter(j=>j.warnings.length);
+ return `<div class="page ux-day-assistant">
+  <div class="between"><div><span class="eyebrow">FIELD / ALL-JOB CLOSEOUT</span><h1>End-of-Day Assistant</h1></div>
+   <button class="btn micro ghost" data-page="jobs">My Jobs</button></div>
+  <p class="muted smalltext spaced">Check every job worked today. Unfinished bores can carry over to tomorrow without being marked complete.</p>
+  <div class="card spaced"><label class="field">Review work date<input type="date" data-closeout-day value="${esc(day)}"></label>
+   <div class="ux-assistant-stats">
+    <div><strong>${worked.length}</strong><span>Jobs worked</span></div>
+    <div><strong>${totalBores}</strong><span>Bores updated</span></div>
+    <div><strong>${fmt(totalHours,1)}</strong><span>Crew-hours</span></div>
+    <div><strong>${totalPhotos}</strong><span>Photos</span></div>
+   </div></div>
+  <div class="ux-section-heading"><h2>Review each job</h2></div>
+  ${relevant.length?relevant.map(job=>`<div class="ux-assist-job">
+   <div class="between"><h3>${esc(job.name)}</h3><span class="status ${job.warnings.length?'progress':job.hasWork?'complete':'planned'}">
+    ${job.warnings.length?'Needs Review':job.hasWork?'Ready to review':'No work logged'}</span></div>
+   <p class="smalltext muted spaced">${job.shots} bores updated · ${fmt(job.footage,1)} ft completed · ${fmt(job.crewHours,2)} crew-hours · ${job.photos} photos</p>
+   ${job.warnings.length?`<div class="ux-assist-issues">${job.warnings.map(w=>`<p>! ${esc(w)}</p>`).join('')}</div>`:
+     job.hasWork?'<p class="smalltext muted">No automatic issues detected. Check records before confirming.</p>':
+     '<p class="smalltext muted">No activity recorded for this date.</p>'}
+   <div class="action-row"><button class="btn micro ghost" data-action="review-job-day" data-id="${esc(job.id)}">Review Job</button></div></div>`).join(''):
+   '<div class="note spaced">Nothing recorded for this date. Create a job and add your bores or crew entries first.</div>'}
+  ${flagged.length?`<div class="note spaced">${flagged.length} job(s) need attention. Saving a summary does not complete those tasks or check out the crew.</div>`:
+  worked.length?'<div class="note good spaced">No automatic issues detected. Please review all records before finishing.</div>':''}
+  <div class="ux-section-heading"><h2>Combined daily report</h2></div>
+  <p class="smalltext muted">Creates a dated snapshot of all jobs worked, with job names attached to bore and crew records. The original jobs remain independent.</p>
+  <div class="action-row">
+   <button class="btn primary" data-action="save-multi-closeout" ${worked.length?'':'disabled'}>Save Combined Summary</button>
+   <button class="btn ghost" data-action="export-multi-closeout" ${worked.length?'':'disabled'}>Save & Export PDF</button>
+  </div>
+  ${footnote()}</div>`;
+}
+
 function coordsValid(o){return o&&o.lat!==''&&o.lon!==''&&o.lat!=null&&o.lon!=null&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lon))&&Math.abs(Number(o.lat))<=90&&Math.abs(Number(o.lon))<=180}
 function coordsText(s){return coordsValid(s)?`${Number(s.lat).toFixed(5)}, ${Number(s.lon).toFixed(5)}`:''}
 function hav(a,b){if(!coordsValid(a)||!coordsValid(b))return NaN;const R=3958.7613,lat1=Number(a.lat)*Math.PI/180,lat2=Number(b.lat)*Math.PI/180,dlat=(Number(b.lat)-Number(a.lat))*Math.PI/180,dlon=(Number(b.lon)-Number(a.lon))*Math.PI/180,q=Math.sin(dlat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dlon/2)**2;return R*2*Math.asin(Math.sqrt(q))}
