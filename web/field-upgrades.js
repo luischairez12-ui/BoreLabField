@@ -49,7 +49,7 @@ function installScanButtons(){
  const address=form.querySelector('input[name="address"]');
  if(!address)return;
  const buttons=document.createElement('div');buttons.className='ba-scan-tools';
- buttons.innerHTML=oneButton('📷 Scan folder / paper','scan-camera')+oneButton('▣ Choose address photo','scan-gallery');
+ buttons.innerHTML=oneButton('📷 Scan folder / paper','scan-camera')+oneButton('▣ Choose address photo','scan-gallery')+oneButton('⌖ Plus Code / GPS','enter-location');
  const label=address.closest('label');
  if(label)label.insertAdjacentElement('afterend',buttons);else form.insertBefore(buttons,form.firstChild);
 }
@@ -59,15 +59,22 @@ document.body.append(camera,gallery);
 let scanContext=null,scanBusy=false;
 function candidateAddress(raw){
  const lines=String(raw||'').split(/\r?\n/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
- const street=/\b(?:[0-9]{1,6}\s+)?[A-Za-z0-9#.\- ]{3,90}\s+(?:Street|St|Road|Rd|Avenue|Ave|Boulevard|Blvd|Drive|Dr|Lane|Ln|Court|Ct|Way|Highway|Hwy|Circle|Cir|Trail|Trl)\b\.?/i;
- const road=/\b(?:County Road|State Road|CR|SR|US Highway|US Hwy)\s*[-#]?\s*\d+[A-Za-z]?\b/i;
- let i=lines.findIndex(line=>street.test(line)||road.test(line));
- if(i<0)i=lines.findIndex(line=>/^address\s*[:#-]/i.test(line)&&line.length>12);
- if(i<0)return'';
- let address=lines[i].replace(/^\s*(?:job\s+)?address\s*[:#-]\s*/i,'').trim();
- const next=lines[i+1]||'';
- if(/^[A-Za-z][A-Za-z .'-]{2,55},?\s+[A-Z]{2}\s*\d{5}(?:-\d{4})?$/i.test(next))address+=', '+next;
- return address.slice(0,250);
+ const street=/\b(\d{1,6}\s+(?:[NSEW]\.?\s+)?(?:[A-Za-z0-9][A-Za-z0-9.'-]*\s+){1,6}(?:ST(?:REET)?|RD|ROAD|AVE(?:NUE)?|BLVD|BOULEVARD|DR(?:IVE)?|LN|LANE|CT|COURT|CIR|CIRCLE|WAY|TR(?:AI)?L|HWY|HIGHWAY|PL|PLACE|PKWY|PARKWAY)\.?\b)/i;
+ const rural=/\b((?:County Road|State Road|CR|SR|US Highway|US Hwy|Highway|Hwy)\s*[-#]?\s*\d+[A-Za-z]?)\b/i;
+ for(let i=0;i<lines.length;i++){
+  for(const input of [lines[i],lines[i]+' '+(lines[i+1]||'')]){
+   const found=input.match(street)||input.match(rural);
+   if(!found)continue;
+   let address=found[1].trim();
+   const after=lines[i+1]||'';
+   if(/^[A-Za-z][A-Za-z .'-]{2,55},?\s+(?:[A-Z]{2}|Florida)\s*\d{5}(?:-\d{4})?$/i.test(after))address+=', '+after;
+   return address.slice(0,250);
+  }
+ }
+ const code=String(raw||'').match(/\b([23456789CFGHJMPQRVWX]{2,8})\s*\+\s*([23456789CFGHJMPQRVWX]{2,3})\b/i);
+ if(code)return (code[1]+'+'+code[2]).toUpperCase();
+ const gps=String(raw||'').match(/(-?\d{1,2}\.\d{4,})\s*[,;]\s*(-?\d{1,3}\.\d{4,})/);
+ return gps?gps[1]+','+gps[2]:'';
 }
 function scanNotice(message){
  const form=scanContext?.form;
@@ -101,20 +108,33 @@ async function scanFile(file){
  }catch(error){scanNotice(String(error.message||error));scanBusy=false}
 }
 for(const input of [camera,gallery])input.addEventListener('change',e=>{const f=e.target.files?.[0];if(f)scanFile(f);e.target.value=''});
-window.borelabOnAddressScan=function onAddressScan(raw,error){
- scanBusy=false;
+function showLocationReview(raw,error){
  const form=scanContext?.form,address=scanContext?.input;
  if(!form||!form.isConnected||!address||!address.isConnected)return;
- const text=String(raw||'').slice(0,10000),guess=candidateAddress(text);
+ const text=String(raw||'').slice(0,10000);
+ const detected=window.BoreLabLocations?.locationCandidates(text)||[];
+ const fallback=candidateAddress(text);
+ if(fallback&&!detected.some(c=>c.value===fallback)){
+  const isGps=/^-?\d{1,2}\.\d+,\s*-?\d{1,3}\.\d+$/.test(fallback);
+  if(!isGps&&!fallback.includes('+'))detected.unshift({kind:'street',label:'Street address / printed label',value:fallback});
+ }
+ scanContext.options=detected;
+ const suggestion=detected[0]?.value||fallback||'';
  const old=form.querySelector('.ba-address-review');if(old)old.remove();
  const card=document.createElement('div');card.className='ba-address-review';
- card.innerHTML='<strong>Review scanned address</strong><p class="smalltext muted">Check spelling and house number before applying. Nothing is saved automatically.</p>'+
- '<label class="field">Proposed address<input id="ba-proposed-address" maxlength="250" value="'+escapeHtml(guess)+'" placeholder="Type or correct the address"></label>'+
- (text?'<details><summary>Recognized text (tap to inspect)</summary><pre>'+escapeHtml(text)+'</pre></details>':'<p class="smalltext muted">No text recognized. Enter the address manually.</p>')+
+ card.innerHTML='<strong>Review job location</strong><p class="smalltext muted">Choose the printed address, Google Plus Code or GPS pin. Verify the location in Maps before saving.</p>'+
+ (detected.length?'<label class="field">Location detected in photo<select data-ba-location-choice>'+
+ detected.map((choice,i)=>'<option value="'+i+'">'+escapeHtml(choice.label+': '+choice.value)+'</option>').join('')+
+ '<option value="manual">Enter a location manually</option></select></label>':'<p class="smalltext muted">No confident address found. Paste a Google Plus Code with nearby town, GPS coordinates, or type the street address.</p>')+
+ '<label class="field">Location (editable)<input id="ba-proposed-address" maxlength="250" value="'+escapeHtml(suggestion)+'" placeholder="225 N Mayoral St · 7XRX+RWP Big Cypress, Florida · 26.292092,-81.000171"></label>'+
+ (text?'<details><summary>Recognized text (tap to inspect)</summary><pre>'+escapeHtml(text)+'</pre></details>':'')+
  (error?'<p class="smalltext muted">OCR issue: '+escapeHtml(error)+'</p>':'')+
- oneButton('Use this address','apply-address');
+ '<div class="action-row">'+oneButton('Open in Google Maps','verify-location')+oneButton('Use this location','apply-address')+'</div>';
  form.querySelector('.ba-scan-tools')?.insertAdjacentElement('afterend',card);
- scanNotice(guess?'Possible address found — verify before using.':'Could not confidently identify a street; review the text or type manually.');
+ scanNotice(suggestion?'Location suggestion ready. Review it before applying.':'Type the address, short Plus Code + locality, or GPS pin.');
+}
+window.borelabOnAddressScan=function onAddressScan(text,error){
+ scanBusy=false;showLocationReview(text,error);
 };
 document.addEventListener('click',event=>{
  const button=event.target.closest('[data-field-upgrade]');if(!button)return;
@@ -124,12 +144,32 @@ document.addEventListener('click',event=>{
   if(!form||!input)return;scanContext={form,input};scanBusy=false;
   (what==='scan-camera'?camera:gallery).click();return;
  }
+
+ if(what==='enter-location'){
+  const form=button.closest('form'),input=form?.querySelector('input[name="address"]');
+  if(!form||!input)return;
+  scanContext={form,input};scanBusy=false;showLocationReview('',null);return;
+ }
+ if(what==='verify-location'){
+  const value=button.closest('.ba-address-review')?.querySelector('#ba-proposed-address')?.value.trim();
+  if(!value)return scanNotice('Enter a location first.');
+  if(window.BoreLabLocations?.locationKind(value)==='plus'&&!window.BoreLabLocations.isUsablePlusCode(value)){
+   scanNotice('A short Plus Code needs a nearby city or region, e.g. 7XRX+RWP Big Cypress, Florida.');return;
+  }
+  api()?.openMapUrl(api()?.mapsPinUrl({address:value}));return;
+ }
  if(what==='apply-address'){
   const proposed=button.closest('.ba-address-review')?.querySelector('#ba-proposed-address')?.value.trim()||'';
   if(!scanContext?.input?.isConnected||!proposed)return;
   if(proposed!==scanContext.input.value){
    scanContext.input.value=proposed.slice(0,250);
-   for(const id of ['shotLat','shotLon']){const field=scanContext.form.querySelector('#'+id);if(field)field.value='';}
+   const plus=window.BoreLabLocations?.locationKind(proposed)==='plus';
+   if(plus&&!window.BoreLabLocations.isUsablePlusCode(proposed)){
+    scanNotice('A short Plus Code needs a nearby town or region. Add “Big Cypress, Florida”, for example.');return;
+   }
+   const gps=window.BoreLabLocations?.parseCoords(proposed);
+   const lat=scanContext.form.querySelector('#shotLat'),lon=scanContext.form.querySelector('#shotLon');
+   if(lat&&lon){lat.value=gps?.lat||'';lon.value=gps?.lon||'';}
    scanContext.input.dispatchEvent(new Event('input',{bubbles:true}));
   }
   button.closest('.ba-address-review')?.remove();scanNotice('Address applied to the form. Tap Save to store it.');return;
@@ -153,5 +193,13 @@ const main=document.querySelector('#main'),modal=document.querySelector('#modalR
 if(main)new MutationObserver(installPlanner).observe(main,{childList:true});
 if(modal)new MutationObserver(installScanButtons).observe(modal,{childList:true,subtree:true});
 installPlanner();installScanButtons();
+
+document.addEventListener('change',event=>{
+ if(!event.target.matches('[data-ba-location-choice]'))return;
+ const card=event.target.closest('.ba-address-review');
+ const entry=scanContext?.options?.[Number(event.target.value)];
+ const input=card?.querySelector('#ba-proposed-address');
+ if(input)input.value=entry?.value||'';
+});
 window.BoreLabFieldUpgrades={candidateAddress,longestPlan};
 })();
