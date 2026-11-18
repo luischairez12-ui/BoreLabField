@@ -8,6 +8,7 @@ const fmt=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:1});
 const oneButton=(text,action,attrs)=>'<button type="button" class="btn micro ghost" data-field-upgrade="'+action+'" '+(attrs||'')+'>'+escapeHtml(text)+'</button>';
 const styles=document.createElement('style');
 styles.textContent='.ba-multi-route{margin-top:20px}.ba-multi-route .ba-longest-row{display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--line);padding:12px 0}.ba-longest-row:last-child{border:0}.ba-longest-row .ba-number{background:var(--accent);color:#151515;border-radius:50%;display:grid;place-items:center;width:31px;height:31px;font-weight:850;flex-shrink:0}.ba-longest-row .ba-info{min-width:0;flex:1}.ba-longest-row .ba-info strong{display:block}.ba-longest-row small{font-size:11px;color:var(--muted);display:block;overflow-wrap:anywhere}.ba-longest-row .ba-buttons{display:flex;flex-direction:column;gap:5px}.ba-scan-tools{display:flex;gap:8px;flex-wrap:wrap;margin:7px 0 12px}.ba-address-review{background:var(--surface2);border:1px solid var(--line);padding:12px;border-radius:12px;margin:10px 0}.ba-address-review pre{max-height:180px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-size:11px}.ba-address-review label{display:block;margin:9px 0}.ba-address-review input{width:100%;min-width:0}.ba-scan-status{font-size:12px;color:var(--muted);margin-top:5px}.ba-multi-route select{max-width:100%}';
+styles.textContent += '.ba-address-input-row{display:flex;align-items:stretch;gap:7px;margin-top:5px}.ba-address-input-row input[name="address"]{width:100%;min-width:0;flex:1;margin-top:0}.ba-address-input-row .ba-address-camera{min-width:48px;font-size:19px;flex-shrink:0;border:1px solid var(--line);border-radius:12px}.ba-address-scan-hint{margin-top:4px;line-height:1.4;font-size:12px;color:var(--muted)}.ba-scan-tools{margin:7px 0 10px}.ba-address-review .action-row{display:flex;flex-wrap:wrap;gap:7px}.ba-address-review .action-row button{min-width:max-content}';
 document.head.appendChild(styles);
 function longestPlan(){
  const state=api().state(),jobs=(state.jobs||[]).filter(j=>!j.archived);
@@ -48,11 +49,28 @@ function installScanButtons(){
  if(!form||form.querySelector('.ba-scan-tools'))return;
  const address=form.querySelector('input[name="address"]');
  if(!address)return;
- const buttons=document.createElement('div');buttons.className='ba-scan-tools';
- buttons.innerHTML=oneButton('📷 Scan folder / paper','scan-camera')+oneButton('▣ Choose address photo','scan-gallery')+oneButton('⌖ Plus Code / GPS','enter-location');
- buttons.title='For better OCR, photograph the printed address box or handwritten folder tab close-up and in good light.';
  const label=address.closest('label');
- if(label)label.insertAdjacentElement('afterend',buttons);else form.insertBefore(buttons,form.firstChild);
+ if(!label)return;
+ // Put the camera beside the address input, not in the full shot-sheet importer.
+ const inputRow=document.createElement('span');
+ inputRow.className='ba-address-input-row';
+ address.replaceWith(inputRow);
+ inputRow.append(address);
+ const shutter=document.createElement('button');
+ shutter.type='button';shutter.className='btn micro ghost ba-address-camera';
+ shutter.dataset.fieldUpgrade='scan-camera';
+ shutter.setAttribute('aria-label','Scan address from paperwork');
+ shutter.setAttribute('title','Read the address from a photo');
+ shutter.textContent='📷';
+ inputRow.append(shutter);
+ const buttons=document.createElement('div');buttons.className='ba-scan-tools';
+ buttons.innerHTML=oneButton('Choose address photo','scan-gallery')+oneButton('Plus Code / GPS','enter-location');
+ buttons.title='Scan only the jobsite address. Bore lengths and conduit quantities are ignored.';
+ label.insertAdjacentElement('afterend',buttons);
+ const hint=document.createElement('p');
+ hint.className='ba-address-scan-hint';
+ hint.textContent='Tap the camera to read an address from your paperwork. Confirm it before filling this field; no shot is created.';
+ buttons.insertAdjacentElement('afterend',hint);
 }
 const camera=document.createElement('input');camera.type='file';camera.accept='image/*';camera.setAttribute('capture','environment');camera.hidden=true;camera.id='borelabAddressCamera';
 const gallery=document.createElement('input');gallery.type='file';gallery.accept='image/*';gallery.hidden=true;gallery.id='borelabAddressGallery';
@@ -73,6 +91,12 @@ function candidateAddress(raw){
    if(!combined&&/^[A-Za-z][A-Za-z .'-]{2,55},?\s+(?:[A-Z]{2}|Florida)\s*\d{5}(?:-\d{4})?$/i.test(after))address+=', '+after;
    return address.slice(0,250);
   }
+ }
+ // Printed utility forms may say "265 S LINDERO" without a street suffix.
+ const bare=/\b(\d{1,6}\s+[NSEW]\.?\s+[A-Za-z][A-Za-z'-]{2,})\b/i;
+ for(let i=0;i<lines.length;i++){
+  const m=lines.slice(i,i+3).join(' ').match(bare);
+  if(m)return m[1].replace(/\s+/g,' ').trim().slice(0,250);
  }
  const code=String(raw||'').match(/\b([23456789CFGHJMPQRVWX]{2,8})\s*\+\s*([23456789CFGHJMPQRVWX]{2,3})\b/i);
  if(code)return (code[1]+'+'+code[2]).toUpperCase();
@@ -134,7 +158,7 @@ function showLocationReview(raw,error,enhanced=''){
  const gps=detected.filter(x=>x.kind==='coords');
  const old=form.querySelector('.ba-address-review');if(old)old.remove();
  const card=document.createElement('div');card.className='ba-address-review';
- card.innerHTML='<strong>Review scanned paperwork</strong><p class="smalltext muted">Choose a detected address or Plus Code, then check it against the original document. Nothing is saved automatically.</p>'+
+ card.innerHTML='<strong>Review address from paper</strong><p class="smalltext muted">Only the address matters here. Check the house number and street name against the photo. Bore lengths, conduit quantities, and work orders are ignored. Nothing is saved automatically.</p>'+
  (detected.length?'<label class="field">Detected locations<select data-ba-location-choice>'+
  detected.map((c,i)=>'<option value="'+i+'">'+escapeHtml(c.label+': '+c.value)+'</option>').join('')+
  '<option value="manual">Type location manually</option></select></label>':
@@ -146,7 +170,7 @@ function showLocationReview(raw,error,enhanced=''){
  (contrast&&contrast!==original?'<details><summary>High-contrast OCR text — alternate reading</summary><pre>'+escapeHtml(contrast)+'</pre></details>':'')+
  (!sources.length?'<p class="smalltext muted">No text was recognized. For handwritten folder tabs, take a close-up photo with the full label centered, good light and no shadows.</p>':'')+
  (error?'<p class="smalltext muted">Scanner note: '+escapeHtml(error)+'</p>':'')+
- '<div class="action-row">'+oneButton('Check in Maps','verify-location')+oneButton('Use reviewed location','apply-address')+'</div>';
+ '<div class="action-row">'+oneButton('Check in Maps','verify-location')+oneButton('Use Address','apply-address')+'</div>';
  form.querySelector('.ba-scan-tools')?.insertAdjacentElement('afterend',card);
  scanNotice(suggestion?'Review the extracted location before applying.':'Enter the address manually or a Plus Code + nearby town.');
 }
@@ -192,7 +216,7 @@ document.addEventListener('click',event=>{
   if(lat&&lon){lat.value=gps?.lat||'';lon.value=gps?.lon||'';}
   scanContext.input.dispatchEvent(new Event('input',{bubbles:true}));
   review.remove();
-  scanNotice('Location applied to form. Tap Save to keep it. GPS pin is '+(gps?'included.':'not confirmed yet.'));
+  scanNotice('Address filled in. Finish the bore form and tap Save Bore to keep it.'+(gps?' Confirmed GPS copied too.':''));
   return;
  }
  if(what==='view-shot'||what==='navigate'){
