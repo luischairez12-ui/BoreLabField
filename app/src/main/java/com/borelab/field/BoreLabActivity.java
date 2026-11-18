@@ -338,15 +338,34 @@ public class BoreLabActivity extends Activity {
         recognizePaperwork(dataUrl, true);
     }
 
+    /** Additional high-contrast pass can recover handwriting and labels on skewed paperwork.
+     * Both OCR candidates are provided for review; neither is saved as field data. */
+    private Bitmap highContrastPaperwork(Bitmap source) {
+        final int width = source.getWidth(), height = source.getHeight();
+        Bitmap enhanced = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        int[] row = new int[width];
+        for (int y = 0; y < height; y++) {
+            source.getPixels(row, 0, width, 0, y, width, 1);
+            for (int x = 0; x < width; x++) {
+                int pixel = row[x];
+                int gray = (Color.red(pixel) * 299 + Color.green(pixel) * 587 +
+                    Color.blue(pixel) * 114) / 1000;
+                int contrast = Math.max(0, Math.min(255, (int) ((gray - 128) * 1.75 + 144)));
+                row[x] = Color.rgb(contrast, contrast, contrast);
+            }
+            enhanced.setPixels(row, 0, width, 0, y, width, 1);
+        }
+        return enhanced;
+    }
+
     private void recognizePaperwork(String dataUrl, boolean shotSheet) {
         new Thread(() -> {
             Bitmap bitmap = null;
             try {
-                if (dataUrl == null || !dataUrl.startsWith("data:image/") || !dataUrl.contains(",")) {
+                if (dataUrl == null || !dataUrl.startsWith("data:image/") || !dataUrl.contains(","))
                     throw new IllegalArgumentException("Select a readable photo.");
-                }
                 String encoded = dataUrl.substring(dataUrl.indexOf(',') + 1);
-                if (encoded.length() > 12000000)
+                if (encoded.length() > 16000000)
                     throw new IllegalArgumentException("Picture exceeds the scan limit.");
                 byte[] bytes = Base64.decode(encoded, Base64.DEFAULT);
                 BitmapFactory.Options options = new BitmapFactory.Options();
@@ -355,40 +374,77 @@ public class BoreLabActivity extends Activity {
                 if (options.outWidth <= 0 || options.outHeight <= 0)
                     throw new IllegalArgumentException("Picture could not be decoded.");
                 int sample = 1;
-                while (options.outWidth / sample > 2000 || options.outHeight / sample > 2000) sample *= 2;
+                while (options.outWidth / sample > 2300 || options.outHeight / sample > 2300)
+                    sample *= 2;
                 options.inJustDecodeBounds = false;
                 options.inSampleSize = sample;
                 bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
                 if (bitmap == null) throw new IllegalArgumentException("Cannot open the image.");
                 final Bitmap decoded = bitmap;
-                TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+                Bitmap contrasted;
+                try { contrasted = highContrastPaperwork(decoded); }
+                catch (OutOfMemoryError memoryError) { contrasted = null; }
+                final Bitmap improved = contrasted;
+                final TextRecognizer recognizer =
+                    TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
                 recognizer.process(InputImage.fromBitmap(decoded, 0))
-                    .addOnSuccessListener(result -> {
-                        sendPaperworkScanResult(result.getText(), null, shotSheet);
-                        decoded.recycle();
-                        recognizer.close();
+                    .addOnSuccessListener(original -> {
+                        final String raw = original.getText();
+                        if (improved == null) {
+                            sendPaperworkScanResult(raw, null, null, shotSheet);
+                            decoded.recycle();
+                            recognizer.close();
+                            return;
+                        }
+                        recognizer.process(InputImage.fromBitmap(improved, 0))
+                            .addOnSuccessListener(contrast -> {
+                                sendPaperworkScanResult(raw, contrast.getText(), null, shotSheet);
+                                decoded.recycle(); improved.recycle(); recognizer.close();
+                            })
+                            .addOnFailureListener(error -> {
+                                sendPaperworkScanResult(raw, null,
+                                    "High-contrast scan unavailable; original scan retained.", shotSheet);
+                                decoded.recycle(); improved.recycle(); recognizer.close();
+                            });
                     })
                     .addOnFailureListener(error -> {
-                        sendPaperworkScanResult("", error.getMessage(), shotSheet);
-                        decoded.recycle();
-                        recognizer.close();
+                        if (improved == null) {
+                            sendPaperworkScanResult("", null, error.getMessage(), shotSheet);
+                            decoded.recycle(); recognizer.close();
+                            return;
+                        }
+                        recognizer.process(InputImage.fromBitmap(improved, 0))
+                            .addOnSuccessListener(contrast -> {
+                                sendPaperworkScanResult("", contrast.getText(), null, shotSheet);
+                                decoded.recycle(); improved.recycle(); recognizer.close();
+                            })
+                            .addOnFailureListener(secondError -> {
+                                sendPaperworkScanResult("", null,
+                                    "OCR could not read this photo. Try a closer, brighter shot.", shotSheet);
+                                decoded.recycle(); improved.recycle(); recognizer.close();
+                            });
                     });
             } catch (Exception e) {
                 if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
-                sendPaperworkScanResult("", e.getMessage(), shotSheet);
+                sendPaperworkScanResult("", null, e.getMessage(), shotSheet);
+            } catch (OutOfMemoryError e) {
+                if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                sendPaperworkScanResult("", null, "Photo is too large for the device. Crop the label and retry.", shotSheet);
             }
         }, shotSheet ? "BoreLab-ShotSheet-OCR" : "BoreLab-Address-OCR").start();
     }
 
-    private void sendPaperworkScanResult(String text, String error, boolean shotSheet) {
+    private void sendPaperworkScanResult(String text, String enhanced, String error,
+                                          boolean shotSheet) {
         String escaped = JSONObject.quote(text == null ? "" : text);
+        String escapedEnhanced = JSONObject.quote(enhanced == null ? "" : enhanced);
         String escapedError = error == null ? "null" : JSONObject.quote(error);
         String callback = shotSheet ? "window.borelabOnShotSheetScan" : "window.borelabOnAddressScan";
         runOnUiThread(() -> {
-            if (webView != null) {
+            if (webView != null)
                 webView.evaluateJavascript(
-                    callback + " && " + callback + "(" + escaped + "," + escapedError + ");", null);
-            }
+                    callback + " && " + callback + "(" +
+                    escaped + "," + escapedError + "," + escapedEnhanced + ");", null);
         });
     }
 
