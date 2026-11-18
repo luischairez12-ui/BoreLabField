@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.10.0 (debug/test build)
+**Current version:** v0.10.1 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.10.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.10.1-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,18 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.10.1 — Visual Polish Based on Real Phone Screenshots
+
+- Tightened the Android Home page against 350–400 CSS px phone layouts so the **job progress, six favorite action tiles, and suggested next step** take far less vertical space. The work remains readable and accessible.
+- Added a subtle, **fully offline HDD rig SVG illustration** to the morning/afternoon/evening home header. No network images, external icon fonts, or loading delays.
+- Replaced mismatched Unicode action glyphs with a consistent set of clean **inline SVG line icons** for all field tiles, customizable home shortcut options and main navigation.
+- Changed the three-stat job card into a compact progress and completion summary, with a **View bores** shortcut. Demo data stays explicitly labeled but no longer takes up a giant warning panel.
+- Restyled contextual suggestions, tile padding, top navigation, section headings and bottom navigation for the professional white/teal/orange concept.
+- **Fixed the exact stray `nav>` text** caused by a leftover HTML fragment after `</nav>`. Corrected the footer's outdated v0.9.4 label and removed lengthy debug text from Home.
+- Includes narrow-device width rules, high contrast for daytime, dark theme refinements, **reduced-motion support**, and maintains the optional Field Mode and Large Text size overrides.
+- Existing records, backups, Simple/Advanced guided bore, MixLab, manual links/search, equipment, crews, reports and all other field workflows remain unchanged.
+- Added `tests/ux-visual-polish.test.cjs` to the existing CI checks. APK build tests cannot replace real-device UI review.
 
 ## New in v0.10.0 — Field-Friendly Redesign
 
