@@ -444,6 +444,21 @@ html[data-large-text="on"] .ux-tile small,html[data-large-text="on"] .ux-next p{
 .ux-job-edit-form{margin-top:12px}
 @media(max-width:360px){.ux-workspace-heading .btn{font-size:11px;padding:8px}.ux-top-right{gap:4px}}
 
+
+.ux-draft-status{font-size:11px;color:var(--mint);font-weight:650;flex:1 1 100%;text-align:left;margin-top:6px}
+.ux-number-unit{color:var(--muted);font-size:13px;font-weight:700}
+.ux-number-line{display:flex;align-items:center;gap:10px}
+.ux-number-line>input{flex:1;min-width:0}
+.ux-search-page label.field input{min-height:52px;font-size:16px}
+.ux-search-group{margin:20px 0}.ux-search-group>h2{font-size:16px;margin-bottom:9px}
+.ux-search-group>h2 small{color:var(--muted);font-size:11px;font-weight:500}
+.ux-search-result{width:100%;border:1px solid var(--line);border-radius:11px;background:var(--surface);padding:12px;display:grid;
+ grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;text-align:left;gap:3px;color:var(--text);margin:6px 0;min-height:60px}
+.ux-search-result strong{font-size:14px;grid-column:1}
+.ux-search-result span{font-size:11px;color:var(--muted);grid-column:1}
+.ux-search-result b{grid-column:2;grid-row:1/3;align-self:center;font-size:22px;color:var(--accent)}
+.ux-search-result:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -801,7 +816,7 @@ function openManualSource(machineId){
  else window.location.assign(machine.source);
 }
 
-function render(){const navButton=$('#topNavButton');if(navButton){const home=page==='home';navButton.textContent=home?'☰':'‹';navButton.dataset.action=home?'open-tools':'nav-back';navButton.setAttribute('aria-label',home?'All field tools':'Back to previous screen');}const activeTab=['home','planner','settings'].includes(page)?page:'tools';document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===activeTab));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,job:renderJobWorkspace,search:renderSearch,planner:renderPlanner,tools:renderTools,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();}
+function render(){const navButton=$('#topNavButton');if(navButton){const home=page==='home';navButton.textContent=home?'☰':'‹';navButton.dataset.action=home?'open-tools':'nav-back';navButton.setAttribute('aria-label',home?'All field tools':'Back to previous screen');}const activeTab=['home','planner','settings'].includes(page)?page:'tools';document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===activeTab));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,job:renderJobWorkspace,search:renderSearch,planner:renderPlanner,tools:renderTools,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();enhanceNumericInputs($('#main'));if(page==='mud')restoreFormDraft($('#main form[data-form="mud-batch"]'));}
 function section(title,right=''){return `<div class="section-title"><h2><span class="accentbar"></span>${esc(title)}</h2>${right}</div>`}
 function quick(label,icon,sub,action){return `<button class="quick" data-action="${action}"><div class="qicon">${icon}</div><strong>${esc(label)}</strong><small>${esc(sub)}</small></button>`}
 function shotRow(s){return `<div class="shot"><div class="shot-icon">⌁</div><div><h3>${esc(s.name)} <span class="status ${s.status==='complete'?'complete':s.status==='progress'?'progress':'planned'}">${s.status==='complete'?'Complete':s.status==='progress'?'Drilling':'Pending'}</span></h3><small>${feet(s)} ft bore · ${pipeNeed(s)} ft with allowance<br>${esc(s.address||coordsText(s)||'No location set')}</small></div><div class="shot-actions"><span class="foot">${feet(s)}′</span><button data-action="shot-detail" data-id="${s.id}" aria-label="Open ${esc(s.name)}">›</button></div></div>`}
@@ -1851,8 +1866,64 @@ ${equipmentSettings()}</details><details class="ux-settings-group" data-ux-secti
 <option value="60" ${state.defaultLunchMinutes===60?'selected':''}>1 hour</option>
 <option value="90" ${state.defaultLunchMinutes===90?'selected':''}>1 hour 30 minutes</option>
 </select></label></div></details><details class="ux-settings-group" data-ux-section="backup" ${openSettingsSections.has("backup")?'open':''}><summary>Data & Backup</summary><div class="card spaced"><div class="settings-item"><div><strong class="smalltext">Photo records</strong><p class="tiny muted">${photos.length} stored locally</p></div><button class="btn micro" data-page="photos">Open</button></div><div class="settings-item"><div><strong class="smalltext">Backup everything</strong><p class="tiny muted">Download JSON with shots, hours and photos</p></div><button class="btn micro" data-action="export-backup">Export</button></div><div class="settings-item"><div><strong class="smalltext">Restore backup</strong><p class="tiny muted">Import a BoreLab backup file</p></div><button class="btn micro" data-action="import-backup">Import</button></div><div class="settings-item"><div><strong class="smalltext">Daily PDF report</strong><p class="tiny muted">Create a printable HTML report, then Save as PDF</p></div><button class="btn micro" data-action="export-report">Create</button></div></div></details><details class="ux-settings-group" data-ux-section="help" ${openSettingsSections.has("help")?'open':''}><summary>Help & Tutorial</summary><div class="card spaced"><h3>New to BoreLab?</h3><p class="smalltext muted spaced">Learn to add a bore, record work and find manuals in a short walkthrough.</p><button class="btn primary" data-action="guided-tour">Start tutorial</button></div></details><div class="card spaced"><h3 style="color:var(--danger)">Demo & Reset · Careful</h3><p class="smalltext muted spaced">Back up any important records before clearing data. Use the sample job while exploring. Clearing demo data also removes saved photos and timesheets on this device.</p><div class="action-row"><button class="btn ghost" data-action="reset-demo">Load Demo</button><button class="btn danger" data-action="clear-demo">Clear & Start Fresh</button></div></div><div class="note spaced">All photos and job information stay in this browser until you export them or clear local data. The app currently has no cloud syncing or automatic backup.</div>${footnote()}</div>`}
-function showModal(body){modal=body;$('#modalRoot').innerHTML=`<div class="modal-backdrop" data-action="backdrop"><div class="modal" role="dialog" aria-modal="true" aria-label="Edit BoreLab details">${body}</div></div>`;document.body.style.overflow='hidden'}
-function closeModal(){activeManualSearch=null;modal='';$('#modalRoot').innerHTML='';document.body.style.overflow=''}
+
+const DRAFTS_KEY='borelab-field-form-drafts-v1';
+const GUIDED_DRAFT_KEY='borelab-field-guided-bore-v1';
+const DRAFT_FORMS=new Set(['job-details','shot','time','mud-batch']);
+let pendingDraftForm=null,draftSaveTimer=null;
+function draftStore(){try{const data=JSON.parse(localStorage.getItem(DRAFTS_KEY)||'{}');return data&&typeof data==='object'&&!Array.isArray(data)?data:{}}catch{return {}}}
+function draftKey(form){return form&&DRAFT_FORMS.has(form.dataset.form)?form.dataset.form+':'+(form.dataset.id||'new'):''}
+function draftStatus(form,message){
+ if(!form||!form.isConnected)return;
+ let status=form.querySelector('.ux-draft-status');
+ if(!status){status=document.createElement('span');status.className='ux-draft-status';status.setAttribute('role','status');
+  (form.querySelector('.modal-footer')||form).appendChild(status);}
+ status.textContent=message;
+}
+function snapshotDraft(form){
+ return [...form.elements].filter(e=>e.name&&e.type!=='file'&&!['submit','button'].includes(e.type)).slice(0,100)
+ .map(e=>({name:e.name,type:e.type,value:String(e.value||'').slice(0,5000),checked:!!e.checked}));
+}
+function saveDraftForForm(form){
+ const key=draftKey(form);if(!key)return;
+ const store=draftStore();store[key]={fields:snapshotDraft(form),at:Date.now()};
+ try{localStorage.setItem(DRAFTS_KEY,JSON.stringify(store));draftStatus(form,'✓ Draft saved on this device');}
+ catch{draftStatus(form,'Draft could not be saved. Check storage.')}
+}
+function scheduleFormDraft(form){
+ if(!draftKey(form))return;
+ pendingDraftForm=form;draftStatus(form,'Saving draft…');
+ clearTimeout(draftSaveTimer);draftSaveTimer=setTimeout(flushPendingDraft,250);
+}
+function flushPendingDraft(){clearTimeout(draftSaveTimer);draftSaveTimer=null;const f=pendingDraftForm;pendingDraftForm=null;if(f)saveDraftForForm(f);}
+function clearFormDraft(form){
+ const key=draftKey(form);if(!key)return;
+ if(pendingDraftForm===form){pendingDraftForm=null;clearTimeout(draftSaveTimer);draftSaveTimer=null}
+ const data=draftStore();delete data[key];try{localStorage.setItem(DRAFTS_KEY,JSON.stringify(data))}catch{}
+}
+function restoreFormDraft(form){
+ const key=draftKey(form);if(!key)return;
+ const saved=draftStore()[key];if(!saved||!Array.isArray(saved.fields))return;
+ const fields=[...form.elements].filter(e=>e.name&&e.type!=='file'&&!['submit','button'].includes(e.type));
+ for(let i=0;i<Math.min(fields.length,saved.fields.length);i++){
+  const el=fields[i],old=saved.fields[i];if(el.name!==old.name||el.type!==old.type)continue;
+  if(el.type==='checkbox'||el.type==='radio')el.checked=!!old.checked;
+  else if(!el.readOnly&&!el.disabled)el.value=old.value;
+ }
+ draftStatus(form,'↶ Restored your unfinished draft');
+}
+function persistGuidedDraft(){if(!guidedDraft)return;try{localStorage.setItem(GUIDED_DRAFT_KEY,JSON.stringify({...guidedDraft,step:guidedStep,at:Date.now()}))}catch{}}
+function clearGuidedDraft(){guidedDraft=null;try{localStorage.removeItem(GUIDED_DRAFT_KEY)}catch{}}
+function enhanceNumericInputs(root){
+ if(!root)return;
+ root.querySelectorAll('input[type="number"]').forEach(input=>{
+  if(!input.hasAttribute('inputmode'))input.setAttribute('inputmode',input.step==='1'?'numeric':'decimal');
+  if(!input.hasAttribute('enterkeyhint'))input.setAttribute('enterkeyhint','done');
+ });
+}
+
+function showModal(body){flushPendingDraft();modal=body;$('#modalRoot').innerHTML=`<div class="modal-backdrop" data-action="backdrop"><div class="modal" role="dialog" aria-modal="true" aria-label="Edit BoreLab details">${body}</div></div>`;document.body.style.overflow='hidden';const form=$('#modalRoot form[data-form]');restoreFormDraft(form);enhanceNumericInputs($('#modalRoot'));}
+function closeModal(){flushPendingDraft();activeManualSearch=null;modal='';$('#modalRoot').innerHTML='';document.body.style.overflow=''}
 const modalHead=t=>`<div class="modal-head"><h2>${esc(t)}</h2><button type="button" class="icon-btn" data-action="close-modal" aria-label="Close">✕</button></div>`;
 function reelTotal(location){return state.reels.filter(r=>!r.archived&&(!location||r.location===location)).reduce((a,r)=>a+Number(r.remaining||0),0)}
 function reelMode(){return state.reels.length>0}
