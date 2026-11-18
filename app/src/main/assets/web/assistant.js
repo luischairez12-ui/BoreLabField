@@ -27,7 +27,7 @@ function reply(title,lines,actions){lastAnswer={title,lines,actions:actions||''}
 function render(){
  if(!opened)return;
  const s=api().state(),p=pipes(),m=mud(),h=hours(),tracked=m.products.filter(x=>x.stockTracked===true);
- const choices=[['Do I have enough pipe?','◈ Pipe check'],['What needs attention?','⚠ Needs attention'],["What's on the agenda?",'▦ Agenda'],['Quick glance at mud inventory','◉ Mud inventory'],["What's the closest shot to me?",'⌖ Closest shot'],['End with the shortest shot','⌁ Shortest last'],['End with the shot closest to shop','⌂ Finish near shop'],['Show me the next job site','↗ Next job']];
+ const choices=[['Do I have enough pipe?','◈ Pipe check'],['What needs attention?','⚠ Needs attention'],["What's on the agenda?",'▦ Agenda'],['Quick glance at mud inventory','◉ Mud inventory'],["What's the closest shot to me?",'⌖ Closest shot'],['End with the shortest shot','⌁ Shortest last'],['End with the shot closest to shop','⌂ Finish near shop'],['Show me the next job site','↗ Next job'],['Start from a job, longest to shortest','↘ Start job · longest first']];
  root.innerHTML='<div class="ba-wrap">'+btn('‹ Back','back')+'<small style="margin-left:12px">BORELAB FIELD / ASSISTANT</small><h1>Morning Briefing</h1><p class="ba-muted">Live answers from saved field records. Job and inventory commands work offline.</p>'+
  '<div class="ba-statgrid"><div class="ba-card ba-stat"><small>'+(h.me?'My':'Crew')+' hours today</small><strong>'+hm(h.today)+'</strong><small>'+h.on+' open shifts</small></div><div class="ba-card ba-stat"><small>'+(h.me?'My':'Crew')+' weekly hours</small><strong>'+hm(h.week)+'</strong><small>Monday to today</small></div><div class="ba-card ba-stat"><small>Unfinished shots</small><strong>'+p.list.length+'</strong><small>'+fmt(p.need)+' ft incl. allowances</small></div><div class="ba-card ba-stat"><small>Pipe on truck</small><strong>'+fmt(p.have)+' ft</strong><small>'+(p.left<0?fmt(-p.left)+' ft short':fmt(p.left)+' ft estimated surplus')+'</small></div></div>'+
  '<div class="ba-card"><label for="ba-me">Whose hours?</label><select id="ba-me"><option value="">Entire crew (person-hours)</option>'+(s.roster||[]).map(x=>'<option value="'+html(x.id)+'" '+(s.askMyCrewId===x.id?'selected':'')+'>'+html(x.name)+'</option>').join('')+'</select><p class="ba-muted">Open shifts show elapsed time before unpaid lunch is recorded.</p></div>'+
@@ -57,6 +57,19 @@ async function ask(input){
  if(/(end|finish|last)/.test(q)&&/(shop|yard)/.test(q)){
   s.routeMode='toward';api().save();const plan=api().orderedShots(),end=plan.usable?plan.order.at(-1):null;
   return reply('Finish near shop',[end?'Suggested final shot: '+end.name:'Cannot confirm nearest final shot until shop and shot GPS are saved.',plan.message],btn('Open Planner','planner'));
+ }
+ if(/longest/.test(q)&&/(shortest|first|start|job)/.test(q)){
+  const options=jobs();
+  const matched=options.filter(j=>j.jobName&&q.includes(j.jobName.toLowerCase()));
+  if(matched.length===1){s.longestStartJobId=matched[0].id;api().save();}
+  else if(!options.some(j=>j.id===s.longestStartJobId)){s.longestStartJobId=s.activeJobId;api().save();}
+  const start=options.find(j=>j.id===s.longestStartJobId)||options.find(j=>j.id===s.activeJobId);
+  return reply('Start job · longest to shortest',[
+   'First job: '+(start?.jobName||'Not selected')+'.',
+   'Shots at that job are listed longest to shortest. Other saved jobs follow, prioritized by their longest unfinished bore.',
+   matched.length===1?'Starting job selected from your command.':'You can change the starting job from the dropdown in Shot Planner.',
+   'This is a work-order suggestion, not verified travel routing or utility clearance.'
+  ],btn('Open multi-job plan','planner'));
  }
  if(/(next job|next site|next location)/.test(q)){
   const j=jobs().find(x=>x.id===s.askNextJobId);if(!j)return reply('Next job not selected',['Choose a next job site from the selector above.']);
