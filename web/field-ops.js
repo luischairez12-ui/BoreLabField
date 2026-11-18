@@ -85,7 +85,7 @@ function renderTimeline(shotId){
  const groups=stages.map(stage=>{
   const matched=records.filter(p=>getStage(p)===stage.id);
   return'<div class="bl-photo-stage"><div class="between"><div><strong>'+stage.title+'</strong><small>'+stage.desc+' · '+matched.length+' photo(s)</small></div>'+
-   '<button class="btn micro ghost" type="button" data-field-photo="'+stage.id+'" data-id="'+esc(shotId)+'">+ Photo</button></div>'+
+   '<span class="bl-stage-buttons"><button class="btn micro ghost" type="button" data-field-photo="'+stage.id+'" data-id="'+esc(shotId)+'">+ Camera</button><button class="btn micro ghost" type="button" data-field-photo-gallery="'+stage.id+'" data-id="'+esc(shotId)+'">Gallery</button></span></div>'+
    (matched.length?'<div class="bl-photo-strip">'+matched.map(p=>'<button class="bl-photo-preview" data-action="photo-detail" data-id="'+esc(p.id)+'">'+
     '<img src="'+p.dataUrl+'" loading="lazy" alt="'+esc(stage.title)+' shot photo"><small>'+esc(date(p.addedAt))+'</small></button>').join('')+'</div>':
     '<p class="tiny muted">No '+stage.title.toLowerCase()+' photos recorded.</p>')+'</div>';
@@ -301,6 +301,20 @@ document.addEventListener('click',e=>{
  const undoButton=e.target.closest('[data-field-undo]');if(undoButton){undo(undoButton.dataset.fieldUndo);return}
  const stageButton=e.target.closest('[data-field-photo]');
  if(stageButton){api()?.photoChoose?.('camera',stageButton.dataset.id,stageButton.dataset.fieldPhoto);return}
+ const gallery=e.target.closest('[data-field-photo-gallery]');
+ if(gallery){api()?.photoChoose?.('gallery',gallery.dataset.id,gallery.dataset.fieldPhotoGallery);return}
+});
+document.addEventListener('change',async event=>{
+ const selector=event.target.closest('[data-photo-stage-update]');
+ if(!selector)return;
+ const b=api(),photo=b?.photos?.().find(p=>p.id===selector.dataset.photoStageUpdate);
+ if(!photo)return;
+ const stage=selector.value;
+ if(!stages.some(s=>s.id===stage)){b.notify('Choose a valid photo stage.');return}
+ try{
+  await b.photoDB('put',{...photo,stage});await b.refreshPhotos();
+  b.closeModal();b.render();b.notify('Photo categorized as '+stage+'.');
+ }catch(err){b.notify('Could not update photo: '+err.message)}
 });
 document.addEventListener('change',e=>{
  const box=e.target.closest('[data-ready]');
@@ -313,7 +327,7 @@ document.addEventListener('change',e=>{
  if(notes){const data=readiness(notes.dataset.readyNotes);data.notes=notes.value.trim().slice(0,1500);data.at=new Date().toISOString();cur().shotReadiness[notes.dataset.readyNotes]=data;api().save()}
 });
 const style=document.createElement('style');
-style.textContent='.bl-field-quick-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.bl-quick-form{display:grid;gap:13px}.bl-row-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.bl-photo-stage{padding:12px 0;border-bottom:1px solid var(--line)}.bl-photo-stage small{color:var(--muted);display:block;font-size:11px}.bl-photo-strip{display:flex;overflow-x:auto;gap:8px;margin-top:8px}.bl-photo-preview{min-width:116px;width:116px;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:5px;color:var(--text)}.bl-photo-preview img{height:84px;width:100%;object-fit:cover;border-radius:7px}.bl-photo-preview small{display:block;font-size:10px}.bl-ready-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}.bl-ready-row input{width:18px;height:18px}.bl-complete-scroll{max-height:46vh;overflow-y:auto}.bl-complete-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,2fr);gap:7px;align-items:end;padding:12px 0;border-bottom:1px solid var(--line)}.bl-complete-row select,.bl-complete-row input{width:100%;min-width:0}.bl-recovery-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.bl-recovery-row small{display:block;color:var(--muted);font-size:11px}.bl-day-review p{margin:6px 0}@media(max-width:560px){.bl-complete-row{grid-template-columns:1fr 1fr}.bl-complete-row strong{grid-column:1/-1}.bl-quick-form .bl-row-2{grid-template-columns:1fr}}';
+style.textContent='.bl-field-quick-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.bl-quick-form{display:grid;gap:13px}.bl-row-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.bl-photo-stage{padding:12px 0;border-bottom:1px solid var(--line)}.bl-photo-stage small{color:var(--muted);display:block;font-size:11px}.bl-stage-buttons{display:flex;gap:5px;flex-wrap:wrap}.bl-photo-strip{display:flex;overflow-x:auto;gap:8px;margin-top:8px}.bl-photo-preview{min-width:116px;width:116px;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:5px;color:var(--text)}.bl-photo-preview img{height:84px;width:100%;object-fit:cover;border-radius:7px}.bl-photo-preview small{display:block;font-size:10px}.bl-ready-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}.bl-ready-row input{width:18px;height:18px}.bl-complete-scroll{max-height:46vh;overflow-y:auto}.bl-complete-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,2fr);gap:7px;align-items:end;padding:12px 0;border-bottom:1px solid var(--line)}.bl-complete-row select,.bl-complete-row input{width:100%;min-width:0}.bl-recovery-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.bl-recovery-row small{display:block;color:var(--muted);font-size:11px}.bl-day-review p{margin:6px 0}@media(max-width:560px){.bl-complete-row{grid-template-columns:1fr 1fr}.bl-complete-row strong{grid-column:1/-1}.bl-quick-form .bl-row-2{grid-template-columns:1fr}}';
 document.head.appendChild(style);
 window.BoreLabFieldOps={quickBore,createQuickBore,renderTimeline,renderReadiness,renderQuickActions,warnBeforeStart,beginCompletion,completeBore,
  dayWarnings,renderDayReview,renderRecovery,openRecovery,journal,undo,captureShot,setShot,plans,rowsForCompletion,validateCompletion};
