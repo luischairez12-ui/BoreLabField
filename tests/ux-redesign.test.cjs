@@ -55,7 +55,9 @@ assert(wizStart>=0&&wizEnd>wizStart);
 let screen='',saved=0,closed=0,rerender=0;
 const wizardState={shots:[],demo:true};
 const wizardFactory=new Function('state','uid','esc','fmt','extra','kv','modalHead','showModal','save','closeModal','render','notify','resolveShotAfterSave',
- 'let guidedStep=1,guidedDraft=null;'+js.slice(wizStart,wizEnd)+
+ 'let guidedStep=1,guidedDraft=null;const GUIDED_DRAFT_KEY="borelab-field-guided-bore-v1";'+
+ 'const localStorage={getItem:()=>null,setItem(){},removeItem(){}};function persistGuidedDraft(){}function clearGuidedDraft(){guidedDraft=null;}'+
+ js.slice(wizStart,wizEnd)+
  'return {beginGuidedBore,saveGuidedBore,getDraft:()=>guidedDraft,showFirstRunTour};');
 const wizard=wizardFactory(wizardState,()=> 'saved-bore-1',String,n=>String(n),()=>10,(k,v)=>'<p>'+k+': '+v+'</p>',s=>s,v=>{screen=v},()=>saved++,()=>closed++,()=>rerender++,()=>{},()=>{});
 wizard.beginGuidedBore();
