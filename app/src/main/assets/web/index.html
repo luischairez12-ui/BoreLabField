@@ -346,7 +346,7 @@ html[data-theme="dark"] .ux-tile:nth-child(n) .ux-tile-icon{background:#263c4a;c
 .ux-banner-copy .eyebrow{font-size:9px;letter-spacing:1.15px;color:#ae5712}
 .ux-banner-copy h1{font-size:clamp(22px,5.8vw,29px);margin:6px 0 3px;color:#1c2d39;letter-spacing:-.7px;line-height:1.13}
 .ux-banner-copy p{color:#5d7180;font-size:11.5px;font-weight:550}
-.ux-rig-art{position:absolute;bottom:0;right:0;height:112px;width:min(70%,320px);opacity:.55;pointer-events:none}
+.ux-rig-art{position:absolute;bottom:0;right:0;height:112px;width:min(70%,320px);opacity:.88;pointer-events:none;object-fit:contain;object-position:right bottom}
 .ux-help-btn{position:absolute;z-index:2;right:11px;top:11px;border:1px solid #b6cbd7;background:#ffffffe8;color:#285266;
  border-radius:100%;width:32px;height:32px;font-size:18px;font-weight:800}
 .ux-job-card{gap:8px;padding:13px 14px;border-left-width:4px;border-radius:15px;box-shadow:0 3px 12px #1f415813}
@@ -617,7 +617,7 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · v0.12.1 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · v0.12.2 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
@@ -1542,52 +1542,9 @@ function uxIconSvg(id){
  return '<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>';
 }
 function uxRigArt(){
- // The greeting hero stays unchanged: replace only its rig illustration with a
- // small HDD field crew silhouette. Inline SVG works completely offline.
- return '<svg class="ux-rig-art" viewBox="0 0 320 140" aria-hidden="true" focusable="false">'+
-  '<defs><linearGradient id="boreCrewLand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d5e3e9"/><stop offset="1" stop-color="#a9c3cf"/></linearGradient></defs>'+
-  '<circle cx="237" cy="59" r="31" fill="#f0b56b" opacity=".29"/>'+
-  '<path d="M0 109Q45 93 93 107T196 105Q260 83 320 106V140H0z" fill="#d1e1e8" opacity=".56"/>'+
-  '<path d="M0 122Q38 114 83 124T182 119Q251 113 320 124V140H0z" fill="url(#boreCrewLand)" opacity=".82"/>'+
-  '<path d="M142 129q30-8 65-5t56-3q25-4 57 6v13H142z" fill="#7893a1" opacity=".40"/>'+
-  '<path d="M141 128q53-9 103-3t76 3" fill="none" stroke="#809caa" stroke-width="2" opacity=".65"/>'+
-  // Crew member 1: standing locator with radio and high-vis vest.
-  '<g fill="#617f90" stroke="#526e7e" stroke-linecap="round" stroke-linejoin="round">'+
-  '<path d="M177 66q-2-12 9-16 12 1 12 16v6h-21z"/>'+
-  '<path d="M176 60q10-12 24 1l1 3h-26z" fill="#748f9d"/>'+
-  '<rect x="177" y="67" width="20" height="9" rx="4"/>'+
-  '<path d="M171 79q7-5 14-6h11q10 4 11 11l-5 27h-31z"/>'+
-  '<path d="M177 88h23" stroke="#d7e6eb" stroke-width="3" fill="none"/>'+
-  '<path d="M184 74l-3 37M193 74l3 36" stroke="#c8dae2" stroke-width="2.2" fill="none"/>'+
-  '<path d="M174 110l-3 22h11l6-22M193 110l6 22h11l-5-22" stroke-width="3"/>'+
-  '<path d="M170 83l-9 16-2 10 7 2 11-15M202 81l10-14 9 4 4-6" stroke-width="8" fill="none"/>'+
-  '<rect x="215" y="59" width="8" height="11" rx="2" fill="#465f6d"/>'+
-  '<path d="M219 59v-6" fill="none" stroke-width="2"/>'+
-  '</g>'+
-  // Crew member 2: kneeling, checking a ground locator at the entry point.
-  '<g fill="#627f8e" stroke="#526e7e" stroke-linecap="round" stroke-linejoin="round">'+
-  '<path d="M224 101q-1-10 9-14 10 1 10 11l-4 6h-14z"/>'+
-  '<path d="M222 94q9-9 22-1l2 4h-25z" fill="#7994a1"/>'+
-  '<path d="M219 108q8-7 18-5l14 10-8 14-19-7-13 9-11-4 12-15z"/>'+
-  '<path d="M217 116l-8 16h17l9-11M240 119l13 12h18" stroke-width="8" fill="none"/>'+
-  '<path d="M230 106l-5 10" stroke="#d1e1e7" stroke-width="3"/>'+
-  '<path d="M245 112l10 8 3 8" fill="none" stroke-width="5"/>'+
-  '<path d="M257 127v-24" stroke="#4d6a78" stroke-width="3" fill="none"/>'+
-  '<rect x="251" y="98" width="12" height="8" rx="2" fill="#829caa"/>'+
-  '</g>'+
-  // Crew member 3: supervising with a field tablet.
-  '<g fill="#5c7888" stroke="#4b6676" stroke-linecap="round" stroke-linejoin="round">'+
-  '<path d="M279 66q-1-12 11-15 10 2 10 14l-3 8h-17z"/>'+
-  '<path d="M277 60q12-13 25 1l2 4h-28z" fill="#7793a0"/>'+
-  '<path d="M278 76q8-6 17-4 13 3 15 14l-4 27h-32z"/>'+
-  '<path d="M282 90h24" stroke="#d1e1e8" stroke-width="3" fill="none"/>'+
-  '<path d="M281 112l-4 20h11l3-20M298 112l4 20h11l-3-21" stroke-width="4"/>'+
-  '<path d="M278 83l-12 10 12 7 8-7M306 83l-6 11-12 3" stroke-width="7" fill="none"/>'+
-  '<rect x="274" y="90" width="22" height="14" rx="2" fill="#445e6d" stroke="#9eb5bf" stroke-width="2"/>'+
-  '</g>'+
-  '<path d="M158 134l6-19h10l7 19z" fill="#b98b5d" opacity=".78"/>'+
-  '<path d="M161 126h16" stroke="#d9e6eb" stroke-width="2" opacity=".72"/>'+
-  '</svg>';
+ // Image-generated HDD crew artwork, processed into a small local PNG asset.
+ // The entire app remains offline-friendly; no UI screenshot or placeholder SVG.
+ return '<img class="ux-rig-art" src="assets/crew-hero.png" alt="" aria-hidden="true" decoding="async">';
 }
 
 function actionTile(tool){
