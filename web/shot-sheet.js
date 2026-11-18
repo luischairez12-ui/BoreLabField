@@ -183,11 +183,13 @@ function importReviewed(){
    const conduitText=String(row.querySelector('[data-bls-conduits]')?.value||'').trim();
    if(!name)throw Error('Every selected shot needs a name.');
    if(!rawFeet||!Number.isFinite(feetNum)||feetNum<=0||feetNum>100000)throw Error(name+': enter a confirmed bore length greater than 0.');
+   if(address&&window.BoreLabLocations?.locationKind(address)==='plus'&&!window.BoreLabLocations.isUsablePlusCode(address))throw Error(name+': include a city or region after the short Plus Code.');
+   const gps=window.BoreLabLocations?.parseCoords(address);
    const conduitList=parseConduitSpec(conduitText);
    const key=[name.toLowerCase(),feetNum,address.toLowerCase()].join('|');
    if(existing.has(key)){duplicates.push(name);continue}
    existing.add(key);
-   drafts.push({id:api().uid(),jobId:state.activeJobId,name,feet:feetNum,address,lat:'',lon:'',conduits:conduitList,
+   drafts.push({id:api().uid(),jobId:state.activeJobId,name,feet:feetNum,address,lat:gps?.lat||'',lon:gps?.lon||'',conduits:conduitList,
     pipeDiameter:conduitList[0]?.size||'',notes:'Imported from reviewed shot-sheet scan; verify locates and dimensions.',
     status:'planned',pipeUsed:'',rodCount:'',entryDepth:'',exitDepth:'',equipmentIds:[],startedAt:null,completedAt:null,updatedAt:new Date().toISOString()});
   }
