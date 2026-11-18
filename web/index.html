@@ -459,6 +459,23 @@ html[data-large-text="on"] .ux-tile small,html[data-large-text="on"] .ux-next p{
 .ux-search-result b{grid-column:2;grid-row:1/3;align-self:center;font-size:22px;color:var(--accent)}
 .ux-search-result:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 
+
+.ux-multi-actions{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0 8px}.ux-multi-actions .btn{min-height:42px}
+.ux-jobs-page h1,.ux-day-assistant h1{font-size:25px}
+.ux-jobs-grid{display:grid;gap:10px;margin:12px 0}
+.ux-multi-job-card{border:1px solid var(--line);background:var(--surface);border-radius:15px;padding:14px;box-shadow:var(--shadow)}
+.ux-current-job{border-left:4px solid #0c9f97}
+.ux-multi-job-card h2{font-size:20px;margin:7px 0 2px}
+.ux-assistant-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:13px}
+.ux-assistant-stats>div{background:var(--surface2);border:1px solid var(--line);border-radius:11px;padding:9px 5px;text-align:center}
+.ux-assistant-stats strong{display:block;font-size:21px;line-height:1.3}
+.ux-assistant-stats span{font-size:10px;color:var(--muted);line-height:1.2}
+.ux-assist-job{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:14px;margin:10px 0}
+.ux-assist-job h3{font-size:17px}
+.ux-assist-issues{border-left:3px solid var(--accent);padding:4px 10px;background:var(--surface2);border-radius:5px}
+.ux-assist-issues p{font-size:12px;margin:3px 0}
+@media(max-width:365px){.ux-assistant-stats{gap:4px}.ux-assistant-stats strong{font-size:18px}.ux-assistant-stats span{font-size:9px}}
+
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -517,7 +534,51 @@ if(typeof state.largeText!=='boolean')state.largeText=false;
 if(!Array.isArray(state.uxFavorites))state.uxFavorites=['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'];
 state.uxFavorites=[...new Set(state.uxFavorites)].filter(x=>typeof x==='string').slice(0,6);
 if(!state.uxFavorites.length)state.uxFavorites=['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'];
-let page=['home','job','planner','pipe','mud','mudstock','manuals','photos','crew','closeout','history','settings','tools','search'].includes(state.lastScreen)?state.lastScreen:'home',modal='',photos=[],pendingPhotoShot='',pendingPhotoKind='camera',geocodeWaitUntil=0,toastTimeout;
+
+/* The old active-job fields remain a compatibility view. Each saved job stores its
+   own independent bores, crew time, name and planner defaults. Shared rigs, pipe reels,
+   stock and crew roster intentionally stay in the top-level field inventory. */
+const JOB_FIELDS=['jobName','jobAddress','jobNotes','shots','crew','allowance','routeMode','demo'];
+function makeJobSnapshot(id,fields){
+ return {id,createdAt:new Date().toISOString(),archived:false,
+   jobName:String(fields.jobName||'New Job').slice(0,90),
+   jobAddress:String(fields.jobAddress||'').slice(0,250),
+   jobNotes:String(fields.jobNotes||'').slice(0,2000),
+   shots:Array.isArray(fields.shots)?fields.shots:[],
+   crew:Array.isArray(fields.crew)?fields.crew:[],
+   allowance:Number.isFinite(Number(fields.allowance))?Number(fields.allowance):10,
+   routeMode:typeof fields.routeMode==='string'?fields.routeMode:'toward',
+   demo:fields.demo===true};
+}
+function initializeJobs(){
+ if(!Array.isArray(state.jobs)||!state.jobs.length){
+  const id=uid();
+  state.jobs=[makeJobSnapshot(id,state)];
+  state.activeJobId=id;
+  state.legacyJobId=id;
+ }else{
+  state.jobs=state.jobs.filter(j=>j&&typeof j.id==='string'&&j.id.length&&typeof j.jobName==='string')
+   .map(j=>({...makeJobSnapshot(j.id,j),...j,shots:Array.isArray(j.shots)?j.shots:[],crew:Array.isArray(j.crew)?j.crew:[]}));
+  if(!state.jobs.length){const id=uid();state.jobs=[makeJobSnapshot(id,state)];state.activeJobId=id;}
+  if(!state.jobs.some(j=>j.id===state.activeJobId))state.activeJobId=state.jobs[0].id;
+  if(!state.legacyJobId)state.legacyJobId=state.jobs[0].id;
+ }
+ hydrateJob(state.jobs.find(j=>j.id===state.activeJobId));
+}
+function activeJob(){return state.jobs.find(j=>j.id===state.activeJobId)}
+function hydrateJob(job){if(!job)return;for(const key of JOB_FIELDS)state[key]=job[key];}
+function syncActiveJob(){
+ const job=activeJob();if(!job)return;
+ for(const key of JOB_FIELDS)job[key]=state[key];
+ job.lastTouchedAt=new Date().toISOString();
+}
+function jobIdOfRecord(record){return record?.jobId||state.legacyJobId||state.activeJobId}
+function belongsToJob(record,id=state.activeJobId){return jobIdOfRecord(record)===id}
+function activeJobPhotos(){return photos.filter(p=>belongsToJob(p))}
+function jobDisplayName(job){return String(job?.jobName||'Unnamed job')}
+
+initializeJobs();
+let page=['home','job','jobs','dayassist','planner','pipe','mud','mudstock','manuals','photos','crew','closeout','history','settings','tools','search'].includes(state.lastScreen)?state.lastScreen:'home',modal='',photos=[],pendingPhotoShot='',pendingPhotoKind='camera',pendingPhotoJobId='',geocodeWaitUntil=0,toastTimeout;
 let resolvingAddresses=false,attemptedAutoAddressLookup=false,lookupQueue=Promise.resolve();
 let routeMenuOpen=false; // display-only state
 let closeoutDay='';
@@ -529,7 +590,7 @@ let screenStack=[];
 let universalQuery='';
 if(typeof state.jobAddress!=='string')state.jobAddress='';
 if(typeof state.jobNotes!=='string')state.jobNotes='';
-const BORELAB_PAGES=new Set(['home','job','planner','pipe','mud','mudstock','manuals','photos','crew','closeout','history','settings','tools','search']);
+const BORELAB_PAGES=new Set(['home','job','jobs','dayassist','planner','pipe','mud','mudstock','manuals','photos','crew','closeout','history','settings','tools','search']);
 try{const saved=JSON.parse(sessionStorage.getItem('borelab-screen-stack-v1')||'[]');if(Array.isArray(saved))screenStack=saved.filter(p=>BORELAB_PAGES.has(p)).slice(-30);}catch{}
 
 const openSettingsSections=new Set();
@@ -543,7 +604,7 @@ const pipeNeed=s=>feet(s)+extra();
 const totalFeet=()=>state.shots.reduce((n,s)=>n+feet(s),0);
 const doneFeet=()=>state.shots.filter(s=>s.status==='complete').reduce((n,s)=>n+feet(s),0);
 const totalNeed=()=>state.shots.reduce((n,s)=>n+pipeNeed(s),0);
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch{notify('Storage full. Export a backup to preserve your records.')}};
+const save=()=>{syncActiveJob();try{localStorage.setItem(KEY,JSON.stringify(state))}catch{notify('Storage full. Export a backup to preserve your records.')}};
 function applyTheme(){
  const mode=state.theme==='dark'?'dark':'daylight';
  document.documentElement.dataset.theme=mode;
@@ -560,7 +621,43 @@ const footnote=()=>`<div class="footer-note">BoreLab Field · v0.11.0 · Records
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
-async function refreshPhotos(){try{photos=(await photoDB('list')).sort((a,b)=>b.addedAt.localeCompare(a.addedAt))}catch(e){console.warn('Photo storage unavailable:',e);photos=[]}}
+async function refreshPhotos(){try{photos=(await photoDB('list')).sort((a,b)=>String(b.addedAt||'').localeCompare(String(a.addedAt||'')))}catch(e){console.warn('Photo storage unavailable:',e);photos=[]}}
+
+function switchActiveJob(id){
+ if(!state.jobs.some(j=>j.id===id)){notify('Job not found.');return false;}
+ if(id===state.activeJobId){setPage('job');return true;}
+ flushPendingDraft();closeModal();syncActiveJob();
+ const current=activeJob(),other=state.jobs.find(j=>j.id===id);
+ if(!other)return false;
+ const stillIn=current.crew.filter(e=>!e.end);
+ if(stillIn.length&&!confirm(stillIn.length+' crew time entry/entries are still open on '+current.jobName+
+  '. Switching jobs will NOT check them out or move those hours. Continue?'))return false;
+ state.activeJobId=id;hydrateJob(other);attemptedAutoAddressLookup=false;
+ // Keep independent bores, notes and crew entries. Shared pipe reels/stock stay available.
+ save();screenStack=[];try{sessionStorage.removeItem('borelab-screen-stack-v1')}catch{}
+ setPage('job',{back:true});notify('Switched to '+state.jobName);return true;
+}
+function createNewJob(values){
+ const name=String(values.name||'').trim().slice(0,90);
+ if(!name)return notify('Enter a job name.');
+ flushPendingDraft();syncActiveJob();
+ const j=makeJobSnapshot(uid(),{jobName:name,jobAddress:values.address||'',jobNotes:values.notes||'',
+  shots:[],crew:[],allowance:state.allowance,routeMode:state.routeMode,demo:false});
+ state.jobs.push(j);state.activeJobId=j.id;hydrateJob(j);
+ screenStack=[];save();closeModal();setPage('job',{back:true});notify('New job created: '+name);
+}
+function showNewJobForm(){
+ showModal(`${modalHead('Create a New Job')}
+  <p class="smalltext muted">This job gets its own bores, crew time and photos. Equipment and pipe inventory remain shared across your crew.</p>
+  <form data-form="new-job">
+   <label class="field spaced">Job name<input name="name" maxlength="90" required placeholder="North Glades" autofocus></label>
+   <label class="field spaced">Work area / address<input name="address" maxlength="250" placeholder="Road or landmark (optional)"></label>
+   <label class="field spaced">Notes<textarea name="notes" maxlength="2000" placeholder="Optional access details"></textarea></label>
+   <div class="modal-footer"><button class="btn ghost" type="button" data-action="close-modal">Cancel</button>
+    <button class="btn primary" type="submit">Create Job</button></div>
+  </form>`);
+}
+
 function setPage(p,options={}){
  if(!BORELAB_PAGES.has(p))return;
  if(!options.back&&p!==page){screenStack.push(page);screenStack=screenStack.slice(-30)}
@@ -816,26 +913,30 @@ function openManualSource(machineId){
  else window.location.assign(machine.source);
 }
 
-function render(){const navButton=$('#topNavButton');if(navButton){const home=page==='home';navButton.textContent=home?'☰':'‹';navButton.dataset.action=home?'open-tools':'nav-back';navButton.setAttribute('aria-label',home?'All field tools':'Back to previous screen');}const activeTab=['home','planner','settings'].includes(page)?page:'tools';document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===activeTab));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,job:renderJobWorkspace,search:renderSearch,planner:renderPlanner,tools:renderTools,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();enhanceNumericInputs($('#main'));if(page==='mud')restoreFormDraft($('#main form[data-form="mud-batch"]'));}
+function render(){const navButton=$('#topNavButton');if(navButton){const home=page==='home';navButton.textContent=home?'☰':'‹';navButton.dataset.action=home?'open-tools':'nav-back';navButton.setAttribute('aria-label',home?'All field tools':'Back to previous screen');}const activeTab=['home','planner','settings'].includes(page)?page:page==='jobs'?'home':'tools';document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===activeTab));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,job:renderJobWorkspace,jobs:renderJobs,dayassist:renderDayAssistant,search:renderSearch,planner:renderPlanner,tools:renderTools,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();enhanceNumericInputs($('#main'));if(page==='mud')restoreFormDraft($('#main form[data-form="mud-batch"]'));}
 function section(title,right=''){return `<div class="section-title"><h2><span class="accentbar"></span>${esc(title)}</h2>${right}</div>`}
 function quick(label,icon,sub,action){return `<button class="quick" data-action="${action}"><div class="qicon">${icon}</div><strong>${esc(label)}</strong><small>${esc(sub)}</small></button>`}
 function shotRow(s){return `<div class="shot"><div class="shot-icon">⌁</div><div><h3>${esc(s.name)} <span class="status ${s.status==='complete'?'complete':s.status==='progress'?'progress':'planned'}">${s.status==='complete'?'Complete':s.status==='progress'?'Drilling':'Pending'}</span></h3><small>${feet(s)} ft bore · ${pipeNeed(s)} ft with allowance<br>${esc(s.address||coordsText(s)||'No location set')}</small></div><div class="shot-actions"><span class="foot">${feet(s)}′</span><button data-action="shot-quick" data-id="${esc(s.id)}" aria-label="Quick actions for ${esc(s.name)}" title="Quick actions">⋯</button><button data-action="shot-detail" data-id="${esc(s.id)}" aria-label="Open ${esc(s.name)}">›</button></div></div>`}
 function dailyRecords(day,all=false){
+ // Production: only active-job records are included in a single-job report.
+ if(typeof jobRecordsForDay==='function'&&typeof activeJob==='function'){
+  const job=activeJob()||{id:state.activeJobId,shots:state.shots,crew:state.crew};
+  return jobRecordsForDay({...job,shots:state.shots,crew:state.crew},day,all);
+ }
+ // Standalone legacy report harness uses this equivalent pre-migration view.
  const inDay=x=>x&&localDay(x)===day;
- return {
-  shots:state.shots.filter(x=>all||[x.startedAt,x.completedAt,x.updatedAt].some(inDay)),
+ return {shots:state.shots.filter(x=>all||[x.startedAt,x.completedAt,x.updatedAt].some(inDay)),
   crew:state.crew.filter(x=>all||[x.start,x.end].some(inDay)),
   pipe:state.pipeMoves.filter(x=>all||inDay(x.at)),
   mud:state.mudLogs.filter(x=>all||inDay(x.at)),
   mudStock:state.mudStockMoves.filter(x=>all||inDay(x.at)),
-  photos:photos.filter(x=>all||inDay(x.addedAt)).map(({id,shotId,addedAt,lat,lon,accuracy,kind})=>({id,shotId,addedAt,lat,lon,accuracy,kind}))
- };
+  photos:photos.filter(x=>all||inDay(x.addedAt)).map(({id,shotId,addedAt,lat,lon,accuracy,kind})=>({id,shotId,addedAt,lat,lon,accuracy,kind}))};
 }
 function snapshotWork(kind,day,notes='',checks=[]){
  const r=dailyRecords(day,kind==='job'),copy=x=>JSON.parse(JSON.stringify(x));
  const done=r.shots.filter(x=>x.status==='complete');
  return {
-  id:uid(),kind,day,createdAt:new Date().toISOString(),jobName:state.jobName,homeBase:state.shopAddress||coordsText(shop())||'',notes:String(notes).trim().slice(0,4000),
+  id:uid(),kind,day,createdAt:new Date().toISOString(),jobId:state.activeJobId,jobName:state.jobName,homeBase:state.shopAddress||coordsText(shop())||'',notes:String(notes).trim().slice(0,4000),
   checks:copy(checks),shots:copy(r.shots),crew:copy(r.crew),pipe:copy(r.pipe),photos:copy(r.photos),mud:copy(r.mud),mudStock:copy(r.mudStock),reels:copy(state.reels),equipment:copy(state.equipment),allowance:extra(),truckPipe:pipeOnTruck(),
   summary:{shots:r.shots.length,completed:done.length,completedFeet:done.reduce((a,x)=>a+feet(x),0),crewHours:r.crew.reduce((a,x)=>a+hours(x),0),installedPipe:r.pipe.filter(x=>x.type==='installed').reduce((a,x)=>a+Number(x.feet||0),0),photos:r.photos.length,mudBatches:r.mud.length,mudStockMoves:r.mudStock.length}
  };
@@ -856,7 +957,9 @@ function renderCloseout(){
  const labels=['Crew hours reviewed','Bore logs reviewed','Reel/pipe inventory reviewed','Photos and notes reviewed'];
  return `<div class="page">
  <div class="between"><div><span class="eyebrow">FIELD / END OF DAY</span><h1>Daily Closeout</h1></div><button class="btn micro ghost" data-page="history">History</button></div>
- <p class="muted smalltext spaced">Review the workday and save a dated record. Saving never checks out crew or marks bore shots complete automatically.</p>
+ <p class="muted smalltext spaced">Review <strong>${esc(state.jobName)}</strong> for this date. Saving never checks out crew or completes bores automatically.</p>
+ <div class="action-row spaced"><button class="btn ghost" data-page="dayassist">Review All Jobs for Today</button>
+  <button class="btn ghost" data-page="jobs">Switch Job</button></div>
  <div class="card spaced"><label class="field">Work date<input type="date" data-closeout-day value="${esc(date)}"></label>
  <div class="closeout-stats">
  <div><strong>${r.shots.length}</strong><small>Bores updated</small></div><div><strong>${fmt(r.crew.reduce((n,x)=>n+hours(x),0),2)}</strong><small>Crew-hours</small></div>
@@ -877,19 +980,19 @@ function renderHistory(){
  const entries=[...state.history].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
  const cards=kind=>{
   const filtered=entries.filter(x=>x.kind===kind);
-  return filtered.length?filtered.map(x=>`<div class="card spaced"><div class="between"><div><span class="eyebrow">${kind==='daily'?'CLOSED WORKDAY':'JOB SNAPSHOT'}</span><h3>${esc(x.jobName)} · ${esc(x.day)}</h3><small class="muted">Saved ${esc(fullDate(x.createdAt))}</small></div><span class="status complete">Saved</span></div>
+  return filtered.length?filtered.map(x=>`<div class="card spaced"><div class="between"><div><span class="eyebrow">${kind==='daily'?'CLOSED WORKDAY':kind==='multi'?'ALL JOBS · DAILY SUMMARY':'JOB SNAPSHOT'}</span><h3>${esc(x.jobName)} · ${esc(x.day)}</h3><small class="muted">Saved ${esc(fullDate(x.createdAt))}</small></div><span class="status complete">Saved</span></div>
   <p class="smalltext muted spaced">${x.summary?.shots||0} bores · ${fmt(x.summary?.completedFeet||0,1)} ft complete · ${fmt(x.summary?.crewHours||0,2)} crew-hours</p>
   <div class="action-row"><button class="btn micro ghost" data-action="history-detail" data-id="${esc(x.id)}">View</button><button class="btn micro primary" data-action="history-pdf" data-id="${esc(x.id)}">Export PDF</button></div></div>`).join(''):'<p class="smalltext muted spaced">No saved records yet.</p>';
  };
  return `<div class="page"><div class="between"><div><span class="eyebrow">FIELD / ARCHIVE</span><h1>Job History</h1></div><button class="btn micro ghost" data-page="closeout">Closeout</button></div>
- <p class="smalltext muted spaced">One active job only. This saves historical snapshots without adding multiple-job switching.</p>
+ <p class="smalltext muted spaced">Browse closeouts and job snapshots from all jobs. Combined reports preserve job names.</p>
  <div class="card spaced"><h3>Snapshot Current Job</h3><p class="smalltext muted spaced">Preserve a copy of the current job records without clearing the work in progress.</p><button class="btn primary" data-action="archive-job-snapshot">Save Job Snapshot</button></div>
- ${section('Daily Closeouts')}${cards('daily')}${section('Job Snapshots')}${cards('job')}
+ ${section('Daily Closeouts')}${cards('daily')}${section('Combined Daily Summaries')}${cards('multi')}${section('Job Snapshots')}${cards('job')}
  <div class="note spaced">Snapshots freeze saved records, but original photo files remain in the local photo library. Back them up before deleting or resetting the app.</div>${footnote()}</div>`;
 }
 function historyDetail(id){
  const x=state.history.find(z=>z.id===id);if(!x)return;
- showModal(`${modalHead((x.kind==='daily'?'Daily Closeout':'Job Snapshot')+' · '+x.day)}
+ showModal(`${modalHead((x.kind==='daily'?'Daily Closeout':x.kind==='multi'?'Combined Daily Report':'Job Snapshot')+' · '+x.day)}
  <div class="card"><h3>${esc(x.jobName)}</h3>
  ${kv('Saved',esc(fullDate(x.createdAt)))}${kv('Bores',x.summary?.shots||0)}${kv('Completed footage',fmt(x.summary?.completedFeet||0,1)+' ft')}
  ${kv('Crew-hours',fmt(x.summary?.crewHours||0,2))}${kv('Pipe installed',fmt(x.summary?.installedPipe||0,1)+' ft')}${kv('Photo records',x.summary?.photos||0)}${kv('Mix batches',x.summary?.mudBatches||0)}
@@ -1349,11 +1452,11 @@ function saveMudPlan(form,values,record=false){
    if(!p)continue;
    const before=Number(p.stockQty),after=mudRound(Math.max(0,before-item.required));
    p.stockQty=after;
-   state.mudStockMoves.push({id:uid(),at,kind:'mix',batchId,productId:p.id,productName:p.name,unit:p.unit,
+   state.mudStockMoves.push({id:uid(),at,jobId:state.activeJobId,kind:'mix',batchId,productId:p.id,productName:p.name,unit:p.unit,
     before,after,delta:mudRound(after-before),note:'Automatically deducted when actual mud mix was recorded'});
    stockUsed.push({productId:p.id,name:p.name,unit:p.unit,amount:mudRound(item.required),remaining:after});
   }
-  state.mudLogs.push({id:batchId,at,jobName:state.jobName,capacity:plan.capacity,before:plan.current,
+  state.mudLogs.push({id:batchId,at,jobId:state.activeJobId,jobName:state.jobName,capacity:plan.capacity,before:plan.current,
     target:plan.target,added:plan.added,mode:plan.mode,soil:config.soil,
     products:JSON.parse(JSON.stringify(plan.products)),stockUsed,untrackedProducts:unknown.map(x=>x.name),
     notes:config.notes});
@@ -1513,6 +1616,10 @@ function renderHome(){
    </div>
    ${state.demo?'<p class="ux-demo-label">ⓘ Demo job · sample records</p>':''}
   </div>
+  <div class="ux-multi-actions">
+    <button class="btn micro ghost" data-page="jobs">▦ My Jobs · ${state.jobs?.filter(j=>!j.archived).length||1}</button>
+    <button class="btn micro ghost" data-page="dayassist">◷ End-of-Day Assistant</button>
+  </div>
   <div class="ux-section-heading"><h2>What do you need to do?</h2>
    <button class="btn micro ghost" data-page="settings" aria-label="Customize home shortcuts">Customize</button></div>
   <div class="ux-tile-grid">${favoriteActions().map(actionTile).join('')}</div>
@@ -1540,13 +1647,15 @@ function renderJobWorkspace(){
  const todayEntries=state.crew.filter(e=>[e.start,e.end].some(d=>d&&localDay(d)===day));
  const hoursToday=todayEntries.reduce((sum,e)=>sum+hours(e),0);
  const activeIds=new Set(state.shots.map(x=>x.id));
- const linked=photos.filter(p=>activeIds.has(p.shotId)).length;
+ const linked=activeJobPhotos().filter(p=>activeIds.has(p.shotId)).length;
  const pct=totalFeet()?Math.round(doneFeet()/totalFeet()*100):0;
  return `<div class="page ux-workspace">
  <div class="ux-workspace-heading"><span class="eyebrow">SMART JOB WORKSPACE</span>
  <h1>${esc(state.jobName)}</h1>
  <p class="smalltext muted">${esc(state.jobAddress||'Your active HDD job')}</p>
  <button class="btn primary" data-action="edit-job" aria-label="Edit active job details">✎ Edit Job</button></div>
+ <div class="ux-multi-actions"><button class="btn micro ghost" data-page="jobs">Switch Job</button>
+  <button class="btn micro ghost" data-page="dayassist">End-of-Day Assistant</button></div>
  <div class="ux-progress-track" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Footage completed">
   <div class="ux-progress-fill" style="width:${pct}%"></div></div>
  <div class="ux-workspace-metrics">
@@ -1633,6 +1742,152 @@ function renderSearch(){
   <div id="universalSearchResults" class="spaced">${renderSearchResults()}</div>
   <p class="tiny muted spaced">Manual results search their titles and saved links. To search inside a PDF, open it in the Manual Library.</p>
  </div>`;
+}
+
+
+function renderJobs(){
+ const jobs=state.jobs.filter(j=>!j.archived);
+ const archived=state.jobs.filter(j=>j.archived);
+ const jobCard=(j,old=false)=>{
+  const completed=j.shots.filter(s=>s.status==='complete').length;
+  const pending=j.shots.filter(s=>s.status!=='complete').length;
+  const isActive=j.id===state.activeJobId;
+  return `<div class="ux-multi-job-card ${isActive?'ux-current-job':''}">
+   <div><div class="between"><span class="eyebrow">${isActive?'ACTIVE JOB':old?'ARCHIVED JOB':'SAVED JOB'}</span>
+    <span class="tiny muted">${j.shots.length} bores</span></div>
+    <h2>${esc(j.jobName)}</h2>
+    <p class="smalltext muted">${esc(j.jobAddress||'No location set')}</p>
+    <p class="tiny muted spaced">${completed} complete · ${pending} pending · ${j.crew.length} time entries</p>
+   </div>
+   <div class="action-row">
+    ${old?`<button class="btn micro primary" data-action="restore-job" data-id="${esc(j.id)}">Restore Job</button>`:
+    `<button class="btn micro primary" data-action="switch-job" data-id="${esc(j.id)}">${isActive?'Open Workspace':'Switch to Job'}</button>
+     ${!isActive?`<button class="btn micro ghost" data-action="archive-job" data-id="${esc(j.id)}">Archive</button>`:''}`}
+   </div>
+  </div>`;
+ };
+ return `<div class="page ux-jobs-page">
+  <div class="between"><div><span class="eyebrow">FIELD / JOB MANAGEMENT</span><h1>My Jobs</h1></div>
+   <button class="btn primary" data-action="new-job">+ New Job</button></div>
+  <p class="muted smalltext spaced">Each job has its own bores, crew hours and photos. Pipe reels and equipment stay shared.</p>
+  <div class="ux-jobs-grid">${jobs.map(j=>jobCard(j)).join('')}</div>
+  ${archived.length?`<details class="ux-details spaced"><summary>Archived jobs (${archived.length})</summary>
+   <div class="ux-jobs-grid spaced">${archived.map(j=>jobCard(j,true)).join('')}</div></details>`:''}
+  <div class="action-row spaced"><button class="btn ghost" data-page="dayassist">Review Today's Jobs</button>
+   <button class="btn ghost" data-action="export-backup">Back Up All Jobs</button></div>
+  ${footnote()}</div>`;
+}
+function jobRecordsForDay(job,day,all=false){
+ const inDay=x=>x&&localDay(x)===day;
+ return {
+  shots:(job.shots||[]).filter(sh=>all||[sh.startedAt,sh.completedAt,sh.updatedAt].some(inDay)),
+  crew:(job.crew||[]).filter(e=>all||[e.start,e.end].some(inDay)),
+  pipe:(state.pipeMoves||[]).filter(m=>belongsToJob(m,job.id)&&(all||inDay(m.at))),
+  mud:(state.mudLogs||[]).filter(m=>belongsToJob(m,job.id)&&(all||inDay(m.at))),
+  mudStock:(state.mudStockMoves||[]).filter(m=>belongsToJob(m,job.id)&&(all||inDay(m.at))),
+  photos:photos.filter(p=>belongsToJob(p,job.id)&&(all||inDay(p.addedAt)))
+   .map(({id,shotId,jobId,addedAt,lat,lon,accuracy,kind})=>({id,shotId,jobId,addedAt,lat,lon,accuracy,kind}))
+ };
+}
+function jobDayIssues(job,day){
+ const r=jobRecordsForDay(job,day);
+ const issues=[];
+ const unclosed=(job.crew||[]).filter(e=>!e.end&&localDay(e.start)<=day).length;
+ if(unclosed)issues.push(unclosed+' crew member(s) still clocked in');
+ const drilling=(job.shots||[]).filter(sh=>sh.status==='progress').length;
+ if(drilling)issues.push(drilling+' bore(s) still in progress — carry over, do not auto-complete');
+ const missing=r.shots.filter(sh=>sh.status==='complete'&&
+  !r.pipe.some(m=>m.type==='installed'&&m.shotId===sh.id)&&
+  (sh.pipeUsed==null||sh.pipeUsed==='')).length;
+ if(missing)issues.push(missing+' completed bore(s) missing recorded pipe');
+ return issues;
+}
+function jobDaySummary(job,day){
+ const r=jobRecordsForDay(job,day);
+ return {id:job.id,name:job.jobName,address:job.jobAddress||'',shots:r.shots.length,
+  completed:r.shots.filter(s=>s.status==='complete').length,
+  footage:r.shots.filter(s=>s.status==='complete').reduce((n,s)=>n+Number(s.feet||0),0),
+  crewHours:r.crew.reduce((n,e)=>n+hours(e),0),photos:r.photos.length,pipe:r.pipe.filter(m=>m.type==='installed').reduce((n,m)=>n+Number(m.feet||0),0),
+  warnings:jobDayIssues(job,day),hasWork:!!(r.shots.length||r.crew.length||r.photos.length||r.pipe.length||r.mud.length)};
+}
+function buildMultiDaySnapshot(day){
+ const entries=state.jobs.map(job=>({job,r:jobRecordsForDay(job,day),sum:jobDaySummary(job,day)}))
+  .filter(x=>x.sum.hasWork);
+ const copy=x=>JSON.parse(JSON.stringify(x));
+ const combined={shots:[],crew:[],pipe:[],photos:[],mud:[],mudStock:[]};
+ for(const {job,r} of entries){
+  combined.shots.push(...r.shots.map(sh=>({...copy(sh),name:job.jobName+' · '+sh.name,
+   plannedAllowance:Number(job.allowance)||0,jobId:job.id})));
+  combined.crew.push(...r.crew.map(e=>({...copy(e),name:job.jobName+' · '+e.name,jobId:job.id})));
+  for(const key of ['pipe','photos','mud','mudStock'])combined[key].push(...copy(r[key]));
+ }
+ const notes=entries.map(({sum})=>
+  sum.name+': '+sum.shots+' bores updated, '+fmt(sum.footage,1)+' ft completed, '+
+  fmt(sum.crewHours,2)+' crew-hours, '+sum.photos+' photos'+
+  (sum.warnings.length?' — Attention: '+sum.warnings.join('; '):' — No flagged issues')).join('\n');
+ const done=combined.shots.filter(sh=>sh.status==='complete');
+ return {id:uid(),kind:'multi',day,createdAt:new Date().toISOString(),
+  jobName:entries.length+' Jobs · Combined Daily Report',jobSummaries:entries.map(x=>x.sum),
+  notes,checks:[],...combined,reels:copy(state.reels),equipment:copy(state.equipment),
+  allowance:0,homeBase:state.shopAddress||'',
+  summary:{shots:combined.shots.length,completed:done.length,
+   completedFeet:done.reduce((n,s)=>n+Number(s.feet||0),0),
+   crewHours:combined.crew.reduce((n,e)=>n+hours(e),0),
+   installedPipe:combined.pipe.filter(p=>p.type==='installed').reduce((n,p)=>n+Number(p.feet||0),0),
+   photos:combined.photos.length,mudBatches:combined.mud.length,mudStockMoves:combined.mudStock.length}
+ };
+}
+function saveMultiDayCloseout(exportPdf=false){
+ const day=closeoutDay||todayLocal();
+ const snapshot=buildMultiDaySnapshot(day);
+ if(!snapshot.jobSummaries.length)return notify('No recorded work on this date to close out.');
+ const open=snapshot.jobSummaries.filter(x=>x.warnings.length);
+ const msg='Save a combined report for '+snapshot.jobSummaries.length+' job(s) on '+day+'?'+
+  (open.length?'\n\n'+open.length+' job(s) have outstanding issues. They remain open, and no crew or bore status will change.':'')+
+  '\n\nIndividual job records will stay editable. Continue?';
+ if(!confirm(msg))return;
+ state.history.push(snapshot);save();
+ if(exportPdf){exportRealPdf(snapshot.id)}else{setPage('history');notify('Combined daily summary saved for '+day+'.')}
+}
+function renderDayAssistant(){
+ const day=closeoutDay||todayLocal();
+ const all=state.jobs.map(j=>({...jobDaySummary(j,day),archived:!!j.archived}));
+ const relevant=all.filter(j=>j.hasWork||j.id===state.activeJobId);
+ const worked=all.filter(j=>j.hasWork);
+ const totalBores=worked.reduce((n,j)=>n+j.shots,0);
+ const totalHours=worked.reduce((n,j)=>n+j.crewHours,0);
+ const totalPhotos=worked.reduce((n,j)=>n+j.photos,0);
+ const flagged=worked.filter(j=>j.warnings.length);
+ return `<div class="page ux-day-assistant">
+  <div class="between"><div><span class="eyebrow">FIELD / ALL-JOB CLOSEOUT</span><h1>End-of-Day Assistant</h1></div>
+   <button class="btn micro ghost" data-page="jobs">My Jobs</button></div>
+  <p class="muted smalltext spaced">Check every job worked today. Unfinished bores can carry over to tomorrow without being marked complete.</p>
+  <div class="card spaced"><label class="field">Review work date<input type="date" data-closeout-day value="${esc(day)}"></label>
+   <div class="ux-assistant-stats">
+    <div><strong>${worked.length}</strong><span>Jobs worked</span></div>
+    <div><strong>${totalBores}</strong><span>Bores updated</span></div>
+    <div><strong>${fmt(totalHours,1)}</strong><span>Crew-hours</span></div>
+    <div><strong>${totalPhotos}</strong><span>Photos</span></div>
+   </div></div>
+  <div class="ux-section-heading"><h2>Review each job</h2></div>
+  ${relevant.length?relevant.map(job=>`<div class="ux-assist-job">
+   <div class="between"><h3>${esc(job.name)}</h3><span class="status ${job.warnings.length?'progress':job.hasWork?'complete':'planned'}">
+    ${job.warnings.length?'Needs Review':job.hasWork?'Ready to review':'No work logged'}</span></div>
+   <p class="smalltext muted spaced">${job.shots} bores updated · ${fmt(job.footage,1)} ft completed · ${fmt(job.crewHours,2)} crew-hours · ${job.photos} photos</p>
+   ${job.warnings.length?`<div class="ux-assist-issues">${job.warnings.map(w=>`<p>! ${esc(w)}</p>`).join('')}</div>`:
+     job.hasWork?'<p class="smalltext muted">No automatic issues detected. Check records before confirming.</p>':
+     '<p class="smalltext muted">No activity recorded for this date.</p>'}
+   <div class="action-row"><button class="btn micro ghost" data-action="review-job-day" data-id="${esc(job.id)}">Review Job</button></div></div>`).join(''):
+   '<div class="note spaced">Nothing recorded for this date. Create a job and add your bores or crew entries first.</div>'}
+  ${flagged.length?`<div class="note spaced">${flagged.length} job(s) need attention. Saving a summary does not complete those tasks or check out the crew.</div>`:
+  worked.length?'<div class="note good spaced">No automatic issues detected. Please review all records before finishing.</div>':''}
+  <div class="ux-section-heading"><h2>Combined daily report</h2></div>
+  <p class="smalltext muted">Creates a dated snapshot of all jobs worked, with job names attached to bore and crew records. The original jobs remain independent.</p>
+  <div class="action-row">
+   <button class="btn primary" data-action="save-multi-closeout" ${worked.length?'':'disabled'}>Save Combined Summary</button>
+   <button class="btn ghost" data-action="export-multi-closeout" ${worked.length?'':'disabled'}>Save & Export PDF</button>
+  </div>
+  ${footnote()}</div>`;
 }
 
 function coordsValid(o){return o&&o.lat!==''&&o.lon!==''&&o.lat!=null&&o.lon!=null&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lon))&&Math.abs(Number(o.lat))<=90&&Math.abs(Number(o.lon))<=180}
@@ -1768,7 +2023,7 @@ ${section('Plan My Route')}<div class="card">
   ${!allGeo&&usable?`<div class="note spaced" style="font-size:12px">GPS incomplete: ${!homeReady?'shop':' '} ${plan.missingShotCount?`· ${plan.missingShotCount} shot(s)`:''}. Tap “Locate Saved Addresses” for missing pins.</div>`:''}${routeMap(order)}<div class="section-title"><h2 style="font-size:15px">${usable?'Suggested Shot Order':'Shot Order — Needs Location'}</h2><span class="hint">${order.length} pending</span></div>${order.length?order.map((s,i)=>`<div class="route-item"><span class="bubble">${i+1}</span><div style="min-width:0;flex:1"><strong>${esc(s.name)}</strong><div><small>${esc(s.address||coordsText(s)||'Location needed')}</small></div></div><div class="right"><strong>${feet(s)} ft</strong><div><small>${pipeNeed(s)} ft incl. extra</small></div>${mapPoint(s)?`<button class="btn micro ghost" data-action="open-map-pin" data-id="${esc(s.id)}" style="margin-top:6px">Navigate</button>`:''}</div></div>`).join(''):`<p class="muted smalltext">All shots are complete, or no shots have been created.</p>`}
 ${mapsLink(order)?`<div class="action-row"><button class="btn cyan full" data-action="open-full-route">↗ Google Maps: shop → shots → shop</button></div>`:''}</div>
 ${section('Pipe Inventory')}<div class="card"><div class="form-grid">${reelMode()?`<div class="field"><span>Pipe on truck (from reels)</span><strong style="font-size:22px">${fmt(pipeOnTruck(),1)} ft</strong></div>`:`<label class="field">Pipe on hand (ft)<input type="number" min="0" step="1" value="${esc(state.pipeAvailable)}" data-setting="pipeAvailable"></label>`}<label class="field">Extra per shot (ft)<input type="number" min="0" step="1" value="${esc(state.allowance)}" data-setting="allowance"></label></div><div class="table-wrap spaced"><table><thead><tr><th>Shot</th><th>Bore</th><th>Extra</th><th>Pipe needed</th><th>Actual used</th></tr></thead><tbody>${state.shots.map(s=>`<tr><td>${esc(s.name)}</td><td>${feet(s)} ft</td><td>+${extra()} ft</td><td><b>${pipeNeed(s)} ft</b></td><td>${pipeOnShot(s)!=null?`${fmt(pipeOnShot(s),1)} ft`:'—'}</td></tr>`).join('')}</tbody></table></div><div class="action-row"><button class="btn primary" data-action="go-pipe">◈ Manage Reels</button></div>${kv('Pending shots require',`${fmt(state.shots.filter(s=>s.status!=='complete').reduce((n,s)=>n+pipeNeed(s),0))} ft`)}${kv('Pipe available',`${fmt(available)} ft`)}<div class="note ${short<=0?'good':'error'}" style="margin-top:8px">${short>0?`You'll need ${fmt(short)} more feet of pipe to complete all shots without replenishment.`:`Pipe inventory covers the planned shots, with ${fmt(-short)} ft remaining (assuming each allocation is consumed).`}</div><p class="tiny muted spaced">Pipe requirements are estimates. Reel totals change only when you record actual use or adjustments. Confirm continuous reel footage before a pull.</p></div>${footnote()}</div>`}
-function renderPhotos(){return `<div class="page"><span class="eyebrow">FIELD / DOCUMENTATION</span><h1 style="margin:6px 0 8px">Jobsite Photos</h1><p class="muted smalltext">Photos are timestamped when added. GPS is captured with permission; if an address isn't provided, coordinates are displayed instead.</p><div class="action-row"><button class="btn primary" data-action="choose-photo">▣ Capture Photo</button><button class="btn ghost" data-action="choose-gallery">＋ Add from Gallery</button></div>${section('Photo Records',`<span class="hint">${photos.length} saved</span>`)}${photos.length?`<div class="photo-grid">${photos.map(p=>{const s=state.shots.find(s=>s.id===p.shotId);return `<button class="photo-tile" data-action="photo-detail" data-id="${p.id}"><img src="${p.dataUrl}" alt="Job photo" loading="lazy"><div class="photo-text"><strong>${esc(s?.name||'Unassigned photo')}</strong><small>${esc(new Date(p.addedAt).toLocaleDateString())} · ${p.lat!=null?'GPS saved':'GPS unavailable'}</small></div></button>`}).join('')}</div>`:`<div class="empty"><div class="emptyicon">▣</div><strong>No job photos yet</strong>Take a photo and link it to a bore shot. The app stores it on this device.</div>`}<div class="note spaced">Location collection requires device permission and a secure browser context (HTTPS or localhost). If GPS isn't available, the photo is saved without inventing a location.</div>${footnote()}</div>`}
+function renderPhotos(){const visible=activeJobPhotos();return `<div class="page"><span class="eyebrow">FIELD / DOCUMENTATION</span><h1 style="margin:6px 0 8px">Jobsite Photos</h1><p class="muted smalltext">Photos are timestamped when added. GPS is captured with permission; if an address isn't provided, coordinates are displayed instead.</p><div class="action-row"><button class="btn primary" data-action="choose-photo">▣ Capture Photo</button><button class="btn ghost" data-action="choose-gallery">＋ Add from Gallery</button></div>${section('Photo Records',`<span class="hint">${visible.length} saved</span>`)}${photos.length?`<div class="photo-grid">${visible.map(p=>{const s=state.shots.find(s=>s.id===p.shotId);return `<button class="photo-tile" data-action="photo-detail" data-id="${p.id}"><img src="${p.dataUrl}" alt="Job photo" loading="lazy"><div class="photo-text"><strong>${esc(s?.name||'Unassigned photo')}</strong><small>${esc(new Date(p.addedAt).toLocaleDateString())} · ${p.lat!=null?'GPS saved':'GPS unavailable'}</small></div></button>`}).join('')}</div>`:`<div class="empty"><div class="emptyicon">▣</div><strong>No job photos yet</strong>Take a photo and link it to a bore shot. The app stores it on this device.</div>`}<div class="note spaced">Location collection requires device permission and a secure browser context (HTTPS or localhost). If GPS isn't available, the photo is saved without inventing a location.</div>${footnote()}</div>`}
 function hours(e){const start=new Date(e.start).getTime(),end=e.end?new Date(e.end).getTime():NaN;if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return 0;return Math.max(0,(end-start)/3600000-Math.max(0,Number(e.lunch)||0)/60)}
 const localDay=iso=>{const d=new Date(iso);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 const todayLocal=()=>localDay(new Date());
@@ -1814,7 +2069,27 @@ ${state.roster.length?`<div class="crew-picker">${state.roster.map(p=>`<label cl
 ${section('Time Entries',`<button class="btn micro ghost" data-action="new-time">＋ Manual entry</button>`)}${renderCrewEntries()}
 <div class="action-row"><button class="btn ghost" data-action="export-report">▧ Daily Report</button></div><p class="tiny muted spaced">A check-in uses your device's current time, and does not clock anyone in automatically without a tap. At checkout, unpaid lunch defaults to your saved setting and can be overridden for each person. Verify hours and required breaks before payroll.</p>${footnote()}</div>`}
 function manageRoster(){showModal(`${modalHead('Saved Crew Roster')}<p class="smalltext muted">Add people once. Select your regular crew on the Crew Hours screen; BoreLab remembers who you picked.</p><form data-form="roster" class="spaced"><label class="field">Crew names (one per line or separated by commas)<textarea name="names" rows="5" required placeholder="Juan\nMiguel\nCarlos"></textarea></label><button class="btn primary full" type="submit">Save Crew Members</button></form>${state.roster.length?`<div class="divider"></div>${state.roster.map(p=>`<div class="settings-item"><strong>${esc(p.name)}</strong><button class="btn micro danger" data-action="remove-person" data-id="${p.id}">Remove</button></div>`).join('')}`:''}`)}
-function checkInCrew(){const people=selectedRoster();if(!people.length)return notify('Add or select crew members first.');const now=new Date().toISOString(),day=todayLocal();let count=0,already=[];for(const p of people){if(state.crew.some(e=>(e.memberId===p.id||(!e.memberId&&e.name.toLowerCase()===p.name.toLowerCase()))&&localDay(e.start)===day)){already.push(p.name);continue}state.crew.push({id:uid(),memberId:p.id,name:p.name,start:now,end:'',lunch:0,notes:'Checked in with crew',kind:'checkin'});count++}save();render();notify(count?`${count} crew member${count===1?'':'s'} checked in at ${new Date().toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}.${already.length?' Already recorded today: '+already.join(', '):''}`:'Selected crew already has entries for today.');}
+
+function crewClockedElsewhere(person){
+ const id=person.memberId||person.id||'',name=String(person.name||'').toLowerCase().trim();
+ return state.jobs.some(job=>job.id!==state.activeJobId&&job.crew.some(entry=>
+  !entry.end&&(id&&entry.memberId===id||name&&String(entry.name||'').toLowerCase().trim()===name)));
+}
+function overlappingCrewTime(entry){
+ const start=new Date(entry.start).getTime();
+ const end=entry.end?new Date(entry.end).getTime():Date.now();
+ if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return false;
+ const name=String(entry.name||'').toLowerCase().trim();
+ return state.jobs.some(job=>job.id!==state.activeJobId&&job.crew.some(existing=>{
+  if(!(entry.memberId&&existing.memberId===entry.memberId||
+   name&&String(existing.name||'').toLowerCase().trim()===name))return false;
+  const t=new Date(existing.start).getTime();
+  const until=existing.end?new Date(existing.end).getTime():Date.now();
+  return Number.isFinite(t)&&Number.isFinite(until)&&start<until&&t<end;
+ }));
+}
+
+function checkInCrew(){const people=selectedRoster();if(!people.length)return notify('Add or select crew members first.');const now=new Date().toISOString();let count=0,already=[];for(const p of people){if(crewClockedElsewhere(p)){already.push(p.name+' (still working another job)');continue}if(state.crew.some(e=>!e.end&&(e.memberId===p.id||(!e.memberId&&e.name.toLowerCase()===p.name.toLowerCase())))){already.push(p.name+' (already checked in)');continue}state.crew.push({id:uid(),jobId:state.activeJobId,memberId:p.id,name:p.name,start:now,end:'',lunch:0,notes:'Checked in with crew',kind:'checkin'});count++}save();render();notify(count?`${count} crew member${count===1?'':'s'} checked in at ${new Date().toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}.${already.length?' Not checked in: '+already.join(', '):''}`:'No new check-ins. Check out existing shifts first. '+already.join(', '));}
 function checkoutForm(){const active=state.crew.filter(e=>!e.end);if(!active.length)return notify('No active crew check-ins.');showModal(`${modalHead('Check Out Crew')}<p class="smalltext muted">All working crew will clock out at the current time. ${state.autoLunchEnabled?`Automatic lunch deduction is ON (${state.defaultLunchMinutes} min per person).`:'Automatic lunch deduction is OFF.'} You can override lunch minutes for anyone before checking out and edit entries later.</p><form data-form="checkout" class="spaced">${active.map(e=>`<div class="checkout-row"><strong>${esc(e.name)}</strong><label class="field">Unpaid lunch (min)<input name="lunch_${esc(e.id)}" type="number" min="0" max="300" value="${automaticLunch()}" required></label></div>`).join('')}<div class="modal-footer"><button type="button" class="btn ghost" data-action="close-modal">Cancel</button><button class="btn cyan" type="submit">✓ Check Out ${active.length}</button></div></form>`)}
 function renderSettings(){return `<div class="page"><span class="eyebrow">BORELAB / SETTINGS</span><h1 style="margin:5px 0 16px">Field Settings</h1>
 <p class="ux-settings-intro">Choose your experience. All the existing field tools and saved records remain available.</p>
@@ -1872,7 +2147,7 @@ const GUIDED_DRAFT_KEY='borelab-field-guided-bore-v1';
 const DRAFT_FORMS=new Set(['job-details','shot','time','mud-batch']);
 let pendingDraftForm=null,draftSaveTimer=null;
 function draftStore(){try{const data=JSON.parse(localStorage.getItem(DRAFTS_KEY)||'{}');return data&&typeof data==='object'&&!Array.isArray(data)?data:{}}catch{return {}}}
-function draftKey(form){return form&&DRAFT_FORMS.has(form.dataset.form)?form.dataset.form+':'+(form.dataset.id||'new'):''}
+function draftKey(form){return form&&DRAFT_FORMS.has(form.dataset.form)?(typeof state==='undefined'||!state?.activeJobId?'':state.activeJobId+':')+form.dataset.form+':'+(form.dataset.id||'new'):''}
 function draftStatus(form,message){
  if(!form||!form.isConnected)return;
  let status=form.querySelector('.ux-draft-status');
@@ -2002,7 +2277,7 @@ function recordReelAction(form,values){
  if(kind==='reserve'){
    const free=Number(reel.remaining)-reelReserved(reel.id);
    if(feet>free+0.00001)return notify('Not enough unreserved footage on this reel.');
-   state.pipeReservations.push({id:uid(),reelId:reel.id,shotId,feet,at:new Date().toISOString()});
+   state.pipeReservations.push({id:uid(),jobId:state.activeJobId,reelId:reel.id,shotId,feet,at:new Date().toISOString()});
    save();closeModal();render();notify(`${feet} ft reserved for this shot.`);
    return;
  }
@@ -2027,7 +2302,7 @@ function recordReelAction(form,values){
    }
  }else return notify('Unknown pipe action.');
  reel.remaining=Math.round(newRemaining*10)/10;
- state.pipeMoves.push({id:uid(),reelId:reel.id,shotId,type,feet,at:new Date().toISOString(),before,after:reel.remaining,note:String(values.note||'').trim().slice(0,180)});
+ state.pipeMoves.push({id:uid(),jobId:state.activeJobId,reelId:reel.id,shotId,type,feet,at:new Date().toISOString(),before,after:reel.remaining,note:String(values.note||'').trim().slice(0,180)});
  save();closeModal();render();notify(`${feet} ft ${type} · ${fmt(reel.remaining,1)} ft left on ${reel.name}.`);
 }
 function saveCompanyEquipment(form,values){
@@ -2322,9 +2597,9 @@ function shotDetail(id){
 function nowLocal(d=new Date()){return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16)}
 function localDatetimeInput(value){if(!value)return nowLocal();const d=new Date(value);if(Number.isNaN(d.getTime()))return value;return nowLocal(d)}
 function timeForm(id){const e=state.crew.find(e=>e.id===id)||{name:'',start:nowLocal(new Date(Date.now()-8*3600e3)),end:nowLocal(),lunch:automaticLunch(),notes:''};showModal(`${modalHead(id?'Edit Crew Time':'New Crew Time')}<form data-form="time" data-id="${esc(id||'')}"><label class="field">Crew member<input name="name" required maxlength="70" value="${esc(e.name)}" placeholder="Person's name" list="crewNames"></label><datalist id="crewNames">${state.roster.map(p=>`<option value="${esc(p.name)}"></option>`).join('')}</datalist><div class="form-grid"><label class="field">Clock in<input name="start" type="datetime-local" required value="${esc(localDatetimeInput(e.start))}"></label><label class="field">Clock out<input name="end" type="datetime-local" ${id&&!e.end?'':'required'} value="${id&&!e.end?'':esc(localDatetimeInput(e.end))}"></label></div><label class="field">Unpaid lunch (minutes)<input name="lunch" type="number" min="0" max="300" value="${esc(e.lunch)}"></label><label class="field">Notes<textarea name="notes">${esc(e.notes)}</textarea></label><div class="modal-footer"><button type="button" class="btn ghost" data-action="close-modal">Cancel</button><button type="submit" class="btn primary">Save Hours</button></div></form>${id?`<div class="lightline"><button class="btn micro danger" data-action="delete-time" data-id="${id}">Delete time entry</button></div>`:''}`)}
-function photoChoose(kind,shotId){pendingPhotoKind=kind;pendingPhotoShot=shotId||'';if(!shotId&&state.shots.length){showModal(`${modalHead('Attach Photo to Shot')}<div class="field">Select bore shot<select id="photoShotPicker"><option value="">Unassigned / general job photo</option>${state.shots.map(s=>`<option value="${s.id}">${esc(s.name)} — ${feet(s)} ft</option>`).join('')}</select></div><div class="action-row"><button class="btn primary full" data-action="start-picked-photo">Continue to ${kind==='camera'?'Camera':'Gallery'}</button></div>`)}else {closeModal();$(kind==='camera'?'#cameraFile':'#galleryFile').click()}}
+function photoChoose(kind,shotId){pendingPhotoKind=kind;pendingPhotoShot=shotId||'';pendingPhotoJobId=state.activeJobId;if(!shotId&&state.shots.length){showModal(`${modalHead('Attach Photo to Shot')}<div class="field">Select bore shot<select id="photoShotPicker"><option value="">Unassigned / general job photo</option>${state.shots.map(s=>`<option value="${s.id}">${esc(s.name)} — ${feet(s)} ft</option>`).join('')}</select></div><div class="action-row"><button class="btn primary full" data-action="start-picked-photo">Continue to ${kind==='camera'?'Camera':'Gallery'}</button></div>`)}else {closeModal();$(kind==='camera'?'#cameraFile':'#galleryFile').click()}}
 function startPickedPhoto(){pendingPhotoShot=$('#photoShotPicker')?.value||'';closeModal();$(pendingPhotoKind==='camera'?'#cameraFile':'#galleryFile').click()}
-function photoDetail(id){const p=photos.find(p=>p.id===id);if(!p)return;const s=state.shots.find(s=>s.id===p.shotId);const hasLoc=p.lat!=null&&p.lon!=null;const coordinates=hasLoc?`${Number(p.lat).toFixed(6)}, ${Number(p.lon).toFixed(6)}`:'GPS unavailable';const address=s?.address||'';showModal(`${modalHead('Jobsite Photo')}<img src="${p.dataUrl}" alt="Captured site photo" class="photo-preview"><div class="card spaced">${kv('Shot',esc(s?.name||'General job photo'))}${kv(p.kind==='gallery'?'Added at':'Recorded at',esc(fullDate(p.addedAt)))}${kv('Address',esc(address||'No address provided'))}${kv('GPS',esc(coordinates))}${hasLoc?kv('Estimated accuracy',`${fmt(p.accuracy,1)} meters`):''}</div><div class="action-row">${hasLoc?`<a class="btn ghost" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.lat},${p.lon}`)}">Map coordinates</a>`:''}${hasLoc&&s&&!coordsValid(s)?`<button class="btn cyan" data-action="use-photo-gps" data-id="${p.id}">Use GPS for Shot</button>`:''}<button class="btn danger" data-action="delete-photo" data-id="${p.id}">Delete Photo</button></div>`)}
+function photoDetail(id){const p=photos.find(p=>p.id===id&&belongsToJob(p));if(!p)return;const s=state.shots.find(s=>s.id===p.shotId);const hasLoc=p.lat!=null&&p.lon!=null;const coordinates=hasLoc?`${Number(p.lat).toFixed(6)}, ${Number(p.lon).toFixed(6)}`:'GPS unavailable';const address=s?.address||'';showModal(`${modalHead('Jobsite Photo')}<img src="${p.dataUrl}" alt="Captured site photo" class="photo-preview"><div class="card spaced">${kv('Shot',esc(s?.name||'General job photo'))}${kv(p.kind==='gallery'?'Added at':'Recorded at',esc(fullDate(p.addedAt)))}${kv('Address',esc(address||'No address provided'))}${kv('GPS',esc(coordinates))}${hasLoc?kv('Estimated accuracy',`${fmt(p.accuracy,1)} meters`):''}</div><div class="action-row">${hasLoc?`<a class="btn ghost" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.lat},${p.lon}`)}">Map coordinates</a>`:''}${hasLoc&&s&&!coordsValid(s)?`<button class="btn cyan" data-action="use-photo-gps" data-id="${p.id}">Use GPS for Shot</button>`:''}<button class="btn danger" data-action="delete-photo" data-id="${p.id}">Delete Photo</button></div>`)}
 function getPosition(){return new Promise((resolve,reject)=>{if(!navigator.geolocation)return reject(new Error('GPS unavailable in this browser.'));navigator.geolocation.getCurrentPosition(pos=>resolve({lat:pos.coords.latitude,lon:pos.coords.longitude,accuracy:pos.coords.accuracy}),err=>reject(new Error(err.code===1?'Location permission denied.':'Unable to get GPS position.')),{enableHighAccuracy:true,timeout:13000,maximumAge:0})})}
 async function gpsFill(target){try{notify('Requesting current GPS position…');const pos=await getPosition();const lat=$(`#${target}Lat`),lon=$(`#${target}Lon`);if(!lat||!lon)return;lat.value=pos.lat.toFixed(6);lon.value=pos.lon.toFixed(6);notify(`GPS captured (accuracy ±${Math.round(pos.accuracy)} m)`)}catch(err){notify(err.message+' Enter coordinates manually if needed.')}}
 function lookupAddressCoordinates(address){
@@ -2407,11 +2682,11 @@ async function resolveShotAfterSave(id){
  }catch(e){notify('Shot saved, but GPS lookup failed: '+e.message)}
 }
 async function compressImage(file){if(file.size>30*1024*1024)throw new Error('Image is too large (30 MB limit).');return new Promise((resolve,reject)=>{const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{URL.revokeObjectURL(url);const scale=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*scale));c.height=Math.max(1,Math.round(img.naturalHeight*scale));const ctx=c.getContext('2d');ctx.drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.76))};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Could not read image.'))};img.src=url})}
-async function addPhoto(file){if(!file||!file.type.startsWith('image/'))return notify('Please select a photo file.');notify('Saving jobsite photo…');let pos=null;try{pos=await getPosition()}catch(e){console.info('Saving without GPS:',e.message)}try{const dataUrl=await compressImage(file);const rec={id:uid(),shotId:pendingPhotoShot||'',kind:pendingPhotoKind,addedAt:new Date().toISOString(),lat:pos?.lat??null,lon:pos?.lon??null,accuracy:pos?.accuracy??null,dataUrl};await photoDB('put',rec);await refreshPhotos();closeModal();setPage('photos');notify(pos?`Photo saved with GPS (±${Math.round(pos.accuracy)} m)`:'Photo saved without GPS. You can add shot coordinates manually.')}catch(e){notify('Photo could not be saved: '+e.message)}}
+async function addPhoto(file){if(!file||!file.type.startsWith('image/'))return notify('Please select a photo file.');notify('Saving jobsite photo…');let pos=null;try{pos=await getPosition()}catch(e){console.info('Saving without GPS:',e.message)}try{const dataUrl=await compressImage(file);const rec={id:uid(),jobId:pendingPhotoJobId||state.activeJobId,shotId:pendingPhotoShot||'',kind:pendingPhotoKind,addedAt:new Date().toISOString(),lat:pos?.lat??null,lon:pos?.lon??null,accuracy:pos?.accuracy??null,dataUrl};await photoDB('put',rec);await refreshPhotos();closeModal();setPage('photos');notify(pos?`Photo saved with GPS (±${Math.round(pos.accuracy)} m)`:'Photo saved without GPS. You can add shot coordinates manually.')}catch(e){notify('Photo could not be saved: '+e.message)}}
 function safeFile(s){return String(s).replace(/[^a-z0-9-_]/gi,'_').slice(0,60)}
 function downloadBlob(name,content,type){const blob=new Blob([content],{type});if(window.BoreLabNative?.saveBase64File){const reader=new FileReader();reader.onload=()=>{const base64=String(reader.result).split(',')[1];window.BoreLabNative.saveBase64File(name,type,base64)};reader.readAsDataURL(blob);return}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000)}
 async function exportBackup(){try{flushPendingDraft();persistGuidedDraft();await refreshPhotos();let pendingGuided=null;try{pendingGuided=JSON.parse(localStorage.getItem(GUIDED_DRAFT_KEY)||'null')}catch{}downloadBlob(`BoreLab_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({type:'borelab-backup',version:3,createdAt:new Date().toISOString(),state,photos,drafts:draftStore(),guidedDraft:pendingGuided},null,2),'application/json');notify('Backup downloaded — keep it somewhere safe.')}catch(e){notify('Could not export: '+e.message)}}
-async function importBackup(file){try{const obj=JSON.parse(await file.text());if(obj.type!=='borelab-backup'||!obj.state||!Array.isArray(obj.state.shots)||!Array.isArray(obj.photos))throw new Error('This is not a valid BoreLab backup.');if(!confirm('Replace all current job data, photos and time entries with this backup?'))return;await photoDB('clear');for(const p of obj.photos){if(typeof p.dataUrl==='string'&&p.dataUrl.startsWith('data:image/'))await photoDB('put',p)}state=obj.state;if(!Array.isArray(state.roster))state.roster=[];if(!Array.isArray(state.equipment))state.equipment=[];if(!Array.isArray(state.reels))state.reels=[];if(!Array.isArray(state.pipeMoves))state.pipeMoves=[];if(!Array.isArray(state.pipeReservations))state.pipeReservations=[];if(!Array.isArray(state.history))state.history=[];if(!Array.isArray(state.manualLinks))state.manualLinks=[];if(typeof state.jobAddress!=='string')state.jobAddress='';if(typeof state.jobNotes!=='string')state.jobNotes='';if(!BORELAB_PAGES.has(state.lastScreen))state.lastScreen='home';if(state.uxMode!=='advanced'&&state.uxMode!=='simple')state.uxMode='simple';if(typeof state.fieldMode!=='boolean')state.fieldMode=false;if(typeof state.largeText!=='boolean')state.largeText=false;if(!Array.isArray(state.uxFavorites))state.uxFavorites=['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'];if(!Array.isArray(state.mudProducts))state.mudProducts=[];if(!Array.isArray(state.mudSelectedIds))state.mudSelectedIds=[];if(!Array.isArray(state.mudLogs))state.mudLogs=[];if(!Array.isArray(state.mudStockMoves))state.mudStockMoves=[];if(!state.mudTank||typeof state.mudTank!=='object')state.mudTank={capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'not-recorded',notes:''};if(!['today','job'].includes(state.reportScope))state.reportScope='today';if(!Array.isArray(state.selectedCrewIds))state.selectedCrewIds=[];try{
+async function importBackup(file){try{const obj=JSON.parse(await file.text());if(obj.type!=='borelab-backup'||!obj.state||!Array.isArray(obj.state.shots)||!Array.isArray(obj.photos))throw new Error('This is not a valid BoreLab backup.');if(!confirm('Replace all current job data, photos and time entries with this backup?'))return;await photoDB('clear');for(const p of obj.photos){if(typeof p.dataUrl==='string'&&p.dataUrl.startsWith('data:image/'))await photoDB('put',p)}state=obj.state;if(!Array.isArray(state.roster))state.roster=[];if(!Array.isArray(state.equipment))state.equipment=[];if(!Array.isArray(state.reels))state.reels=[];if(!Array.isArray(state.pipeMoves))state.pipeMoves=[];if(!Array.isArray(state.pipeReservations))state.pipeReservations=[];if(!Array.isArray(state.history))state.history=[];if(!Array.isArray(state.manualLinks))state.manualLinks=[];if(typeof state.jobAddress!=='string')state.jobAddress='';if(typeof state.jobNotes!=='string')state.jobNotes='';if(!BORELAB_PAGES.has(state.lastScreen))state.lastScreen='home';if(state.uxMode!=='advanced'&&state.uxMode!=='simple')state.uxMode='simple';if(typeof state.fieldMode!=='boolean')state.fieldMode=false;if(typeof state.largeText!=='boolean')state.largeText=false;if(!Array.isArray(state.uxFavorites))state.uxFavorites=['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'];if(!Array.isArray(state.mudProducts))state.mudProducts=[];if(!Array.isArray(state.mudSelectedIds))state.mudSelectedIds=[];if(!Array.isArray(state.mudLogs))state.mudLogs=[];if(!Array.isArray(state.mudStockMoves))state.mudStockMoves=[];if(!state.mudTank||typeof state.mudTank!=='object')state.mudTank={capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'not-recorded',notes:''};if(!['today','job'].includes(state.reportScope))state.reportScope='today';if(!Array.isArray(state.selectedCrewIds))state.selectedCrewIds=[];initializeJobs();try{
  localStorage.removeItem(DRAFTS_KEY);localStorage.removeItem(GUIDED_DRAFT_KEY);
  if(obj.drafts&&typeof obj.drafts==='object'&&!Array.isArray(obj.drafts)&&JSON.stringify(obj.drafts).length<150000)
   localStorage.setItem(DRAFTS_KEY,JSON.stringify(obj.drafts));
@@ -2424,7 +2699,7 @@ function buildPdfPayload(snapshot=null,requestedDay=''){
  const day=requestedDay||todayLocal(),scope=snapshot?(snapshot.kind==='job'?'job':'daily'):(requestedDay?'daily':state.reportScope==='job'?'job':'daily');
  const r=snapshot?{shots:snapshot.shots||[],crew:snapshot.crew||[],pipe:snapshot.pipe||[],photos:snapshot.photos||[],mud:snapshot.mud||[],mudStock:snapshot.mudStock||[]} :dailyRecords(day,scope==='job');
  const machines=snapshot?.equipment||state.equipment,reels=snapshot?.reels||state.reels;
- const title=snapshot?(snapshot.kind==='job'?'Saved Job Snapshot':'Saved Daily Closeout'):(scope==='job'?'Job Activity Report':'Daily Field Report');
+ const title=snapshot?(snapshot.kind==='job'?'Saved Job Snapshot':snapshot.kind==='multi'?'Multi-Job Daily Report':'Saved Daily Closeout'):(scope==='job'?'Job Activity Report':'Daily Field Report');
  const shotPipe=sh=>{
   const entries=r.pipe.filter(m=>m.type==='installed'&&m.shotId===sh.id);
   if(entries.length)return entries.reduce((a,x)=>a+Number(x.feet||0),0);
@@ -2448,13 +2723,13 @@ function buildPdfPayload(snapshot=null,requestedDay=''){
   checks:snapshot?.checks||[],
   summary:{shots:`${r.shots.length} (${complete.length} complete)`,
    completedFeet:`${fmt(complete.reduce((a,x)=>a+feet(x),0),1)} ft`,
-   plannedPipe:`${fmt(r.shots.reduce((a,x)=>a+feet(x)+Number(snapshot?.allowance??extra()),0),1)} ft`,
+   plannedPipe:`${fmt(r.shots.reduce((a,x)=>a+feet(x)+Number(x.plannedAllowance??snapshot?.allowance??extra()),0),1)} ft`,
    actualPipe:`${fmt(actualTotal,1)} ft (from records; check reel ledger)`,
    crewHours:`${fmt(r.crew.reduce((a,x)=>a+hours(x),0),2)} h`,
    photos:String(r.photos.length),mudBatches:String(r.mud.length),mudStockMoves:String(r.mudStock.length)},
   shots:r.shots.map(sh=>({
    name:sh.name||'Unnamed bore',status:sh.status||'',feet:fmt(sh.feet,1),
-   plannedPipe:fmt(Number(sh.feet||0)+Number(snapshot?.allowance??extra()),1),
+   plannedPipe:fmt(Number(sh.feet||0)+Number(sh.plannedAllowance??snapshot?.allowance??extra()),1),
    actualPipe:shotPipe(sh)!=null?fmt(shotPipe(sh),1):'Not entered',
    notes:sh.notes||'',address:sh.address||(sh.lat&&sh.lon?`${sh.lat}, ${sh.lon}`:'Unknown'),
    equipment:(sh.equipmentIds||[]).map(id=>machines.find(x=>x.id===id)).filter(Boolean).map(x=>x.name).join(', ')||'Not recorded',
@@ -2476,7 +2751,7 @@ async function exportRealPdf(snapshotId='',specificDay=''){
  if(snapshotId&&!saved)return notify('Saved history record not found.');
  const payload=buildPdfPayload(saved,specificDay);
  const time=saved?.day||specificDay||todayLocal();
- const file=`BoreLab_${saved?.kind==='job'?'Job_History':saved?'Closeout':state.reportScope==='job'?'Job_Report':'Daily_Report'}_${safeFile(payload.job)}_${time}.pdf`;
+ const file=`BoreLab_${saved?.kind==='multi'?'Multi_Job_Daily':saved?.kind==='job'?'Job_History':saved?'Closeout':state.reportScope==='job'?'Job_Report':'Daily_Report'}_${safeFile(payload.job)}_${time}.pdf`;
  if(window.BoreLabNative?.exportPdf){
   try{
    window.BoreLabNative.exportPdf(file,JSON.stringify(payload));
@@ -2561,7 +2836,7 @@ function setShotStatus(id){
  save();closeModal();render();
  notify(`${shot.name} is now ${shot.status==='complete'?'complete':shot.status==='progress'?'in progress':'pending'}.`);
 }
-async function resetData(demo){if(!confirm('This will replace ALL locally saved shots, photos, time entries, and closeout history. Continue?'))return;await photoDB('clear');try{localStorage.removeItem(DRAFTS_KEY);localStorage.removeItem(GUIDED_DRAFT_KEY)}catch{}screenStack=[];try{sessionStorage.removeItem('borelab-screen-stack-v1')}catch{}state=seed();if(!demo){state.demo=false;state.shots=[];state.jobName='My HDD Job'}save();await refreshPhotos();setPage('home',{back:true});notify(demo?'Demo reloaded.':'Fresh job created.')}
+async function resetData(demo){if(!confirm('This will replace ALL locally saved shots, photos, time entries, and closeout history. Continue?'))return;await photoDB('clear');try{localStorage.removeItem(DRAFTS_KEY);localStorage.removeItem(GUIDED_DRAFT_KEY)}catch{}screenStack=[];try{sessionStorage.removeItem('borelab-screen-stack-v1')}catch{}state=seed();if(!demo){state.demo=false;state.shots=[];state.jobName='My HDD Job'}initializeJobs();save();await refreshPhotos();setPage('home',{back:true});notify(demo?'Demo reloaded.':'Fresh job created.')}
 async function saveShop(){
  const address=document.querySelector('#shopAddress').value.trim();
  let lat=document.querySelector('#shopLat').value.trim(),lon=document.querySelector('#shopLon').value.trim();
@@ -2587,6 +2862,23 @@ switch(action){
  case 'nav-back':borelabGoBack();break;
  case 'open-search':setPage('search');break;
  case 'open-job':setPage('job');break;
+ case 'new-job':showNewJobForm();break;
+ case 'switch-job':switchActiveJob(id);break;
+ case 'review-job-day':if(switchActiveJob(id)){closeoutDay=closeoutDay||todayLocal();setPage('closeout');}break;
+ case 'save-multi-closeout':saveMultiDayCloseout(false);break;
+ case 'export-multi-closeout':saveMultiDayCloseout(true);break;
+ case 'archive-job':{
+  const j=state.jobs.find(x=>x.id===id);
+  if(!j||j.id===state.activeJobId)return notify('Switch jobs before archiving.');
+  if(j.crew.some(e=>!e.end))return notify('Check out crew hours on this job before archiving.');
+  if(confirm('Archive '+j.jobName+'? Its records stay saved and can be restored.')){
+   j.archived=true;save();render();notify('Job archived.');}
+  break;
+ }
+ case 'restore-job':{
+  const j=state.jobs.find(x=>x.id===id);
+  if(j){j.archived=false;save();render();notify('Job restored.');}break;
+ }
  case 'open-settings':setPage('settings');break;
  case 'edit-job':if(page!=='job')setPage('job');editActiveJob();break;
  case 'shot-quick':quickBoreActions(id);break;
@@ -2691,7 +2983,7 @@ switch(action){
  default:break;
 }
 }catch(e){console.error(e);notify('Could not complete action: '+e.message)}});
-document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='job-details'){
+document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='new-job'){createNewJob(values);return;}if(form.dataset.form==='job-details'){
  const name=String(values.name||'').trim();if(!name)return notify('Job name is required.');
  state.jobName=name.slice(0,90);state.jobAddress=String(values.address||'').trim().slice(0,250);
  state.jobNotes=String(values.notes||'').trim().slice(0,2000);state.demo=false;
@@ -2732,7 +3024,7 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
  state.demo=false;clearFormDraft(form);save();closeModal();render();notify('Bore shot and equipment saved.');
  resolveShotAfterSave(shot.id);
 }else if(form.dataset.form==='time'){
- const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);clearFormDraft(form);save();closeModal();render();notify('Crew time saved.');
+ const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),jobId:state.activeJobId,memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(overlappingCrewTime(entry))return notify('Crew time overlaps a shift on another job. Adjust the times before saving.');if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);clearFormDraft(form);save();closeModal();render();notify('Crew time saved.');
 }});
 document.addEventListener('input',e=>{
  if(e.target.matches('[data-universal-search]')){universalQuery=e.target.value.slice(0,100);const el=$('#universalSearchResults');if(el)el.innerHTML=renderSearchResults();return;}
