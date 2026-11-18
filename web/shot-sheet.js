@@ -5,7 +5,7 @@ const api=()=>window.BoreLabAssistantBridge;
 const conduits=()=>window.BoreLabConduits;
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clamp=(x,n=250)=>String(x??'').trim().slice(0,n);
-let pendingRows=[],ocrText='',sourceError='',sourceName='',scanning=false,scanPreview='';
+let pendingRows=[],ocrText='',sourceError='',sourceName='',scanning=false,scanPreview='',scannerSource='';
 const root=document.createElement('div');root.id='bl-shot-sheet';root.hidden=true;document.body.appendChild(root);
 const css=document.createElement('style');
 css.textContent='#bl-shot-sheet[hidden]{display:none!important}#bl-shot-sheet{position:fixed;inset:0;overflow:auto;overscroll-behavior:contain;z-index:10500;background:var(--bg,#09141f);color:var(--text,#f4f8fb);font-family:system-ui,sans-serif;padding:18px 14px 80px}#bl-shot-sheet *{box-sizing:border-box}#bl-shot-sheet .bls-wrap{max-width:760px;margin:auto}#bl-shot-sheet button{cursor:pointer}#bl-shot-sheet .bls-header{display:flex;gap:12px;align-items:center;margin-bottom:15px}#bl-shot-sheet h1{font-size:24px;margin:0}#bl-shot-sheet h2{font-size:17px}#bl-shot-sheet .bls-card{background:var(--surface2,#162839);border:1px solid var(--line,#294258);padding:14px;border-radius:16px;margin:12px 0}#bl-shot-sheet .bls-muted{font-size:12px;color:var(--muted,#95acbd);line-height:1.5}#bl-shot-sheet .bls-btn{border:1px solid var(--line,#294258);color:var(--text,#f4f8fb);background:var(--surface3,#203448);border-radius:11px;padding:11px 13px;font-weight:750}#bl-shot-sheet .bls-primary{border-color:transparent;background:var(--accent,#ff992c);color:#10202b}#bl-shot-sheet .bls-row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}#bl-shot-sheet .bls-shot{border-bottom:1px solid var(--line,#294258);padding:13px 0}#bl-shot-sheet .bls-shot:last-child{border-bottom:0}#bl-shot-sheet .bls-fields{display:grid;grid-template-columns:minmax(110px,1fr) minmax(75px,.4fr);gap:9px}#bl-shot-sheet .bls-fields .bls-wide{grid-column:1/-1}#bl-shot-sheet label{font-size:12px;font-weight:750;display:block}#bl-shot-sheet input[type=text],#bl-shot-sheet input[type=number],#bl-shot-sheet textarea{display:block;width:100%;margin-top:5px;min-width:0;padding:11px;border:1px solid var(--line,#294258);border-radius:10px;background:var(--surface,#111f2d);color:var(--text)}#bl-shot-sheet input[type=checkbox]{width:17px;height:17px}#bl-shot-sheet .bls-status{margin:12px 0;font-size:13px}#bl-shot-sheet .bls-raw{max-height:160px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-size:11px}#bl-shot-sheet .bls-finish{position:sticky;bottom:0;background:var(--bg,#09141f);padding:9px 0;border-top:1px solid var(--line,#294258)}';
@@ -111,15 +111,16 @@ function captureEditorDrafts(){
   selected:!!row.querySelector('[data-bls-selected]')?.checked
  }));
 }
-function openScanner(){
+function openScanner(button){
  if(!api())return;
+ scannerSource=button?.closest('form[data-form]')?.dataset.form||'';
  pendingRows=[];ocrText='';sourceError='';sourceName='';scanning=false;scanPreview='';
  root.hidden=false;
  document.body.style.overflow='hidden';
  render();
  root.scrollTop=0;
 }
-function closeScanner(){root.hidden=true;root.innerHTML='';scanPreview='';document.body.style.overflow=''}
+function closeScanner(){root.hidden=true;root.innerHTML='';scanPreview='';scannerSource='';document.body.style.overflow=''}
 function render(){
  const job=api()?.state()?.jobName||'Active job';
  root.innerHTML='<div class="bls-wrap"><div class="bls-header"><button type="button" class="bls-btn" data-bls-action="back">‹ Back</button><div><small class="bls-muted">BORELAB FIELD / IMPORT</small><h1>Scan Shot Sheet</h1></div></div>'+
@@ -218,7 +219,10 @@ function importReviewed(){
  if(!drafts.length){sourceError=duplicates.length?'All selected shots already exist. Nothing imported.':'No valid selected shots.';renderStatusOnly();return}
  state.shots.push(...drafts);
  state.demo=false;
- api().save();closeScanner();api().render();
+ api().save();const originatingForm=scannerSource;closeScanner();
+ if(originatingForm==='guided-bore')api().clearGuidedDraft?.();
+ if(originatingForm==='guided-bore'||originatingForm==='shot')api().closeModal?.();
+ api().render();
  api().notify('Imported '+drafts.length+' reviewed shot(s).'+(duplicates.length?' Skipped '+duplicates.length+' duplicate(s).':''));
 }
 function renderStatusOnly(){
@@ -238,7 +242,7 @@ root.addEventListener('click',e=>{
  const remove=e.target.closest('[data-bls-remove]');
  if(remove){remove.closest('[data-bls-row]')?.remove();captureEditorDrafts()}
 });
-document.addEventListener('click',e=>{if(e.target.closest('[data-sheet-action="open"]'))openScanner()});
+document.addEventListener('click',e=>{const trigger=e.target.closest('[data-sheet-action="open"]');if(trigger)openScanner(trigger)});
 root.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();closeScanner()}});
 window.BoreLabShotSheet={parseSheet,parseConduitSpec,parseSizeSpecs,lineAddress,lengthOnLine};
 })();
