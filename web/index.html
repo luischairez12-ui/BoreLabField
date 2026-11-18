@@ -258,24 +258,90 @@ html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;borde
 .manual-missing{color:var(--muted);font-size:12px;font-weight:700}
 @media(min-width:650px){.manual-machine-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
+
+/* BoreLab Field v0.10: teach through actions, not a wall of utilities. */
+.ux-welcome{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 18px}
+.ux-welcome h1{font-size:clamp(25px,5.8vw,35px);letter-spacing:-.9px}
+.ux-welcome .eyebrow{letter-spacing:1.15px}
+.ux-job-card{background:var(--surface);border:1px solid var(--line);border-left:5px solid #0b9e94;border-radius:18px;padding:16px;box-shadow:var(--shadow);display:grid;gap:14px}
+.ux-job-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ux-job-title h2{font-size:clamp(20px,4.8vw,26px)}
+.ux-job-title p{font-size:12px;color:var(--muted);margin-top:3px}
+.ux-progress-track{height:11px;border-radius:99px;background:var(--surface3);overflow:hidden}
+.ux-progress-fill{height:100%;background:linear-gradient(90deg,#008d8d,#15b9a3);border-radius:99px}
+.ux-job-meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ux-job-meta span{font-size:12px;color:var(--muted)}
+.ux-job-meta strong{font-size:15px;color:var(--text);display:block;margin-top:3px}
+.ux-section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:22px 0 12px}
+.ux-section-heading h2{font-size:19px}
+.ux-section-heading .btn{white-space:nowrap}
+.ux-tile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.ux-tile{min-width:0;min-height:102px;display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:14px 11px;text-align:left;color:var(--text);box-shadow:var(--shadow);transition:transform .1s ease,border-color .1s ease}
+.ux-tile:active{transform:scale(.98)}.ux-tile:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.ux-tile-icon{display:grid;place-items:center;flex-shrink:0;width:42px;height:42px;border-radius:13px;background:var(--surface2);font-size:26px;color:var(--accent)}
+.ux-tile:nth-child(4n+1) .ux-tile-icon{background:#fff0dc;color:#a75507}
+.ux-tile:nth-child(4n+2) .ux-tile-icon{background:#e2f5f1;color:#057967}
+.ux-tile:nth-child(4n+3) .ux-tile-icon{background:#e6f0fe;color:#2768b0}
+.ux-tile:nth-child(4n+4) .ux-tile-icon{background:#eff0f5;color:#586778}
+.ux-tile strong{display:block;font-size:14px;line-height:1.15}
+.ux-tile small{display:block;color:var(--muted);font-size:11px;line-height:1.3;margin-top:4px}
+.ux-next{border:1px solid #e6c999;border-radius:16px;background:linear-gradient(120deg,#fff6e5,#ffe6bc);color:#442b12;padding:15px;display:flex;gap:12px;align-items:center;margin-top:15px}
+.ux-next strong{display:block;color:#8d4809;font-size:11px;letter-spacing:.8px;text-transform:uppercase}
+.ux-next p{color:#422f1d;font-size:13px;margin-top:4px}
+.ux-next .btn{min-width:85px}
+.ux-tools-section{margin:18px 0}
+.ux-tools-section h2{font-size:15px;margin:0 0 10px}
+.ux-details{border:1px solid var(--line);border-radius:15px;background:var(--surface);padding:13px 14px;margin-top:18px}
+.ux-details>summary{font-weight:800;cursor:pointer;padding:3px 0;list-style-position:inside}
+.ux-details[open]>summary{margin-bottom:12px}
+.ux-settings-group{border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:14px;margin:12px 0}
+.ux-settings-group summary{cursor:pointer;font-size:15px;font-weight:850;padding:2px 0;list-style-position:inside}
+.ux-settings-group[open] summary{margin-bottom:12px}
+.ux-mode-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ux-mode-picker label{padding:10px;border-radius:12px;background:var(--surface2);font-size:13px;display:flex;align-items:center;gap:7px}
+.ux-mode-picker input{accent-color:var(--accent)}
+.ux-favorite-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.ux-favorite-grid label{display:flex;align-items:center;gap:8px;min-height:46px;border:1px solid var(--line);padding:9px;border-radius:10px;font-size:12px}
+.ux-favorite-grid input{accent-color:var(--accent);width:18px;height:18px}
+.ux-guide-step{font-size:12px;color:var(--muted);font-weight:800;margin-bottom:10px}
+.ux-guide-track{display:flex;gap:6px;margin-bottom:18px}
+.ux-guide-track span{height:6px;border-radius:10px;flex:1;background:var(--surface3)}
+.ux-guide-track span.active{background:#008d8d}
+.ux-guide-big-input{font-size:35px!important;font-weight:900;min-height:72px;text-align:center}
+.ux-guide-tip{border-radius:13px;background:var(--surface2);border-left:4px solid var(--cyan);padding:12px;font-size:12px;margin:12px 0;line-height:1.45}
+.ux-settings-intro{font-size:13px;color:var(--muted);margin:7px 0 14px}
+html[data-field-mode="on"] .btn,html[data-field-mode="on"] .icon-btn,html[data-field-mode="on"] .ux-tile,html[data-field-mode="on"] .nav-link,html[data-field-mode="on"] .quick{min-height:54px}
+html[data-field-mode="on"] input,html[data-field-mode="on"] select,html[data-field-mode="on"] textarea{min-height:50px}
+html[data-field-mode="on"] .ux-tile{min-height:122px}
+html[data-large-text="on"]{font-size:18px}
+html[data-large-text="on"] .smalltext{font-size:15px}
+html[data-large-text="on"] .tiny,html[data-large-text="on"] .ux-tile small{font-size:13px}
+html[data-large-text="on"] .ux-tile strong{font-size:16px}
+html[data-large-text="on"] .nav-link small{font-size:13px}
+html[data-theme="dark"] .ux-next{background:linear-gradient(120deg,#443019,#573718);border-color:#966c2c;color:#fff2da}
+html[data-theme="dark"] .ux-next strong,html[data-theme="dark"] .ux-next p{color:#fff2da}
+html[data-theme="dark"] .ux-tile:nth-child(n) .ux-tile-icon{background:#263c4a;color:#ffad4d}
+@media(max-width:365px){.ux-tile{padding:10px 8px;gap:7px}.ux-tile-icon{width:38px;height:38px}.ux-tile strong{font-size:12px}.ux-tile small{font-size:10px}}
+@media(min-width:700px){.ux-tile-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <button class="icon-btn small" data-action="open-settings" aria-label="Settings">☰</button>
+      <button class="icon-btn small" data-page="tools" aria-label="All field tools">☰</button>
       <div class="brand"><div class="brand-mark">B<span>↗</span></div><div><strong>BoreLab <em>Field</em></strong><small>HDD CREW OPERATIONS</small></div></div>
       <div class="top-date" id="topDate"></div>
     </header>
     <main id="main" tabindex="-1"></main>
     <nav class="bottom-nav" aria-label="Main navigation">
-      <button class="nav-link active" data-page="home"><span class="nav-icon">⌂</span><small>Home</small></button>
-      <button class="nav-link" data-page="planner"><span class="nav-icon">⌁</span><small>Planner</small></button>
-      <button class="new-shot-nav" data-action="new-shot" aria-label="New bore shot">+</button>
-      <button class="nav-link" data-page="photos"><span class="nav-icon">▣</span><small>Photos</small></button>
-      <button class="nav-link" data-page="crew"><span class="nav-icon">◷</span><small>Crew</small></button>
-    </nav>
+      <button class="nav-link active" data-page="home" aria-label="Home"><span class="nav-icon">⌂</span><small>Home</small></button>
+      <button class="nav-link" data-page="planner" aria-label="Bores and planner"><span class="nav-icon">⌁</span><small>Bores</small></button>
+      <button class="new-shot-nav" data-action="new-shot" aria-label="Add a bore shot" title="Add a bore">+</button>
+      <button class="nav-link" data-page="tools" aria-label="All field tools"><span class="nav-icon">▦</span><small>Tools</small></button>
+      <button class="nav-link" data-page="settings" aria-label="Settings"><span class="nav-icon">⚙</span><small>Settings</small></button>
+    </nav>nav>
   </div>
   <div id="modalRoot"></div>
   <div id="toast" role="status" aria-live="polite"></div>
@@ -290,7 +356,7 @@ html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;borde
 'use strict';
 const KEY='borelab-field-v0.1'; // retain existing data key across upgrades
 const uid=()=>globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`;
-const seed=()=>({version:1,demo:true,jobName:'Demo Job · South Glades',allowance:10,pipeAvailable:345,shopName:'',shopAddress:'',shopLat:'',shopLon:'',routeMode:'toward',shotDurationRate:45,setupMinutes:25,roster:[],selectedCrewIds:[],equipment:[],reels:[],pipeMoves:[],pipeReservations:[],history:[],manualLinks:[],mudProducts:[],mudSelectedIds:[],mudLogs:[],mudStockMoves:[],mudTank:{capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'unknown',notes:''},reportScope:'today',shots:[{id:uid(),name:'Shot 01',feet:175,address:'',lat:'',lon:'',notes:'',status:'complete',completedAt:new Date().toISOString()},{id:uid(),name:'Shot 02',feet:155,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 03',feet:90,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 04',feet:80,address:'',lat:'',lon:'',notes:'',status:'planned'}],crew:[]});
+const seed=()=>({version:1,demo:true,jobName:'Demo Job · South Glades',allowance:10,pipeAvailable:345,shopName:'',shopAddress:'',shopLat:'',shopLon:'',routeMode:'toward',shotDurationRate:45,setupMinutes:25,roster:[],selectedCrewIds:[],equipment:[],reels:[],pipeMoves:[],pipeReservations:[],history:[],manualLinks:[],uxMode:'simple',fieldMode:false,largeText:false,uxFavorites:['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'],mudProducts:[],mudSelectedIds:[],mudLogs:[],mudStockMoves:[],mudTank:{capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'unknown',notes:''},reportScope:'today',shots:[{id:uid(),name:'Shot 01',feet:175,address:'',lat:'',lon:'',notes:'',status:'complete',completedAt:new Date().toISOString()},{id:uid(),name:'Shot 02',feet:155,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 03',feet:90,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 04',feet:80,address:'',lat:'',lon:'',notes:'',status:'planned'}],crew:[]});
 let state;
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');state=s&&Array.isArray(s.shots)?s:seed()}catch{state=seed()}
 if(!Array.isArray(state.roster))state.roster=[];
@@ -310,6 +376,12 @@ if(typeof state.autoLunchEnabled!=='boolean')state.autoLunchEnabled=false;
 if(!Number.isFinite(Number(state.defaultLunchMinutes)))state.defaultLunchMinutes=60;
 state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(state.defaultLunchMinutes)));
 if(state.theme!=='dark'&&state.theme!=='daylight')state.theme='daylight';
+if(state.uxMode!=='simple'&&state.uxMode!=='advanced')state.uxMode='simple';
+if(typeof state.fieldMode!=='boolean')state.fieldMode=false;
+if(typeof state.largeText!=='boolean')state.largeText=false;
+if(!Array.isArray(state.uxFavorites))state.uxFavorites=['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'];
+state.uxFavorites=[...new Set(state.uxFavorites)].filter(x=>typeof x==='string').slice(0,6);
+if(!state.uxFavorites.length)state.uxFavorites=['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'];
 let page='home',modal='',photos=[],pendingPhotoShot='',pendingPhotoKind='camera',geocodeWaitUntil=0,toastTimeout;
 let resolvingAddresses=false,attemptedAutoAddressLookup=false,lookupQueue=Promise.resolve();
 let routeMenuOpen=false; // display-only state
@@ -317,6 +389,8 @@ let closeoutDay='';
 let pendingMudScan=null;
 let manualFiles={},manualStatusKnown=false,selectedManualMachine='vermeer-d24x40';
 let manualSearchSeq=0,activeManualSearch=null;
+let guidedStep=1,guidedDraft=null;
+const openSettingsSections=new Set();
 const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(n,d=0)=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:d});
@@ -331,6 +405,9 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch{notify
 function applyTheme(){
  const mode=state.theme==='dark'?'dark':'daylight';
  document.documentElement.dataset.theme=mode;
+ document.documentElement.dataset.uxMode=state.uxMode;
+ document.documentElement.dataset.fieldMode=state.fieldMode?'on':'off';
+ document.documentElement.dataset.largeText=state.largeText?'on':'off';
  const meta=document.querySelector('meta[name="theme-color"]');
  if(meta)meta.setAttribute('content',mode==='daylight'?'#ffffff':'#0b1722');
  if(window.BoreLabNative?.setTheme)window.BoreLabNative.setTheme(mode);
@@ -582,7 +659,7 @@ function openManualSource(machineId){
  else window.location.assign(machine.source);
 }
 
-function render(){document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,planner:renderPlanner,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();}
+function render(){const activeTab=['home','planner','settings'].includes(page)?page:'tools';document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===activeTab));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,planner:renderPlanner,tools:renderTools,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();}
 function section(title,right=''){return `<div class="section-title"><h2><span class="accentbar"></span>${esc(title)}</h2>${right}</div>`}
 function quick(label,icon,sub,action){return `<button class="quick" data-action="${action}"><div class="qicon">${icon}</div><strong>${esc(label)}</strong><small>${esc(sub)}</small></button>`}
 function shotRow(s){return `<div class="shot"><div class="shot-icon">⌁</div><div><h3>${esc(s.name)} <span class="status ${s.status==='complete'?'complete':s.status==='progress'?'progress':'planned'}">${s.status==='complete'?'Complete':s.status==='progress'?'Drilling':'Pending'}</span></h3><small>${feet(s)} ft bore · ${pipeNeed(s)} ft with allowance<br>${esc(s.address||coordsText(s)||'No location set')}</small></div><div class="shot-actions"><span class="foot">${feet(s)}′</span><button data-action="shot-detail" data-id="${s.id}" aria-label="Open ${esc(s.name)}">›</button></div></div>`}
@@ -1163,11 +1240,88 @@ function mudLogDetail(id){
  ${(x.products||[]).map(p=>`<div class="mud-dose-item"><strong>${esc(p.name)}</strong><strong>${fmt(p.dose,4)} ${esc(p.unit)}</strong></div>`).join('')}
  ${x.notes?`<p class="smalltext muted spaced">${esc(x.notes)}</p>`:''}</div>`);
 }
-function renderHome(){const pct=totalFeet()?Math.round(doneFeet()/totalFeet()*100):0;let hasDemo=state.demo?`<div class="note spaced">Sample shots are loaded so you can try the app. Add your real job or tap <b>Clear Demo</b> in Settings to start fresh.</div>`:'';
-return `<div class="page"><div class="hero"><span class="eyebrow">HDD FIELD OPERATIONS</span><h1>Ready for today's shots?</h1><p>Plan the route. Count your pipe. Capture the work. Keep your crew organized.</p><div class="hero-tags"><span class="tag teal">● Works offline</span><span class="tag">📍 GPS photo records</span></div></div>
-${oilWarnings()}${section("Today's Job",`<button class="btn micro ghost" data-action="edit-job">Edit job</button>`)}<div class="card"><div class="card-head"><div><div class="eyebrow">ACTIVE JOB</div><h2 style="margin-top:5px">${esc(state.jobName)}</h2><p class="muted tiny">${state.shots.length} bore shots · ${state.shots.filter(s=>s.status==='complete').length} completed</p></div><span class="status ${pct===100?'complete':'progress'}">${pct}%</span></div><div class="progress"><div style="width:${pct}%"></div></div><div class="stats"><div class="stat"><span>Completed footage</span><strong class="teal">${fmt(doneFeet())}′</strong></div><div class="stat"><span>Planned footage</span><strong>${fmt(totalFeet())}′</strong></div><div class="stat"><span>Pipe required (+${extra()}′/shot)</span><strong class="orange">${fmt(totalNeed())}′</strong></div></div></div>${hasDemo}
-${section('Daily Job Board',`<button class="btn micro" data-action="new-shot">+ Add shot</button>`)}<div class="shot-list">${state.shots.length?state.shots.map(shotRow).join(''):`<div class="empty"><div class="emptyicon">⌁</div><strong>No shots yet</strong>Tap Add shot to plan your first bore.</div>`}</div><div class="action-row"><button class="btn cyan" data-page="planner">⌁ Smart Shot Planner</button><button class="btn ghost" data-action="export-report">▤ Daily Report</button></div>
-${section('Field Toolbox')}<div class="quick-grid">${quick('Route Planner','⌁','Shot order & travel','go-planner')}${quick('Bore Logs','▤','Footage & notes','new-shot')}${quick('Pipe Inventory','◈','Reel-by-reel footage','go-pipe')}${quick('Job Photos','▣','GPS & timestamps','go-photos')}${quick('Crew Check-In','◷','Roster & timesheets','go-crew')}${quick('Daily Report','▧','PDF export','export-report')}${quick('Daily Closeout','✓','Review the day','open-closeout')}${quick('Job History','▤','Saved workdays','open-history')}${quick('Equipment','⚙','Trucks, service & drills','open-equipment')}${quick('MixLab','◉','Mixing & tank top-offs','go-mud')}${quick('Manual Library','▤','PDFs saved offline','go-manuals')}</div>${footnote()}</div>`}
+
+const UX_ACTIONS=[
+ {id:'new-shot',label:'Plan a Bore',sub:'Length & pipe needs',icon:'◎',group:'Planning'},
+ {id:'go-photos',label:'Record Work',sub:'Jobsite photos',icon:'▣',group:'Daily work'},
+ {id:'go-mud',label:'Mix Drilling Mud',sub:'Tank & additives',icon:'💧',group:'Materials'},
+ {id:'go-manuals',label:'Find a Manual',sub:'Rigs & PDFs',icon:'▤',group:'Equipment'},
+ {id:'go-pipe',label:'Pipe Inventory',sub:'Reels & remaining feet',icon:'◈',group:'Materials'},
+ {id:'go-crew',label:'Crew',sub:'Hours & check-ins',icon:'◷',group:'Daily work'},
+ {id:'go-planner',label:'Shot Planner',sub:'Route & bore order',icon:'⌁',group:'Planning'},
+ {id:'open-equipment',label:'Equipment',sub:'Rig & truck records',icon:'⚙',group:'Equipment'},
+ {id:'open-closeout',label:'Daily Closeout',sub:'Review completed work',icon:'✓',group:'Daily work'},
+ {id:'open-history',label:'Job History',sub:'Saved workdays',icon:'▤',group:'Daily work'},
+ {id:'export-report',label:'Daily Report',sub:'Generate PDF',icon:'▧',group:'Daily work'},
+ {id:'go-mud-stock',label:'Mud Inventory',sub:'Products & stock',icon:'◉',group:'Materials'}
+];
+const UX_DEFAULT_FAVORITES=['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'];
+function favoriteActions(){
+ const ids=Array.isArray(state.uxFavorites)?state.uxFavorites:UX_DEFAULT_FAVORITES;
+ const items=ids.map(id=>UX_ACTIONS.find(x=>x.id===id)).filter(Boolean);
+ return items.length?items:UX_ACTIONS.filter(t=>UX_DEFAULT_FAVORITES.includes(t.id));
+}
+function actionTile(tool){
+ return `<button type="button" class="ux-tile" data-action="${esc(tool.id)}" aria-label="${esc(tool.label)}">
+  <span class="ux-tile-icon" aria-hidden="true">${esc(tool.icon)}</span>
+  <span><strong>${esc(tool.label)}</strong><small>${esc(tool.sub)}</small></span></button>`;
+}
+function renderTools(){
+ const groups=['Planning','Daily work','Materials','Equipment'];
+ return `<div class="page"><div class="ux-welcome"><div><span class="eyebrow">ALL FIELD TOOLS</span><h1>What can I help with?</h1>
+  <p class="muted smalltext">Every BoreLab feature, organized by task.</p></div></div>
+  ${groups.map(group=>`<section class="ux-tools-section" aria-label="${esc(group)}">
+  <h2>${esc(group)}</h2><div class="ux-tile-grid">${UX_ACTIONS.filter(t=>t.group===group).map(actionTile).join('')}</div></section>`).join('')}
+  <div class="note spaced">Tip: Set your six favorite tools in Settings. They appear on your home screen.</div>${footnote()}</div>`;
+}
+function nextHomeAction(){
+ if(state.demo)return {title:'Get familiar',body:'Try a sample bore, or clear demo data when you are ready for a real job.',action:'guided-tour',button:'Show me'};
+ const pending=state.shots.filter(s=>s.status!=='complete');
+ if(!state.shots.length)return {title:'First step',body:'Add your first bore. We will walk you through the basic details.',action:'new-shot',button:'Add bore'};
+ const pendingFeet=pending.reduce((n,s)=>n+pipeNeed(s),0);
+ const available=pipeOnTruck();
+ if(pending.length&&pendingFeet>available)return {title:'Check your pipe',body:`Pending shots need about ${fmt(pendingFeet)} ft with allowance; recorded stock is ${fmt(available)} ft.`,action:'go-pipe',button:'Check pipe'};
+ if(pending.length)return {title:'Ready for the next bore',body:`${pending.length} shot${pending.length===1?'':'s'} still pending. Review the plan before drilling.`,action:'go-planner',button:'View plan'};
+ return {title:'Review your day',body:'Your listed bores are complete. Review the work before finishing your report.',action:'open-closeout',button:'Review'};
+}
+function renderHome(){
+ const pct=totalFeet()?Math.round(doneFeet()/totalFeet()*100):0;
+ const hour=new Date().getHours(),greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+ const action=nextHomeAction();
+ const shots=state.shots.slice(0,state.uxMode==='advanced'?25:5);
+ return `<div class="page ux-home">
+  <div class="ux-welcome"><div><span class="eyebrow">BORELAB FIELD / FIELD DASHBOARD</span>
+   <h1>${greeting}!</h1><p class="muted smalltext">Everything your crew needs, in a few taps.</p></div>
+   <button class="icon-btn" data-action="guided-tour" aria-label="How to use BoreLab" title="How to use BoreLab">?</button></div>
+  ${oilWarnings()}
+  <div class="ux-job-card">
+   <div class="ux-job-title"><div><span class="eyebrow">ACTIVE JOB</span><h2>${esc(state.jobName)}</h2>
+    <p>${state.shots.filter(x=>x.status==='complete').length} of ${state.shots.length} bores completed</p></div>
+    <button class="btn micro ghost" data-action="edit-job">Edit</button></div>
+   <div class="between"><strong class="smalltext">Job progress</strong><strong class="smalltext">${pct}%</strong></div>
+   <div class="ux-progress-track" role="progressbar" aria-label="Job footage completed" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
+    <div class="ux-progress-fill" style="width:${pct}%"></div></div>
+   <div class="ux-job-meta"><span>Completed footage<strong>${fmt(doneFeet())} ft</strong></span>
+    <span>Planned footage<strong>${fmt(totalFeet())} ft</strong></span>
+    <span>Pipe planned (+${fmt(extra())} ft/shot)<strong>${fmt(totalNeed())} ft</strong></span></div>
+  </div>
+  ${state.demo?'<div class="note spaced">You are viewing sample shots. Use Help (?) to learn, or clear demo in Settings before recording real work.</div>':''}
+  <div class="ux-section-heading"><h2>What do you need to do?</h2><button class="btn micro ghost" data-page="settings">Customize</button></div>
+  <div class="ux-tile-grid">${favoriteActions().map(actionTile).join('')}</div>
+  <div class="ux-next"><span style="font-size:25px" aria-hidden="true">💡</span><div style="flex:1;min-width:0">
+   <strong>${esc(action.title)}</strong><p>${esc(action.body)}</p></div>
+   <button class="btn micro primary" data-action="${esc(action.action)}">${esc(action.button)}</button></div>
+  <details class="ux-details" ${state.uxMode==='advanced'?'open':''}><summary>Today's Job Board · ${state.shots.length} bores</summary>
+   <div class="action-row spaced"><button class="btn micro primary" data-action="new-shot">+ Add bore</button>
+   <button class="btn micro ghost" data-page="planner">Open Planner</button></div>
+   <div class="shot-list">${shots.length?shots.map(shotRow).join(''):'<p class="smalltext muted">No shots yet. Tap Add bore to get started.</p>'}</div>
+   ${state.uxMode==='simple'&&state.shots.length>5?'<p class="tiny muted spaced">Showing the first five bores. Open Bores to view the full job.</p>':''}
+  </details>
+  <div class="ux-section-heading"><h2>Need something else?</h2><button class="btn micro ghost" data-page="tools">All Tools</button></div>
+  <p class="smalltext muted">Maintenance, reports, route planning, and every advanced tool are still available in All Tools.</p>
+  ${footnote()}</div>`;
+}
+
 function coordsValid(o){return o&&o.lat!==''&&o.lon!==''&&o.lat!=null&&o.lon!=null&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lon))&&Math.abs(Number(o.lat))<=90&&Math.abs(Number(o.lon))<=180}
 function coordsText(s){return coordsValid(s)?`${Number(s.lat).toFixed(5)}, ${Number(s.lon).toFixed(5)}`:''}
 function hav(a,b){if(!coordsValid(a)||!coordsValid(b))return NaN;const R=3958.7613,lat1=Number(a.lat)*Math.PI/180,lat2=Number(b.lat)*Math.PI/180,dlat=(Number(b.lat)-Number(a.lat))*Math.PI/180,dlon=(Number(b.lon)-Number(a.lon))*Math.PI/180,q=Math.sin(dlat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dlon/2)**2;return R*2*Math.asin(Math.sqrt(q))}
@@ -1350,7 +1504,29 @@ function manageRoster(){showModal(`${modalHead('Saved Crew Roster')}<p class="sm
 function checkInCrew(){const people=selectedRoster();if(!people.length)return notify('Add or select crew members first.');const now=new Date().toISOString(),day=todayLocal();let count=0,already=[];for(const p of people){if(state.crew.some(e=>(e.memberId===p.id||(!e.memberId&&e.name.toLowerCase()===p.name.toLowerCase()))&&localDay(e.start)===day)){already.push(p.name);continue}state.crew.push({id:uid(),memberId:p.id,name:p.name,start:now,end:'',lunch:0,notes:'Checked in with crew',kind:'checkin'});count++}save();render();notify(count?`${count} crew member${count===1?'':'s'} checked in at ${new Date().toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}.${already.length?' Already recorded today: '+already.join(', '):''}`:'Selected crew already has entries for today.');}
 function checkoutForm(){const active=state.crew.filter(e=>!e.end);if(!active.length)return notify('No active crew check-ins.');showModal(`${modalHead('Check Out Crew')}<p class="smalltext muted">All working crew will clock out at the current time. ${state.autoLunchEnabled?`Automatic lunch deduction is ON (${state.defaultLunchMinutes} min per person).`:'Automatic lunch deduction is OFF.'} You can override lunch minutes for anyone before checking out and edit entries later.</p><form data-form="checkout" class="spaced">${active.map(e=>`<div class="checkout-row"><strong>${esc(e.name)}</strong><label class="field">Unpaid lunch (min)<input name="lunch_${esc(e.id)}" type="number" min="0" max="300" value="${automaticLunch()}" required></label></div>`).join('')}<div class="modal-footer"><button type="button" class="btn ghost" data-action="close-modal">Cancel</button><button class="btn cyan" type="submit">✓ Check Out ${active.length}</button></div></form>`)}
 function renderSettings(){return `<div class="page"><span class="eyebrow">BORELAB / SETTINGS</span><h1 style="margin:5px 0 16px">Field Settings</h1>
-<div id="homeBaseSettings" class="card"><div class="card-head"><div><span class="eyebrow">SAVED LOCATION</span><h2 style="margin-top:5px">Home Base</h2></div><span class="status ${coordsValid(shop())?'complete':'planned'}">${coordsValid(shop())?'GPS Ready':'Needs GPS'}</span></div>
+<p class="ux-settings-intro">Choose your experience. All the existing field tools and saved records remain available.</p>
+<div class="card spaced" id="experienceSettings">
+ <div class="between"><div><span class="eyebrow">PERSONALIZE BORELAB</span><h2>My Experience</h2></div><span class="status complete">Saves locally</span></div>
+ <p class="smalltext muted spaced">Simple Mode guides new users through a bore. Advanced Mode shows the full form with every field.</p>
+ <div class="ux-mode-picker" role="radiogroup" aria-label="Experience mode">
+  <label><input type="radio" name="uxMode" data-ux-mode value="simple" ${state.uxMode==='simple'?'checked':''}> Simple · Guided</label>
+  <label><input type="radio" name="uxMode" data-ux-mode value="advanced" ${state.uxMode==='advanced'?'checked':''}> Advanced · Full forms</label>
+ </div>
+ <div class="settings-item spaced"><div><strong>Glove-Friendly Field Mode</strong>
+  <p class="tiny muted">Larger buttons and form controls for fieldwork.</p></div>
+  <input type="checkbox" data-field-mode aria-label="Glove-friendly field mode" ${state.fieldMode?'checked':''} style="width:24px;height:24px;accent-color:#008d8d"></div>
+ <div class="settings-item"><div><strong>Large Text</strong>
+  <p class="tiny muted">Bigger labels and notes in the field.</p></div>
+  <input type="checkbox" data-large-text aria-label="Large text" ${state.largeText?'checked':''} style="width:24px;height:24px;accent-color:#008d8d"></div>
+ <div class="divider"></div><div class="between"><h3>My Home Shortcuts</h3><span class="tiny muted">Up to six</span></div>
+ <p class="smalltext muted spaced">Choose your most-used tools on Home. Every tool stays available in the Tools tab.</p>
+ <div class="ux-favorite-grid">${UX_ACTIONS.map(t=>`<label>
+  <input type="checkbox" data-ux-favorite="${esc(t.id)}" ${(state.uxFavorites||UX_DEFAULT_FAVORITES).includes(t.id)?'checked':''}>
+  <span>${esc(t.icon)} ${esc(t.label)}</span></label>`).join('')}</div>
+ <div class="action-row spaced"><button class="btn micro ghost" data-action="ux-reset-favorites">Restore default shortcuts</button>
+  <button class="btn micro ghost" data-action="guided-tour">Show me how BoreLab works</button></div>
+</div>
+<details class="ux-settings-group" data-ux-section="work" ${openSettingsSections.has("work")?'open':''}><summary>My Work & Equipment</summary><div id="homeBaseSettings" class="card"><div class="card-head"><div><span class="eyebrow">SAVED LOCATION</span><h2 style="margin-top:5px">Home Base</h2></div><span class="status ${coordsValid(shop())?'complete':'planned'}">${coordsValid(shop())?'GPS Ready':'Needs GPS'}</span></div>
 <p class="smalltext muted">Set your shop once. The Smart Shot Planner will reuse it automatically for every workday.</p>
 <div class="form-grid spaced">
  <label class="field wide">Shop address<input id="shopAddress" autocomplete="street-address" value="${esc(state.shopAddress||'')}" placeholder="Shop street address"></label>
@@ -1359,16 +1535,13 @@ function renderSettings(){return `<div class="page"><span class="eyebrow">BORELA
 </div><p class="tiny muted spaced">${coordsValid(shop())?'GPS coordinates saved. Your shop is ready for route planning.':'Address-only entries are saved, but shop-based optimization needs GPS coordinates.'}</p>
 <div class="action-row"><button class="btn primary" data-action="save-shop">Save Home Base</button><button class="btn ghost micro" data-action="geocode-shop">Find GPS from Address</button><button class="btn ghost micro" data-action="gps-shop">Use My GPS</button></div>
 </div>
-${equipmentSettings()}<div class="card spaced"><h3>Real PDF Reports & Closeouts</h3><p class="smalltext muted spaced">Generate a native PDF from your saved field records. Use Daily Closeout to review the workday and Job History to revisit earlier snapshots.</p><label class="field">Report contents<select data-report-scope><option value="today" ${state.reportScope==='today'?'selected':''}>Today’s recorded activity</option><option value="job" ${state.reportScope==='job'?'selected':''}>All activity for this job</option></select></label><div class="action-row"><button class="btn micro primary" data-action="export-report">▧ Save PDF</button><button class="btn micro ghost" data-action="open-closeout">Daily Closeout</button><button class="btn micro ghost" data-action="open-history">History</button></div></div><div class="card spaced"><label class="field">Active job name<input id="jobName" value="${esc(state.jobName)}" maxlength="90"></label><div class="action-row"><button class="btn primary" data-action="save-job">Save Job Name</button></div><div class="divider"></div>
-<h3>Appearance</h3>
+${equipmentSettings()}</details><details class="ux-settings-group" data-ux-section="reports" ${openSettingsSections.has("reports")?'open':''}><summary>Reports & Closeouts</summary><div class="card spaced"><h3>Real PDF Reports & Closeouts</h3><p class="smalltext muted spaced">Generate a native PDF from your saved field records. Use Daily Closeout to review the workday and Job History to revisit earlier snapshots.</p><label class="field">Report contents<select data-report-scope><option value="today" ${state.reportScope==='today'?'selected':''}>Today’s recorded activity</option><option value="job" ${state.reportScope==='job'?'selected':''}>All activity for this job</option></select></label><div class="action-row"><button class="btn micro primary" data-action="export-report">▧ Save PDF</button><button class="btn micro ghost" data-action="open-closeout">Daily Closeout</button><button class="btn micro ghost" data-action="open-history">History</button></div></div></details><details class="ux-settings-group" data-ux-section="job" ${openSettingsSections.has("job")?'open':''}><summary>Active Job</summary><div class="card spaced"><label class="field">Active job name<input id="jobName" value="${esc(state.jobName)}" maxlength="90"></label><div class="action-row"><button class="btn primary" data-action="save-job">Save Job Name</button></div></div></details><details class="ux-settings-group" data-ux-section="appearance" ${openSettingsSections.has("appearance")?'open':''}><summary>Appearance</summary><div class="card spaced"><h3>Theme</h3>
 <p class="smalltext muted spaced">High-contrast daylight mode is designed for bright outdoor job sites.</p>
 <label class="field spaced">App theme
 <select data-theme-select>
 <option value="daylight" ${state.theme==='daylight'?'selected':''}>Daylight — White & Orange</option>
 <option value="dark" ${state.theme==='dark'?'selected':''}>Night — Navy & Orange</option>
-</select></label>
-<div class="divider"></div>
-<h3>Automatic Lunch</h3>
+</select></label></div></details><details class="ux-settings-group" data-ux-section="crew" ${openSettingsSections.has("crew")?'open':''}><summary>Crew & Lunch</summary><div class="card spaced"><h3>Automatic Lunch</h3>
 <p class="smalltext muted spaced">When enabled, BoreLab pre-fills an unpaid lunch deduction for everyone during crew checkout. You can override it for individual workers. Already saved shifts do not change.</p>
 <div class="settings-item"><label for="autoLunchEnabled"><strong class="smalltext">Apply lunch automatically</strong><br><span class="tiny muted">Deduct when clocking out crew</span></label><input id="autoLunchEnabled" type="checkbox" data-lunch-enabled ${state.autoLunchEnabled?'checked':''} style="width:21px;height:21px;accent-color:#18c7b4" /></div>
 <label class="field spaced">Default unpaid lunch
@@ -1379,8 +1552,7 @@ ${equipmentSettings()}<div class="card spaced"><h3>Real PDF Reports & Closeouts<
 <option value="45" ${state.defaultLunchMinutes===45?'selected':''}>45 minutes</option>
 <option value="60" ${state.defaultLunchMinutes===60?'selected':''}>1 hour</option>
 <option value="90" ${state.defaultLunchMinutes===90?'selected':''}>1 hour 30 minutes</option>
-</select></label>
-<div class="divider"></div><div class="settings-item"><div><strong class="smalltext">Photo records</strong><p class="tiny muted">${photos.length} stored locally</p></div><button class="btn micro" data-page="photos">Open</button></div><div class="settings-item"><div><strong class="smalltext">Backup everything</strong><p class="tiny muted">Download JSON with shots, hours and photos</p></div><button class="btn micro" data-action="export-backup">Export</button></div><div class="settings-item"><div><strong class="smalltext">Restore backup</strong><p class="tiny muted">Import a BoreLab backup file</p></div><button class="btn micro" data-action="import-backup">Import</button></div><div class="settings-item"><div><strong class="smalltext">Daily PDF report</strong><p class="tiny muted">Create a printable HTML report, then Save as PDF</p></div><button class="btn micro" data-action="export-report">Create</button></div></div><div class="card spaced"><h3>Demo & Reset</h3><p class="smalltext muted spaced">Use the sample job while exploring. Clearing demo data also removes saved photos and timesheets on this device.</p><div class="action-row"><button class="btn ghost" data-action="reset-demo">Load Demo</button><button class="btn danger" data-action="clear-demo">Clear & Start Fresh</button></div></div><div class="note spaced">All photos and job information stay in this browser until you export them or clear local data. The app currently has no cloud syncing or automatic backup.</div>${footnote()}</div>`}
+</select></label></div></details><details class="ux-settings-group" data-ux-section="backup" ${openSettingsSections.has("backup")?'open':''}><summary>Data & Backup</summary><div class="card spaced"><div class="settings-item"><div><strong class="smalltext">Photo records</strong><p class="tiny muted">${photos.length} stored locally</p></div><button class="btn micro" data-page="photos">Open</button></div><div class="settings-item"><div><strong class="smalltext">Backup everything</strong><p class="tiny muted">Download JSON with shots, hours and photos</p></div><button class="btn micro" data-action="export-backup">Export</button></div><div class="settings-item"><div><strong class="smalltext">Restore backup</strong><p class="tiny muted">Import a BoreLab backup file</p></div><button class="btn micro" data-action="import-backup">Import</button></div><div class="settings-item"><div><strong class="smalltext">Daily PDF report</strong><p class="tiny muted">Create a printable HTML report, then Save as PDF</p></div><button class="btn micro" data-action="export-report">Create</button></div></div></details><details class="ux-settings-group" data-ux-section="help" ${openSettingsSections.has("help")?'open':''}><summary>Help & Tutorial</summary><div class="card spaced"><h3>New to BoreLab?</h3><p class="smalltext muted spaced">Learn to add a bore, record work and find manuals in a short walkthrough.</p><button class="btn primary" data-action="guided-tour">Start tutorial</button></div></details><div class="card spaced"><h3 style="color:var(--danger)">Demo & Reset · Careful</h3><p class="smalltext muted spaced">Back up any important records before clearing data. Use the sample job while exploring. Clearing demo data also removes saved photos and timesheets on this device.</p><div class="action-row"><button class="btn ghost" data-action="reset-demo">Load Demo</button><button class="btn danger" data-action="clear-demo">Clear & Start Fresh</button></div></div><div class="note spaced">All photos and job information stay in this browser until you export them or clear local data. The app currently has no cloud syncing or automatic backup.</div>${footnote()}</div>`}
 function showModal(body){modal=body;$('#modalRoot').innerHTML=`<div class="modal-backdrop" data-action="backdrop"><div class="modal" role="dialog" aria-modal="true" aria-label="Edit BoreLab details">${body}</div></div>`;document.body.style.overflow='hidden'}
 function closeModal(){activeManualSearch=null;modal='';$('#modalRoot').innerHTML='';document.body.style.overflow=''}
 const modalHead=t=>`<div class="modal-head"><h2>${esc(t)}</h2><button type="button" class="icon-btn" data-action="close-modal" aria-label="Close">✕</button></div>`;
@@ -1657,6 +1829,68 @@ function equipmentSettings(){
  ${archive.length?`<p class="tiny muted spaced">${archive.length} archived equipment item(s) kept for past logs.</p>`:''}
  </div>`;
 }
+
+function beginGuidedBore(){
+ guidedStep=1;
+ guidedDraft={feet:'',name:`Shot ${String(state.shots.length+1).padStart(2,'0')}`,address:''};
+ showGuidedBore();
+}
+function showGuidedBore(){
+ if(!guidedDraft)return beginGuidedBore();
+ const step=guidedStep;
+ const progress=`<div class="ux-guide-step">STEP ${step} OF 3 · ${step===1?'LENGTH':step===2?'LOCATION':'REVIEW'}</div>
+ <div class="ux-guide-track" aria-label="Step ${step} of 3">
+  ${[1,2,3].map(x=>`<span class="${x<=step?'active':''}"></span>`).join('')}</div>`;
+ const middle=step===1?
+  `<h2>How long is the bore?</h2>
+   <p class="smalltext muted">Measure from the entry point to the exit point.</p>
+   <label class="field spaced">Bore length (feet)
+    <input class="ux-guide-big-input" name="feet" type="number" min="0.1" step="0.1" inputmode="decimal" required autofocus placeholder="175" value="${esc(guidedDraft.feet)}">
+   </label><div class="ux-guide-tip">💡 BoreLab automatically adds your usual ${fmt(extra())} ft pipe allowance for planning. You can adjust it in Settings.</div>`:
+ step===2?
+  `<h2>Give this bore a name</h2><p class="smalltext muted">You can add GPS, depths, photos, and rod counts afterward.</p>
+   <label class="field spaced">Bore name<input name="name" required maxlength="70" placeholder="Shot 01" value="${esc(guidedDraft.name)}"></label>
+   <label class="field spaced">Jobsite address or landmark (optional)
+     <input name="address" placeholder="Street, crossing, or landmark" value="${esc(guidedDraft.address)}"></label>
+   <div class="ux-guide-tip">📍 You can leave the address blank and add it later from the bore log.</div>`:
+  `<h2>Ready to save this bore?</h2>
+    <div class="card spaced">${kv('Bore',esc(guidedDraft.name))}${kv('Length',fmt(guidedDraft.feet,1)+' ft')}
+    ${kv('Pipe to plan',fmt(Number(guidedDraft.feet)+extra(),1)+' ft')}
+    ${kv('Location',esc(guidedDraft.address||'Not set yet'))}</div>
+    <div class="ux-guide-tip">✓ Saves as Pending. Later, open the bore log to start drilling or record progress.</div>`;
+ showModal(modalHead('Add Your First Bore')+progress+
+  `<form data-form="guided-bore">${middle}
+   <div class="modal-footer">
+    ${step>1?'<button type="button" class="btn ghost" data-action="guided-back">Back</button>':
+     '<button type="button" class="btn ghost" data-action="guided-advanced">Full form</button>'}
+    <button type="submit" class="btn primary">${step===3?'Save Bore':'Next →'}</button>
+   </div></form>`);
+}
+function saveGuidedBore(){
+ if(!guidedDraft)return;
+ const f=Number(guidedDraft.feet);
+ if(!Number.isFinite(f)||f<=0)return notify('Enter a bore length greater than zero.');
+ const name=String(guidedDraft.name||'').trim();
+ if(!name)return notify('Give this bore a name.');
+ const shot={id:uid(),name:name.slice(0,70),feet:f,address:String(guidedDraft.address||'').trim(),
+  lat:'',lon:'',notes:'',status:'planned',pipeUsed:'',rodCount:'',entryDepth:'',exitDepth:'',
+  equipmentIds:[],startedAt:null,completedAt:null,updatedAt:new Date().toISOString()};
+ state.shots.push(shot);
+ state.demo=false;save();closeModal();guidedDraft=null;render();
+ notify('Bore saved ✓ You can add details any time.');
+ if(shot.address)resolveShotAfterSave(shot.id);
+}
+function showFirstRunTour(){
+ showModal(modalHead('Welcome to BoreLab')+
+  `<div class="ux-guide-step">START HERE · THREE EASY TASKS</div>
+   <div class="card spaced"><h3>1. Plan a bore</h3><p class="smalltext muted">Enter the footage. BoreLab calculates planned pipe with your allowance.</p></div>
+   <div class="card spaced"><h3>2. Record field work</h3><p class="smalltext muted">Save photos, bore details, and crew time as the day progresses.</p></div>
+   <div class="card spaced"><h3>3. Find your tools</h3><p class="smalltext muted">Use the large buttons on Home, or open Tools for every feature and a rig manual.</p></div>
+   <div class="ux-guide-tip">Nothing is uploaded to a cloud account. Export a backup to protect local records.</div>
+   <div class="modal-footer"><button class="btn ghost" data-action="close-modal">Maybe later</button>
+    <button class="btn primary" data-action="start-guided-bore">Try Add a Bore</button></div>`);
+}
+
 function shotForm(id){
  const shot=state.shots.find(x=>x.id===id);
  const s=shot||{name:`Shot ${String(state.shots.length+1).padStart(2,'0')}`,feet:'',address:'',lat:'',lon:'',notes:'',status:'planned',pipeUsed:'',rodCount:'',entryDepth:'',exitDepth:'',equipmentIds:[]};
@@ -1805,7 +2039,7 @@ async function addPhoto(file){if(!file||!file.type.startsWith('image/'))return n
 function safeFile(s){return String(s).replace(/[^a-z0-9-_]/gi,'_').slice(0,60)}
 function downloadBlob(name,content,type){const blob=new Blob([content],{type});if(window.BoreLabNative?.saveBase64File){const reader=new FileReader();reader.onload=()=>{const base64=String(reader.result).split(',')[1];window.BoreLabNative.saveBase64File(name,type,base64)};reader.readAsDataURL(blob);return}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000)}
 async function exportBackup(){try{await refreshPhotos();downloadBlob(`BoreLab_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({type:'borelab-backup',version:2,createdAt:new Date().toISOString(),state,photos},null,2),'application/json');notify('Backup downloaded — keep it somewhere safe.')}catch(e){notify('Could not export: '+e.message)}}
-async function importBackup(file){try{const obj=JSON.parse(await file.text());if(obj.type!=='borelab-backup'||!obj.state||!Array.isArray(obj.state.shots)||!Array.isArray(obj.photos))throw new Error('This is not a valid BoreLab backup.');if(!confirm('Replace all current job data, photos and time entries with this backup?'))return;await photoDB('clear');for(const p of obj.photos){if(typeof p.dataUrl==='string'&&p.dataUrl.startsWith('data:image/'))await photoDB('put',p)}state=obj.state;if(!Array.isArray(state.roster))state.roster=[];if(!Array.isArray(state.equipment))state.equipment=[];if(!Array.isArray(state.reels))state.reels=[];if(!Array.isArray(state.pipeMoves))state.pipeMoves=[];if(!Array.isArray(state.pipeReservations))state.pipeReservations=[];if(!Array.isArray(state.history))state.history=[];if(!Array.isArray(state.manualLinks))state.manualLinks=[];if(!Array.isArray(state.mudProducts))state.mudProducts=[];if(!Array.isArray(state.mudSelectedIds))state.mudSelectedIds=[];if(!Array.isArray(state.mudLogs))state.mudLogs=[];if(!Array.isArray(state.mudStockMoves))state.mudStockMoves=[];if(!state.mudTank||typeof state.mudTank!=='object')state.mudTank={capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'not-recorded',notes:''};if(!['today','job'].includes(state.reportScope))state.reportScope='today';if(!Array.isArray(state.selectedCrewIds))state.selectedCrewIds=[];save();await refreshPhotos();setPage('home');notify('Backup restored successfully.')}catch(e){notify(`Restore failed: ${e.message}`)}}
+async function importBackup(file){try{const obj=JSON.parse(await file.text());if(obj.type!=='borelab-backup'||!obj.state||!Array.isArray(obj.state.shots)||!Array.isArray(obj.photos))throw new Error('This is not a valid BoreLab backup.');if(!confirm('Replace all current job data, photos and time entries with this backup?'))return;await photoDB('clear');for(const p of obj.photos){if(typeof p.dataUrl==='string'&&p.dataUrl.startsWith('data:image/'))await photoDB('put',p)}state=obj.state;if(!Array.isArray(state.roster))state.roster=[];if(!Array.isArray(state.equipment))state.equipment=[];if(!Array.isArray(state.reels))state.reels=[];if(!Array.isArray(state.pipeMoves))state.pipeMoves=[];if(!Array.isArray(state.pipeReservations))state.pipeReservations=[];if(!Array.isArray(state.history))state.history=[];if(!Array.isArray(state.manualLinks))state.manualLinks=[];if(state.uxMode!=='advanced'&&state.uxMode!=='simple')state.uxMode='simple';if(typeof state.fieldMode!=='boolean')state.fieldMode=false;if(typeof state.largeText!=='boolean')state.largeText=false;if(!Array.isArray(state.uxFavorites))state.uxFavorites=['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'];if(!Array.isArray(state.mudProducts))state.mudProducts=[];if(!Array.isArray(state.mudSelectedIds))state.mudSelectedIds=[];if(!Array.isArray(state.mudLogs))state.mudLogs=[];if(!Array.isArray(state.mudStockMoves))state.mudStockMoves=[];if(!state.mudTank||typeof state.mudTank!=='object')state.mudTank={capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'not-recorded',notes:''};if(!['today','job'].includes(state.reportScope))state.reportScope='today';if(!Array.isArray(state.selectedCrewIds))state.selectedCrewIds=[];save();await refreshPhotos();setPage('home');notify('Backup restored successfully.')}catch(e){notify(`Restore failed: ${e.message}`)}}
 function reportCSS(){return `body{font:13px/1.5 system-ui,Arial;color:#152535;margin:28px auto;max-width:900px;padding:0 18px}h1{color:#df7d1f;border-bottom:3px solid #df7d1f;padding-bottom:12px}h2{margin-top:30px;background:#e8eff3;padding:8px 12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #acbbc5;padding:8px;text-align:left}th{background:#e8eff3}img{max-width:290px;max-height:220px;object-fit:cover;margin:8px 14px 8px 0}small{color:#516274}.print{padding:12px;background:#eee;border:0;border-radius:8px;cursor:pointer}@media print{.print{display:none}}`}
 function buildPdfPayload(snapshot=null,requestedDay=''){
  const day=requestedDay||todayLocal(),scope=snapshot?(snapshot.kind==='job'?'job':'daily'):(requestedDay?'daily':state.reportScope==='job'?'job':'daily');
@@ -1966,13 +2200,18 @@ async function saveShop(){
  }catch(e){render();notify(`Shop address saved, but GPS lookup failed: ${e.message}`)}
 }
 const getForm=(form)=>Object.fromEntries(new FormData(form).entries());
-document.addEventListener('click',async event=>{const p=event.target.closest('[data-page]');if(p){setPage(p.dataset.page);return}const btn=event.target.closest('[data-action]');if(!btn)return;if(btn.dataset.action==='backdrop'&&event.target!==btn)return;const action=btn.dataset.action,id=btn.dataset.id;event.preventDefault();try{
+document.addEventListener('click',async event=>{const summary=event.target.closest('summary');if(summary){const section=summary.closest('details[data-ux-section]');if(section){if(section.open)openSettingsSections.delete(section.dataset.uxSection);else openSettingsSections.add(section.dataset.uxSection);}}const p=event.target.closest('[data-page]');if(p){setPage(p.dataset.page);return}const btn=event.target.closest('[data-action]');if(!btn)return;if(btn.dataset.action==='backdrop'&&event.target!==btn)return;const action=btn.dataset.action,id=btn.dataset.id;event.preventDefault();try{
 switch(action){
  case 'backdrop':if(event.target===btn)closeModal();break;
  case 'close-modal':closeModal();break;
  case 'open-settings':case 'edit-job':setPage('settings');break;
  case 'save-job':state.jobName=$('#jobName').value.trim()||'My HDD Job';state.demo=false;save();notify('Job updated.');render();break;
- case 'new-shot':shotForm();break;
+ case 'new-shot':if(state.uxMode==='advanced')shotForm();else beginGuidedBore();break;
+ case 'start-guided-bore':beginGuidedBore();break;
+ case 'guided-back':if(guidedDraft&&guidedStep>1){guidedStep--;showGuidedBore();}break;
+ case 'guided-advanced':guidedDraft=null;shotForm();break;
+ case 'guided-tour':showFirstRunTour();break;
+ case 'ux-reset-favorites':state.uxFavorites=[...UX_DEFAULT_FAVORITES];save();render();notify('Default home shortcuts restored.');break;
  case 'shot-detail':shotDetail(id);break;
  case 'edit-shot':shotForm(id);break;
  case 'next-status':setShotStatus(id);break;
@@ -2062,7 +2301,13 @@ switch(action){
  default:break;
 }
 }catch(e){console.error(e);notify('Could not complete action: '+e.message)}});
-document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='manual-link'){saveManualLink(values,form.dataset.id||'');return}else if(form.dataset.form==='manual-search'){const slot=form.dataset.slot,query=String(values.query||'').trim();if(!isManualSlot(slot)||manualFiles[slot]!==true)return notify('Manual missing. Import it again.');if(query.length<2||query.length>80)return notify('Enter 2–80 characters.');const requestId=String(++manualSearchSeq);activeManualSearch={slot,requestId};showManualSearch(slot,query,null,true);window.BoreLabNative?.searchManual(slot,query,requestId);return}else if(form.dataset.form==='mud-stock'){saveMudStock(form,values);return}else if(form.dataset.form==='mud-product'){saveMudProduct(form,values);return}else if(form.dataset.form==='mud-level'){saveMudLevel(values);return}else if(form.dataset.form==='mud-batch'){saveMudPlan(form,values,e.submitter?.dataset?.mudCommit==='yes');return}else if(form.dataset.form==='closeout'){saveCloseout(form,values);return}else if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
+document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='guided-bore'){
+  if(!guidedDraft)beginGuidedBore();
+  if(guidedStep===1){const length=Number(values.feet);if(!Number.isFinite(length)||length<=0||length>100000)return notify('Enter a valid bore length above zero.');guidedDraft.feet=String(length);guidedStep=2;showGuidedBore();return;}
+  if(guidedStep===2){const name=String(values.name||'').trim();if(!name)return notify('Enter a name for this bore.');guidedDraft.name=name.slice(0,70);guidedDraft.address=String(values.address||'').trim().slice(0,250);guidedStep=3;showGuidedBore();return;}
+  if(guidedStep===3){saveGuidedBore();return;}
+  return;
+ }else if(form.dataset.form==='manual-link'){saveManualLink(values,form.dataset.id||'');return}else if(form.dataset.form==='manual-search'){const slot=form.dataset.slot,query=String(values.query||'').trim();if(!isManualSlot(slot)||manualFiles[slot]!==true)return notify('Manual missing. Import it again.');if(query.length<2||query.length>80)return notify('Enter 2–80 characters.');const requestId=String(++manualSearchSeq);activeManualSearch={slot,requestId};showManualSearch(slot,query,null,true);window.BoreLabNative?.searchManual(slot,query,requestId);return}else if(form.dataset.form==='mud-stock'){saveMudStock(form,values);return}else if(form.dataset.form==='mud-product'){saveMudProduct(form,values);return}else if(form.dataset.form==='mud-level'){saveMudLevel(values);return}else if(form.dataset.form==='mud-batch'){saveMudPlan(form,values,e.submitter?.dataset?.mudCommit==='yes');return}else if(form.dataset.form==='closeout'){saveCloseout(form,values);return}else if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
 }else if(form.dataset.form==='checkout'){const now=new Date().toISOString();const active=state.crew.filter(e=>!e.end);for(const entry of active){const lunch=Number(values['lunch_'+entry.id]);entry.lunch=Number.isFinite(lunch)?Math.max(0,Math.min(300,lunch)):0;entry.end=now}save();closeModal();render();notify(`${active.length} crew member${active.length===1?'':'s'} checked out.`);
 }else if(form.dataset.form==='shot'){
  const f=Number(values.feet);
@@ -2095,7 +2340,27 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
  const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);save();closeModal();render();notify('Crew time saved.');
 }});
 document.addEventListener('input',e=>{if(e.target.matches('form[data-form="mud-batch"] input[name="capacity"]')){const form=e.target.closest('form');updateMudLevelForm(e.target.closest('form'));updateMudTargetForm(form);}});
-document.addEventListener('change',e=>{if(e.target.matches('[data-closeout-day]')){closeoutDay=e.target.value||todayLocal();render();return}if(e.target.matches('[data-equipment-type]')){const wrap=e.target.closest('form')?.querySelector('[data-truck-fields]');if(wrap)wrap.hidden=e.target.value!=='Truck';return}if(e.target.matches('[data-report-scope]')){state.reportScope=e.target.value==='job'?'job':'today';save();render();notify('Report scope saved.');return}if(e.target.matches('[data-theme-select]')){state.theme=e.target.value==='dark'?'dark':'daylight';applyTheme();save();render();notify(state.theme==='daylight'?'Daylight mode enabled.':'Night mode enabled.');return}if(e.target.matches('[data-lunch-enabled]')){state.autoLunchEnabled=e.target.checked;save();render();notify(state.autoLunchEnabled?'Automatic lunch enabled.':'Automatic lunch disabled.');return}if(e.target.matches('[data-lunch-minutes]')){state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(e.target.value)||0));save();render();notify('Lunch default saved.');return}if(e.target.matches('[data-roster-select]')){const id=e.target.dataset.rosterSelect;state.selectedCrewIds=e.target.checked?[...new Set([...state.selectedCrewIds,id])]:state.selectedCrewIds.filter(x=>x!==id);save();render();return}if(e.target.matches('[data-setting]')){const k=e.target.dataset.setting;state[k]=Math.max(0,Number(e.target.value)||0);save();render()}});
+document.addEventListener('change',e=>{if(e.target.matches('[data-ux-mode]')){
+ state.uxMode=e.target.value==='advanced'?'advanced':'simple';save();applyTheme();
+ notify(state.uxMode==='advanced'?'Full bore form enabled.':'Guided bore entry enabled.');return;
+}if(e.target.matches('[data-field-mode]')){
+ state.fieldMode=!!e.target.checked;save();applyTheme();notify(state.fieldMode?'Field Mode enabled.':'Field Mode disabled.');return;
+}if(e.target.matches('[data-large-text]')){
+ state.largeText=!!e.target.checked;save();applyTheme();notify(state.largeText?'Large text enabled.':'Standard text restored.');return;
+}if(e.target.matches('[data-ux-favorite]')){
+ const id=e.target.dataset.uxFavorite;
+ if(!UX_ACTIONS.some(x=>x.id===id))return;
+ const current=[...new Set((state.uxFavorites||[]).filter(x=>UX_ACTIONS.some(t=>t.id===x)))];
+ if(e.target.checked){
+  if(current.includes(id))return;
+  if(current.length>=6){e.target.checked=false;notify('Choose up to six shortcuts. Uncheck one first.');return;}
+  state.uxFavorites.push(id);
+ }else{
+  if(current.length<=1){e.target.checked=true;notify('Keep at least one shortcut on Home.');return;}
+  state.uxFavorites=current.filter(x=>x!==id);
+ }
+ save();notify('Home shortcuts updated.');return;
+}if(e.target.matches('[data-closeout-day]')){closeoutDay=e.target.value||todayLocal();render();return}if(e.target.matches('[data-equipment-type]')){const wrap=e.target.closest('form')?.querySelector('[data-truck-fields]');if(wrap)wrap.hidden=e.target.value!=='Truck';return}if(e.target.matches('[data-report-scope]')){state.reportScope=e.target.value==='job'?'job':'today';save();render();notify('Report scope saved.');return}if(e.target.matches('[data-theme-select]')){state.theme=e.target.value==='dark'?'dark':'daylight';applyTheme();save();render();notify(state.theme==='daylight'?'Daylight mode enabled.':'Night mode enabled.');return}if(e.target.matches('[data-lunch-enabled]')){state.autoLunchEnabled=e.target.checked;save();render();notify(state.autoLunchEnabled?'Automatic lunch enabled.':'Automatic lunch disabled.');return}if(e.target.matches('[data-lunch-minutes]')){state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(e.target.value)||0));save();render();notify('Lunch default saved.');return}if(e.target.matches('[data-roster-select]')){const id=e.target.dataset.rosterSelect;state.selectedCrewIds=e.target.checked?[...new Set([...state.selectedCrewIds,id])]:state.selectedCrewIds.filter(x=>x!==id);save();render();return}if(e.target.matches('[data-setting]')){const k=e.target.dataset.setting;state[k]=Math.max(0,Number(e.target.value)||0);save();render()}});
 $('#cameraFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#galleryFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await addPhoto(file);e.target.value=''});
 $('#importFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await importBackup(file);e.target.value=''});
