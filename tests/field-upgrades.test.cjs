@@ -15,7 +15,7 @@ assert(html.includes('<script src="./field-upgrades.js"></script>'));
 assert(html.includes('name="pipeDiameter"'),'Edit bore form should save conduit size');
 assert(html.includes('pipeDiameter:String(values.pipeDiameter'),'Bore size should persist');
 assert(html.includes('pipeDiameter:String(guidedDraft.pipeDiameter'),'Guided bore size should persist');
-assert(html.includes("Conduit / product size',esc(shot.pipeDiameter"),'Shot detail should show conduit size');
+assert(html.includes("Conduit / product size',esc(window.BoreLabConduits?.summary(shot)"),'Shot detail should show multi-conduit sizes');
 assert(html.includes('pipeDiameter:sh.pipeDiameter'),'PDF report payload must carry size');
 assert(pdf.includes('label("Conduit size", str(shot, "pipeDiameter"))'));
 assert(native.includes('scanAddressPhoto(String dataUrl)'));
