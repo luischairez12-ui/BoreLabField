@@ -476,6 +476,14 @@ html[data-large-text="on"] .ux-tile small,html[data-large-text="on"] .ux-next p{
 .ux-assist-issues p{font-size:12px;margin:3px 0}
 @media(max-width:365px){.ux-assistant-stats{gap:4px}.ux-assistant-stats strong{font-size:18px}.ux-assistant-stats span{font-size:9px}}
 
+
+/* Place document import at the point of bore creation rather than route planning. */
+.ux-shot-scan-option{background:var(--surface2);border:1px solid var(--line);border-radius:15px;padding:13px}
+.ux-shot-scan-option .between{align-items:center;gap:12px}
+.ux-shot-scan-option strong{font-size:13px}
+.ux-shot-scan-option .tiny{margin:5px 0 0}
+.ux-shot-scan-option button{flex-shrink:0;white-space:nowrap}
+@media(max-width:430px){.ux-shot-scan-option .between{align-items:stretch;flex-direction:column}.ux-shot-scan-option button{align-self:flex-start}}
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -617,7 +625,7 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · v0.16.1 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · v0.16.2 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
@@ -1759,7 +1767,7 @@ function renderJobs(){
  return `<div class="page ux-jobs-page">
   <div class="between"><div><span class="eyebrow">FIELD / JOB MANAGEMENT</span><h1>My Jobs</h1></div>
    <button class="btn primary" data-action="new-job">+ New Job</button></div>
-  <p class="muted smalltext spaced">Each job has its own bores, crew hours and photos. Pipe reels and equipment stay shared.</p><div class="action-row spaced"><button type="button" class="btn micro primary" data-sheet-action="open">▣ Scan Shot Sheet</button></div>
+  <p class="muted smalltext spaced">Each job has its own bores, crew hours and photos. Pipe reels and equipment stay shared.</p>
   <div class="ux-jobs-grid">${jobs.map(j=>jobCard(j)).join('')}</div>
   ${archived.length?`<details class="ux-details spaced"><summary>Archived jobs (${archived.length})</summary>
    <div class="ux-jobs-grid spaced">${archived.map(j=>jobCard(j,true)).join('')}</div></details>`:''}
@@ -1998,7 +2006,7 @@ function locateMessage(){
  if(missing.length)pieces.push(`${missing.length} pending shot${missing.length===1?'':'s'} still need${missing.length===1?'s':''} GPS coordinates`);
  return `${pieces.join(' · ')}. Tap Locate Saved Addresses to look up entered addresses online, or use GPS at the location.`;
 }
-function renderPlanner(){const plan=orderedShots(),{order,allGeo,estimate,modeName,message,usable,homeReady}=plan,available=pipeOnTruck(),short=state.shots.filter(s=>s.status!=='complete').reduce((sum,s)=>sum+pipeNeed(s),0)-available,planned=state.shots.filter(s=>s.status!=='complete'),modes=[['toward','Far away → toward shop'],['short','Shortest shot last'],['drive','Least total distance'],['short_near','Short shot near shop last']];return `<div class="page"><div class="between"><div><span class="eyebrow">FIELD / ROUTING</span><h1 style="margin-top:5px">Smart Shot Planner</h1></div><button class="btn micro ghost" data-action="edit-job">Edit job</button></div><p class="muted smalltext spaced">Get the shot order you prefer, then check your pipe before the crew leaves. Mixed conduit sizes are checked separately below.</p><div class="action-row spaced"><button type="button" class="btn primary" data-sheet-action="open">▣ Scan Shot Sheet</button></div>
+function renderPlanner(){const plan=orderedShots(),{order,allGeo,estimate,modeName,message,usable,homeReady}=plan,available=pipeOnTruck(),short=state.shots.filter(s=>s.status!=='complete').reduce((sum,s)=>sum+pipeNeed(s),0)-available,planned=state.shots.filter(s=>s.status!=='complete'),modes=[['toward','Far away → toward shop'],['short','Shortest shot last'],['drive','Least total distance'],['short_near','Short shot near shop last']];return `<div class="page"><div class="between"><div><span class="eyebrow">FIELD / ROUTING</span><h1 style="margin-top:5px">Smart Shot Planner</h1></div><button class="btn micro ghost" data-action="edit-job">Edit job</button></div><p class="muted smalltext spaced">Get the shot order you prefer, then check your pipe before the crew leaves. Mixed conduit sizes are checked separately below.</p>
 <div class="card planner-home-summary"><div class="between"><div style="min-width:0"><span class="eyebrow">STARTING FROM · HOME BASE</span><strong class="planner-home-label">${esc(state.shopAddress||coordsText(shop())||'Not set')}</strong><small class="muted">${coordsValid(shop())?'✓ Shop GPS is saved':'⚠ Shop GPS still needed for shop-based routing'}</small></div><button class="btn micro ghost" data-action="edit-homebase">Settings</button></div></div>
 ${section('Plan My Route')}<div class="card">
 <button type="button" class="route-picker-toggle" data-action="toggle-route-menu" aria-expanded="${routeMenuOpen?'true':'false'}" aria-controls="route-mode-choices">
@@ -2501,7 +2509,7 @@ function showGuidedBore(){
     ${kv('Location',esc(guidedDraft.address||'Not set yet'))}</div>
     <div class="ux-guide-tip">✓ Saves as Pending. Later, open the bore log to start drilling or record progress.</div>`;
  showModal(modalHead('Add Your First Bore')+progress+
-  `<form data-form="guided-bore">${middle}
+  `<form data-form="guided-bore">${step===1?'<div class="card spaced ux-shot-scan-option"><div class="between"><div><strong>Already have shot paperwork?</strong><p class="tiny muted">Scan a sheet to add several bores to this job, or enter this bore manually below.</p></div><button type="button" class="btn micro ghost" data-sheet-action="open">▣ Scan paperwork</button></div></div>':''}${middle}
    <div class="modal-footer">
     ${step>1?'<button type="button" class="btn ghost" data-action="guided-back">Back</button>':
      '<button type="button" class="btn ghost" data-action="guided-advanced">Full form</button>'}
@@ -2541,6 +2549,7 @@ function shotForm(id){
  const available=state.equipment.filter(e=>!e.archived||assigned.has(e.id));
  showModal(`${modalHead(exists?'Edit Bore Shot':'New Bore Shot')}
  <form data-form="shot" data-id="${esc(id||'')}">
+  ${!exists?'<div class="card spaced ux-shot-scan-option"><div class="between"><div><strong>Have a shot sheet?</strong><p class="tiny muted">Import one or multiple reviewed bores from a photo instead of typing each entry.</p></div><button type="button" class="btn micro ghost" data-sheet-action="open">▣ Scan paperwork</button></div></div>':''}
   <div class="form-grid">
     <label class="field wide">Shot name<input name="name" value="${esc(s.name)}" maxlength="70" required></label>
     <label class="field">Bore length<span class="ux-number-line"><input name="feet" type="number" inputmode="decimal" step="0.1" min="0" value="${esc(s.feet)}" required><span class="ux-number-unit">ft</span></span></label>
@@ -3119,7 +3128,7 @@ for(const inputId of ['mudCameraFile','mudGalleryFile']){
 window.addEventListener('pagehide',flushPendingDraft);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){flushPendingDraft();persistGuidedDraft();}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape')borelabGoBack();if((e.key==='Enter'||e.key===' ')&&e.target.matches('.map-pin')){e.preventDefault();e.target.click()}});
-window.BoreLabAssistantBridge={state:()=>{syncActiveJob();return state},save,orderedShots,getPosition,hav,coordsValid,shop,pipeOnTruck,mudConfig,mudAvailable,mapsPinUrl,openMapUrl,switchActiveJob,shotDetail,setPage,uid,render,notify,todayLocal,reelForm};
+window.BoreLabAssistantBridge={state:()=>{syncActiveJob();return state},save,orderedShots,getPosition,hav,coordsValid,shop,pipeOnTruck,mudConfig,mudAvailable,mapsPinUrl,openMapUrl,switchActiveJob,shotDetail,setPage,uid,render,notify,todayLocal,reelForm,closeModal,clearGuidedDraft};
 async function init(){applyTheme();await refreshPhotos();render();refreshManualFiles();setTimeout(notifyServiceOnOpen,300);setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
 init();
 })();
