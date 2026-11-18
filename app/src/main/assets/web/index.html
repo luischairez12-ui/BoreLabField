@@ -2514,7 +2514,7 @@ function saveGuidedBore(){
  if(!Number.isFinite(f)||f<=0)return notify('Enter a bore length greater than zero.');
  const name=String(guidedDraft.name||'').trim();
  if(!name)return notify('Give this bore a name.');
- const guidedGps=window.BoreLabLocations?.parseCoords(guidedDraft.address||'');
+ const guidedGps=typeof window!=='undefined'?window.BoreLabLocations?.parseCoords(guidedDraft.address||''):null;
  const shot={id:uid(),name:name.slice(0,70),feet:f,conduits:guidedDraft.pipeDiameter?[{size:String(guidedDraft.pipeDiameter).trim().slice(0,32),quantity:1,perRunFeet:''}]:[],pipeDiameter:String(guidedDraft.pipeDiameter||'').trim().slice(0,32),address:String(guidedDraft.address||'').trim(),
   lat:guidedGps?.lat||'',lon:guidedGps?.lon||'',notes:'',status:'planned',pipeUsed:'',rodCount:'',entryDepth:'',exitDepth:'',
   equipmentIds:[],startedAt:null,completedAt:null,updatedAt:new Date().toISOString()};
