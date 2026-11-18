@@ -7,7 +7,7 @@ assert(js);new Function(js);
 assert(html.includes('data-page="tools"')&&html.includes('data-page="settings"'));
 assert(html.includes('aria-label="Add a bore shot"'));
 assert(js.includes('tools:renderTools'));
-assert(js.includes("['home','planner','settings'].includes(page)?page:'tools'"));
+assert(js.includes("['home','planner','settings'].includes(page)?page:page==='jobs'?'home':'tools'"));
 assert(js.includes("const KEY='borelab-field-v0.1'"),'Must not reset existing offline data');
 assert(js.includes("uxMode:'simple'"));
 assert(js.includes('data-ux-mode')&&js.includes('data-field-mode')&&js.includes('data-large-text'));
