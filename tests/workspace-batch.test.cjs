@@ -60,6 +60,7 @@ const state={
 const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uiBuilder=new Function('state','esc',
  "let lastModal='',universalQuery='';" +
+ "const activeJobPhotos=()=>photos;" +
  "const photos=[{shotId:'s1'},{shotId:'previous-job'}];" +
  "const MANUAL_MACHINES=[{id:'ditchwitch-jt20',make:'Ditch Witch',model:'JT20'},{id:'vermeer-d24x40',make:'Vermeer',model:'D24x40'}];" +
  "const UX_ACTIONS=[{id:'go-photos'},{id:'go-crew'},{id:'go-planner'},{id:'go-pipe'},{id:'open-equipment'},{id:'export-report'}];" +
