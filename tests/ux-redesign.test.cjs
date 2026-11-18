@@ -35,7 +35,7 @@ const h=new Function('state','esc','footnote','fmt','extra','pipeNeed','totalFee
  js.slice(start,stop)+'return {UX_ACTIONS,UX_DEFAULT_FAVORITES,favoriteActions,actionTile,renderHome,renderTools,nextHomeAction};');
 const ui=h(example,x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),()=>'',n=>String(n),()=>10,x=>Number(x.feet)+10,
  ()=>265,()=>90,()=>285,()=>350,()=>'',x=>'<div>'+x.name+'</div>');
-assert.equal(ui.UX_ACTIONS.length,12);
+assert(ui.UX_ACTIONS.length>=12&&ui.UX_ACTIONS.some(t=>t.id==='go-shotboard'),'Existing shortcuts preserved and Shot Board added');
 assert.equal(ui.favoriteActions().length,6);
 const home=ui.renderHome();
 assert(home.includes('Training Job')&&home.includes('What do you need to do?'));
