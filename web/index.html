@@ -1790,7 +1790,7 @@ function jobRecordsForDay(job,day,all=false){
   mud:(state.mudLogs||[]).filter(m=>belongsToJob(m,job.id)&&(all||inDay(m.at))),
   mudStock:(state.mudStockMoves||[]).filter(m=>belongsToJob(m,job.id)&&(all||inDay(m.at))),
   photos:photos.filter(p=>belongsToJob(p,job.id)&&(all||inDay(p.addedAt)))
-   .map(({id,shotId,jobId,addedAt,lat,lon,accuracy,kind})=>({id,shotId,jobId,addedAt,lat,lon,accuracy,kind}))
+   .map(({id,shotId,jobId,addedAt,lat,lon,accuracy,kind,stage})=>({id,shotId,jobId,addedAt,lat,lon,accuracy,kind,stage}))
  };
 }
 function jobDayIssues(job,day){
@@ -2782,13 +2782,13 @@ function buildPdfPayload(snapshot=null,requestedDay=''){
   const full=photos.find(x=>x.id===p.id);
   const shot=r.shots.find(x=>x.id===p.shotId);
   const coord=p.lat!=null&&p.lon!=null?`${Number(p.lat).toFixed(6)}, ${Number(p.lon).toFixed(6)}`:'GPS unavailable';
-  return {shot:shot?.name||'General job photo',date:formattedDate(p.addedAt),location:shot?.address||coord,dataUrl:full?.dataUrl||''};
+  return {shot:(shot?.name||'General job photo')+(p.stage?' · '+p.stage.toUpperCase():''),date:formattedDate(p.addedAt),location:shot?.address||coord,dataUrl:full?.dataUrl||''};
  });
  return {
   title,job:snapshot?.jobName||state.jobName,period:scope==='job'?'All recorded job activity':snapshot?.day||day,
   homeBase:snapshot?.homeBase||state.shopAddress||coordsText(shop())||'Not provided',
   generatedAt:formattedDate(new Date().toISOString()),
-  closeoutNote:snapshot?.notes||'',
+  closeoutNote:[snapshot?.notes||'',...((snapshot?.warnings||[]).map(x=>'Review: '+x)),...(!snapshot&&window.BoreLabFieldOps?window.BoreLabFieldOps.dayWarnings(activeJob(),day).map(x=>'Review: '+x):[])].filter(Boolean).join('\n'),
   checks:snapshot?.checks||[],
   summary:{shots:`${r.shots.length} (${complete.length} complete)`,
    completedFeet:`${fmt(complete.reduce((a,x)=>a+feet(x),0),1)} ft`,
