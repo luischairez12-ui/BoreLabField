@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.11.0 (debug/test build)
+**Current version:** v0.12.0 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.11.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.12.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,18 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.12.0 — Multiple Jobs and All-Job End-of-Day Assistant
+
+- **Multiple independent jobs:** the prior active job is retained as the first job, including all shots, crew entries, allowance, address and notes. New jobs start empty; switching returns the first job's data intact. Job creation, switch, archive and restore are available under My Jobs. Archived jobs are hidden from the active selection until restored.
+- **Job-aware work records:** bores and crew time are per job; photo captures carry a job ID, including unassigned images, with existing pre-migration photos mapped to the first job. Pipe reel inventory, mud-product inventory, shared equipment and the crew roster remain shared physical resources. Newly recorded pipe movements and mud mixes are stamped with the active job ID. Existing untagged movements and mud records remain attributed to the migrated original job.
+- **Daily assistant:** review all jobs on a selected date, with per-job bore activity, completed footage, recorded crew hours, photos and warnings for open shifts or ongoing bores. Review Job opens that job's normal closeout page.
+- **Combined daily summary:** saves a dated multi-job snapshot in Job History, and can export a combined PDF. Every bore and crew record is prefixed with its job name, the report notes provide a per-job overview and warnings, and pipe-planning allowances can vary by job. This does not silently mark a bore complete, check out workers, or change any active job records.
+- **Shared crew accounting protection:** prevents a worker from being checked into two jobs concurrently and blocks manual time entries that overlap work recorded on another job.
+- **No destructive migration:** existing `borelab-field-v0.1` localStorage and IndexedDB photo keys remain. Old JSON backup versions still restore into a single migrated job. Export backups before upgrades as a precaution.
+- **Regression coverage:** migration, job isolation, attribution of photos and pipe records, no double counting in combined reports, cross-job warnings, and native debug APK compilation. Test on your actual Android phone before relying on the new multi-job features for operational recordkeeping.
+
+**Notes:** This batch focuses on multi-job reliability and daily closeout. The previously approved voice-dictated quick notes and photo timeline are still separate planned enhancements, not included in this v0.12.0 build.
 
 ## New in v0.11.0 — Smart Job Workspace & Everyday UX Batch
 
