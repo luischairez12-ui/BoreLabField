@@ -326,6 +326,61 @@ public class BoreLabActivity extends Activity {
     }
 
 
+
+    /** OCR for folder labels and job paperwork; the extracted text must be reviewed before saving. */
+    private void recognizeAddressPhoto(String dataUrl) {
+        new Thread(() -> {
+            Bitmap bitmap = null;
+            try {
+                if (dataUrl == null || !dataUrl.startsWith("data:image/") || !dataUrl.contains(",")) {
+                    throw new IllegalArgumentException("Select an address photo.");
+                }
+                String encoded = dataUrl.substring(dataUrl.indexOf(',') + 1);
+                if (encoded.length() > 12000000) throw new IllegalArgumentException("Image is too large.");
+                byte[] bytes = Base64.decode(encoded, Base64.DEFAULT);
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inJustDecodeBounds = true;
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+                if (options.outWidth <= 0 || options.outHeight <= 0)
+                    throw new IllegalArgumentException("Cannot read the selected picture.");
+                int sample = 1;
+                while (options.outWidth / sample > 2000 || options.outHeight / sample > 2000) sample *= 2;
+                options.inJustDecodeBounds = false;
+                options.inSampleSize = sample;
+                bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+                if (bitmap == null) throw new IllegalArgumentException("Cannot decode address picture.");
+                final Bitmap decoded = bitmap;
+                TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+                recognizer.process(InputImage.fromBitmap(decoded, 0))
+                    .addOnSuccessListener(result -> {
+                        sendAddressScanResult(result.getText(), null);
+                        decoded.recycle();
+                        recognizer.close();
+                    })
+                    .addOnFailureListener(error -> {
+                        sendAddressScanResult("", error.getMessage());
+                        decoded.recycle();
+                        recognizer.close();
+                    });
+            } catch (Exception e) {
+                if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+                sendAddressScanResult("", e.getMessage());
+            }
+        }, "BoreLab-Address-OCR").start();
+    }
+
+    private void sendAddressScanResult(String text, String error) {
+        String escaped = JSONObject.quote(text == null ? "" : text);
+        String escapedError = error == null ? "null" : JSONObject.quote(error);
+        runOnUiThread(() -> {
+            if (webView != null) {
+                webView.evaluateJavascript(
+                    "window.borelabOnAddressScan && window.borelabOnAddressScan(" +
+                    escaped + "," + escapedError + ");", null);
+            }
+        });
+    }
+
     /** Private /files/manuals contains explicitly imported PDFs, checked against disk. */
     private File manualFolder() throws Exception {
         File dir = new File(getFilesDir(), "manuals");
@@ -620,6 +675,10 @@ public class BoreLabActivity extends Activity {
         /** OCR text scanning runs on-device using the model bundled inside the APK. */
         @JavascriptInterface public void scanProductLabel(String dataUrl) {
             recognizeProductLabel(dataUrl);
+        }
+
+        @JavascriptInterface public void scanAddressPhoto(String dataUrl) {
+            recognizeAddressPhoto(dataUrl);
         }
 
         @JavascriptInterface public void setTheme(String mode) {
