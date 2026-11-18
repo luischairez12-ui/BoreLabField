@@ -1364,7 +1364,7 @@ function saveMudPlan(form,values,record=false){
   config.levelChoice='custom'; // Final volume logged, not the old estimated fraction.
   config.targetLevelChoice='custom'; // Recorded volume is no longer just an estimated target.
  }
- clearFormDraft(form);state.mudTank=config;state.mudSelectedIds=ids;save();render();
+ if(typeof clearFormDraft==='function')clearFormDraft(form);state.mudTank=config;state.mudSelectedIds=ids;save();render();
  notify(record?'Mix recorded. Tracked product stock and tank contents updated.':'Mix plan saved. Previewing never changes inventory.');
 }
 function saveMudLevel(values){
