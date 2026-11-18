@@ -2465,8 +2465,8 @@ function equipmentSettings(){
 function beginGuidedBore(){
  let saved=null;try{saved=JSON.parse(localStorage.getItem(GUIDED_DRAFT_KEY)||'null')}catch{}
  if(saved&&Number(saved.step)>=1&&Number(saved.step)<=3){
-  guidedStep=Number(saved.step);guidedDraft={feet:String(saved.feet||''),name:String(saved.name||'').slice(0,70),address:String(saved.address||'').slice(0,250)};
- }else{guidedStep=1;guidedDraft={feet:'',name:`Shot ${String(state.shots.length+1).padStart(2,'0')}`,address:''};}
+  guidedStep=Number(saved.step);guidedDraft={feet:String(saved.feet||''),name:String(saved.name||'').slice(0,70),address:String(saved.address||'').slice(0,250),pipeDiameter:String(saved.pipeDiameter||'').slice(0,32)};
+ }else{guidedStep=1;guidedDraft={feet:'',name:`Shot ${String(state.shots.length+1).padStart(2,'0')}`,address:'',pipeDiameter:''};}
  showGuidedBore();
 }
 function showGuidedBore(){
@@ -2880,7 +2880,7 @@ switch(action){
  case 'guided-advanced':{
   const draft=guidedDraft;clearGuidedDraft();shotForm();
   const form=$('#modalRoot form[data-form="shot"]');
-  if(form&&draft){for(const name of ['feet','name','address']){const el=form.querySelector('[name="'+name+'"]');if(el)el.value=draft[name]||''}saveDraftForForm(form);}
+  if(form&&draft){for(const name of ['feet','name','address','pipeDiameter']){const el=form.querySelector('[name="'+name+'"]');if(el)el.value=draft[name]||''}saveDraftForForm(form);}
   break;
  }
  case 'guided-tour':showFirstRunTour();break;
