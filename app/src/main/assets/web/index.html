@@ -459,6 +459,23 @@ html[data-large-text="on"] .ux-tile small,html[data-large-text="on"] .ux-next p{
 .ux-search-result b{grid-column:2;grid-row:1/3;align-self:center;font-size:22px;color:var(--accent)}
 .ux-search-result:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 
+
+.ux-multi-actions{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0 8px}.ux-multi-actions .btn{min-height:42px}
+.ux-jobs-page h1,.ux-day-assistant h1{font-size:25px}
+.ux-jobs-grid{display:grid;gap:10px;margin:12px 0}
+.ux-multi-job-card{border:1px solid var(--line);background:var(--surface);border-radius:15px;padding:14px;box-shadow:var(--shadow)}
+.ux-current-job{border-left:4px solid #0c9f97}
+.ux-multi-job-card h2{font-size:20px;margin:7px 0 2px}
+.ux-assistant-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:13px}
+.ux-assistant-stats>div{background:var(--surface2);border:1px solid var(--line);border-radius:11px;padding:9px 5px;text-align:center}
+.ux-assistant-stats strong{display:block;font-size:21px;line-height:1.3}
+.ux-assistant-stats span{font-size:10px;color:var(--muted);line-height:1.2}
+.ux-assist-job{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:14px;margin:10px 0}
+.ux-assist-job h3{font-size:17px}
+.ux-assist-issues{border-left:3px solid var(--accent);padding:4px 10px;background:var(--surface2);border-radius:5px}
+.ux-assist-issues p{font-size:12px;margin:3px 0}
+@media(max-width:365px){.ux-assistant-stats{gap:4px}.ux-assistant-stats strong{font-size:18px}.ux-assistant-stats span{font-size:9px}}
+
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -930,7 +947,9 @@ function renderCloseout(){
  const labels=['Crew hours reviewed','Bore logs reviewed','Reel/pipe inventory reviewed','Photos and notes reviewed'];
  return `<div class="page">
  <div class="between"><div><span class="eyebrow">FIELD / END OF DAY</span><h1>Daily Closeout</h1></div><button class="btn micro ghost" data-page="history">History</button></div>
- <p class="muted smalltext spaced">Review the workday and save a dated record. Saving never checks out crew or marks bore shots complete automatically.</p>
+ <p class="muted smalltext spaced">Review <strong>${esc(state.jobName)}</strong> for this date. Saving never checks out crew or completes bores automatically.</p>
+ <div class="action-row spaced"><button class="btn ghost" data-page="dayassist">Review All Jobs for Today</button>
+  <button class="btn ghost" data-page="jobs">Switch Job</button></div>
  <div class="card spaced"><label class="field">Work date<input type="date" data-closeout-day value="${esc(date)}"></label>
  <div class="closeout-stats">
  <div><strong>${r.shots.length}</strong><small>Bores updated</small></div><div><strong>${fmt(r.crew.reduce((n,x)=>n+hours(x),0),2)}</strong><small>Crew-hours</small></div>
@@ -951,19 +970,19 @@ function renderHistory(){
  const entries=[...state.history].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
  const cards=kind=>{
   const filtered=entries.filter(x=>x.kind===kind);
-  return filtered.length?filtered.map(x=>`<div class="card spaced"><div class="between"><div><span class="eyebrow">${kind==='daily'?'CLOSED WORKDAY':'JOB SNAPSHOT'}</span><h3>${esc(x.jobName)} · ${esc(x.day)}</h3><small class="muted">Saved ${esc(fullDate(x.createdAt))}</small></div><span class="status complete">Saved</span></div>
+  return filtered.length?filtered.map(x=>`<div class="card spaced"><div class="between"><div><span class="eyebrow">${kind==='daily'?'CLOSED WORKDAY':kind==='multi'?'ALL JOBS · DAILY SUMMARY':'JOB SNAPSHOT'}</span><h3>${esc(x.jobName)} · ${esc(x.day)}</h3><small class="muted">Saved ${esc(fullDate(x.createdAt))}</small></div><span class="status complete">Saved</span></div>
   <p class="smalltext muted spaced">${x.summary?.shots||0} bores · ${fmt(x.summary?.completedFeet||0,1)} ft complete · ${fmt(x.summary?.crewHours||0,2)} crew-hours</p>
   <div class="action-row"><button class="btn micro ghost" data-action="history-detail" data-id="${esc(x.id)}">View</button><button class="btn micro primary" data-action="history-pdf" data-id="${esc(x.id)}">Export PDF</button></div></div>`).join(''):'<p class="smalltext muted spaced">No saved records yet.</p>';
  };
  return `<div class="page"><div class="between"><div><span class="eyebrow">FIELD / ARCHIVE</span><h1>Job History</h1></div><button class="btn micro ghost" data-page="closeout">Closeout</button></div>
- <p class="smalltext muted spaced">One active job only. This saves historical snapshots without adding multiple-job switching.</p>
+ <p class="smalltext muted spaced">Browse closeouts and job snapshots from all jobs. Combined reports preserve job names.</p>
  <div class="card spaced"><h3>Snapshot Current Job</h3><p class="smalltext muted spaced">Preserve a copy of the current job records without clearing the work in progress.</p><button class="btn primary" data-action="archive-job-snapshot">Save Job Snapshot</button></div>
- ${section('Daily Closeouts')}${cards('daily')}${section('Job Snapshots')}${cards('job')}
+ ${section('Daily Closeouts')}${cards('daily')}${section('Combined Daily Summaries')}${cards('multi')}${section('Job Snapshots')}${cards('job')}
  <div class="note spaced">Snapshots freeze saved records, but original photo files remain in the local photo library. Back them up before deleting or resetting the app.</div>${footnote()}</div>`;
 }
 function historyDetail(id){
  const x=state.history.find(z=>z.id===id);if(!x)return;
- showModal(`${modalHead((x.kind==='daily'?'Daily Closeout':'Job Snapshot')+' · '+x.day)}
+ showModal(`${modalHead((x.kind==='daily'?'Daily Closeout':x.kind==='multi'?'Combined Daily Report':'Job Snapshot')+' · '+x.day)}
  <div class="card"><h3>${esc(x.jobName)}</h3>
  ${kv('Saved',esc(fullDate(x.createdAt)))}${kv('Bores',x.summary?.shots||0)}${kv('Completed footage',fmt(x.summary?.completedFeet||0,1)+' ft')}
  ${kv('Crew-hours',fmt(x.summary?.crewHours||0,2))}${kv('Pipe installed',fmt(x.summary?.installedPipe||0,1)+' ft')}${kv('Photo records',x.summary?.photos||0)}${kv('Mix batches',x.summary?.mudBatches||0)}
@@ -1587,6 +1606,10 @@ function renderHome(){
    </div>
    ${state.demo?'<p class="ux-demo-label">ⓘ Demo job · sample records</p>':''}
   </div>
+  <div class="ux-multi-actions">
+    <button class="btn micro ghost" data-page="jobs">▦ My Jobs · ${state.jobs?.filter(j=>!j.archived).length||1}</button>
+    <button class="btn micro ghost" data-page="dayassist">◷ End-of-Day Assistant</button>
+  </div>
   <div class="ux-section-heading"><h2>What do you need to do?</h2>
    <button class="btn micro ghost" data-page="settings" aria-label="Customize home shortcuts">Customize</button></div>
   <div class="ux-tile-grid">${favoriteActions().map(actionTile).join('')}</div>
@@ -1621,6 +1644,8 @@ function renderJobWorkspace(){
  <h1>${esc(state.jobName)}</h1>
  <p class="smalltext muted">${esc(state.jobAddress||'Your active HDD job')}</p>
  <button class="btn primary" data-action="edit-job" aria-label="Edit active job details">✎ Edit Job</button></div>
+ <div class="ux-multi-actions"><button class="btn micro ghost" data-page="jobs">Switch Job</button>
+  <button class="btn micro ghost" data-page="dayassist">End-of-Day Assistant</button></div>
  <div class="ux-progress-track" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Footage completed">
   <div class="ux-progress-fill" style="width:${pct}%"></div></div>
  <div class="ux-workspace-metrics">
@@ -2644,7 +2669,7 @@ function buildPdfPayload(snapshot=null,requestedDay=''){
  const day=requestedDay||todayLocal(),scope=snapshot?(snapshot.kind==='job'?'job':'daily'):(requestedDay?'daily':state.reportScope==='job'?'job':'daily');
  const r=snapshot?{shots:snapshot.shots||[],crew:snapshot.crew||[],pipe:snapshot.pipe||[],photos:snapshot.photos||[],mud:snapshot.mud||[],mudStock:snapshot.mudStock||[]} :dailyRecords(day,scope==='job');
  const machines=snapshot?.equipment||state.equipment,reels=snapshot?.reels||state.reels;
- const title=snapshot?(snapshot.kind==='job'?'Saved Job Snapshot':'Saved Daily Closeout'):(scope==='job'?'Job Activity Report':'Daily Field Report');
+ const title=snapshot?(snapshot.kind==='job'?'Saved Job Snapshot':snapshot.kind==='multi'?'Multi-Job Daily Report':'Saved Daily Closeout'):(scope==='job'?'Job Activity Report':'Daily Field Report');
  const shotPipe=sh=>{
   const entries=r.pipe.filter(m=>m.type==='installed'&&m.shotId===sh.id);
   if(entries.length)return entries.reduce((a,x)=>a+Number(x.feet||0),0);
@@ -2668,13 +2693,13 @@ function buildPdfPayload(snapshot=null,requestedDay=''){
   checks:snapshot?.checks||[],
   summary:{shots:`${r.shots.length} (${complete.length} complete)`,
    completedFeet:`${fmt(complete.reduce((a,x)=>a+feet(x),0),1)} ft`,
-   plannedPipe:`${fmt(r.shots.reduce((a,x)=>a+feet(x)+Number(snapshot?.allowance??extra()),0),1)} ft`,
+   plannedPipe:`${fmt(r.shots.reduce((a,x)=>a+feet(x)+Number(x.plannedAllowance??snapshot?.allowance??extra()),0),1)} ft`,
    actualPipe:`${fmt(actualTotal,1)} ft (from records; check reel ledger)`,
    crewHours:`${fmt(r.crew.reduce((a,x)=>a+hours(x),0),2)} h`,
    photos:String(r.photos.length),mudBatches:String(r.mud.length),mudStockMoves:String(r.mudStock.length)},
   shots:r.shots.map(sh=>({
    name:sh.name||'Unnamed bore',status:sh.status||'',feet:fmt(sh.feet,1),
-   plannedPipe:fmt(Number(sh.feet||0)+Number(snapshot?.allowance??extra()),1),
+   plannedPipe:fmt(Number(sh.feet||0)+Number(sh.plannedAllowance??snapshot?.allowance??extra()),1),
    actualPipe:shotPipe(sh)!=null?fmt(shotPipe(sh),1):'Not entered',
    notes:sh.notes||'',address:sh.address||(sh.lat&&sh.lon?`${sh.lat}, ${sh.lon}`:'Unknown'),
    equipment:(sh.equipmentIds||[]).map(id=>machines.find(x=>x.id===id)).filter(Boolean).map(x=>x.name).join(', ')||'Not recorded',
@@ -2696,7 +2721,7 @@ async function exportRealPdf(snapshotId='',specificDay=''){
  if(snapshotId&&!saved)return notify('Saved history record not found.');
  const payload=buildPdfPayload(saved,specificDay);
  const time=saved?.day||specificDay||todayLocal();
- const file=`BoreLab_${saved?.kind==='job'?'Job_History':saved?'Closeout':state.reportScope==='job'?'Job_Report':'Daily_Report'}_${safeFile(payload.job)}_${time}.pdf`;
+ const file=`BoreLab_${saved?.kind==='multi'?'Multi_Job_Daily':saved?.kind==='job'?'Job_History':saved?'Closeout':state.reportScope==='job'?'Job_Report':'Daily_Report'}_${safeFile(payload.job)}_${time}.pdf`;
  if(window.BoreLabNative?.exportPdf){
   try{
    window.BoreLabNative.exportPdf(file,JSON.stringify(payload));
