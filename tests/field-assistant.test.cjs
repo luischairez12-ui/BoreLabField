@@ -15,7 +15,7 @@ assert(browser.includes('<script src="./assistant.js"></script>'),'Assistant scr
 for(const phrase of ['Morning Briefing','Do I have enough pipe?','What needs attention?', "What's on the agenda?",'Quick glance at mud inventory',"What's the closest shot to me?",'End with the shortest shot','End with the shot closest to shop','Show me the next job site']){
  assert(moduleWeb.includes(phrase), 'Missing assistant workflow: '+phrase);
 }
-for(const phrase of ['api().getPosition()','api().orderedShots()','api().pipeOnTruck()','api().mudConfig()','api().mudAvailable','state.askMyCrewId','s.askNextJobId','window.borelabVoiceResult','window.borelabHandleBack']){
+for(const phrase of ['api().getPosition()','api().orderedShots()','api().pipeOnTruck()','api().mudConfig()','api().mudAvailable','s.askMyCrewId','s.askNextJobId','window.borelabVoiceResult','window.borelabHandleBack']){
  assert(moduleWeb.includes(phrase),'Missing feature: '+phrase);
 }
 assert(native.includes('RecognizerIntent.ACTION_RECOGNIZE_SPEECH'));
