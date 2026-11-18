@@ -21,7 +21,7 @@ assert(html.includes('window.BoreLabConduits?.renderEditor(s)'));
 assert(html.includes('conduits:conduits||[]'),'Full shot form must save products');
 assert(html.includes('conduits:guidedDraft.pipeDiameter?'),'Guided shot must migrate its single size');
 assert(html.includes('conduitDetails:(window.BoreLabConduits?.plan'),'PDF data must include multiple materials');
-assert(html.includes('data-sheet-action="open"'),'Planner needs a scan button');
+assert.equal((html.match(/data-sheet-action="open"/g)||[]).length,2,'Scan action should appear only in guided and advanced new-bore forms');
 assert(pdf.includes('label("Product conduits / planned footage", str(shot, "conduitDetails"))'));
 assert(native.includes('scanShotSheet(String dataUrl)'),'JavaScript bridge must scan shot sheet');
 assert(native.includes('recognizePaperwork(dataUrl, true)'),'Shot sheet OCR should be device-local');
