@@ -637,9 +637,11 @@ function switchActiveJob(id){
  save();screenStack=[];try{sessionStorage.removeItem('borelab-screen-stack-v1')}catch{}
  setPage('job',{back:true});notify('Switched to '+state.jobName);return true;
 }
+const validLocationInput=value=>{const loc=String(value||'').trim();return !loc||window.BoreLabLocations?.locationKind(loc)!=='plus'||window.BoreLabLocations.isUsablePlusCode(loc)};
 function createNewJob(values){
  const name=String(values.name||'').trim().slice(0,90);
  if(!name)return notify('Enter a job name.');
+ if(!validLocationInput(values.address))return notify('Short Plus Codes need a nearby place, e.g. 7XRX+RWP Big Cypress, Florida.');
  flushPendingDraft();syncActiveJob();
  const j=makeJobSnapshot(uid(),{jobName:name,jobAddress:values.address||'',jobNotes:values.notes||'',
   shots:[],crew:[],allowance:state.allowance,routeMode:state.routeMode,demo:false});
@@ -2512,8 +2514,9 @@ function saveGuidedBore(){
  if(!Number.isFinite(f)||f<=0)return notify('Enter a bore length greater than zero.');
  const name=String(guidedDraft.name||'').trim();
  if(!name)return notify('Give this bore a name.');
+ const guidedGps=window.BoreLabLocations?.parseCoords(guidedDraft.address||'');
  const shot={id:uid(),name:name.slice(0,70),feet:f,conduits:guidedDraft.pipeDiameter?[{size:String(guidedDraft.pipeDiameter).trim().slice(0,32),quantity:1,perRunFeet:''}]:[],pipeDiameter:String(guidedDraft.pipeDiameter||'').trim().slice(0,32),address:String(guidedDraft.address||'').trim(),
-  lat:'',lon:'',notes:'',status:'planned',pipeUsed:'',rodCount:'',entryDepth:'',exitDepth:'',
+  lat:guidedGps?.lat||'',lon:guidedGps?.lon||'',notes:'',status:'planned',pipeUsed:'',rodCount:'',entryDepth:'',exitDepth:'',
   equipmentIds:[],startedAt:null,completedAt:null,updatedAt:new Date().toISOString()};
  state.shots.push(shot);
  state.demo=false;save();clearGuidedDraft();closeModal();render();
@@ -2982,13 +2985,14 @@ switch(action){
 }catch(e){console.error(e);notify('Could not complete action: '+e.message)}});
 document.addEventListener('submit',e=>{const form=e.target.closest('form[data-form]');if(!form)return;e.preventDefault();const values=getForm(form);if(form.dataset.form==='new-job'){createNewJob(values);return;}if(form.dataset.form==='job-details'){
  const name=String(values.name||'').trim();if(!name)return notify('Job name is required.');
+ if(!validLocationInput(values.address))return notify('Short Plus Codes need a nearby place, e.g. 7XRX+RWP Big Cypress, Florida.');
  state.jobName=name.slice(0,90);state.jobAddress=String(values.address||'').trim().slice(0,250);
  state.jobNotes=String(values.notes||'').trim().slice(0,2000);state.demo=false;
  clearFormDraft(form);save();closeModal();render();notify('Active job details saved.');return;
  }if(form.dataset.form==='guided-bore'){
   if(!guidedDraft)beginGuidedBore();
   if(guidedStep===1){const length=Number(values.feet);if(!Number.isFinite(length)||length<=0||length>100000)return notify('Enter a valid bore length above zero.');guidedDraft.feet=String(length);guidedStep=2;persistGuidedDraft();showGuidedBore();return;}
-  if(guidedStep===2){const name=String(values.name||'').trim();if(!name)return notify('Enter a name for this bore.');guidedDraft.name=name.slice(0,70);guidedDraft.address=String(values.address||'').trim().slice(0,250);guidedDraft.pipeDiameter=String(values.pipeDiameter||'').trim().slice(0,32);guidedStep=3;persistGuidedDraft();showGuidedBore();return;}
+  if(guidedStep===2){const name=String(values.name||'').trim();if(!name)return notify('Enter a name for this bore.');guidedDraft.name=name.slice(0,70);if(!validLocationInput(values.address))return notify('Short Plus Codes need a nearby place name.');guidedDraft.address=String(values.address||'').trim().slice(0,250);guidedDraft.pipeDiameter=String(values.pipeDiameter||'').trim().slice(0,32);guidedStep=3;persistGuidedDraft();showGuidedBore();return;}
   if(guidedStep===3){saveGuidedBore();return;}
   return;
  }else if(form.dataset.form==='manual-link'){saveManualLink(values,form.dataset.id||'');return}else if(form.dataset.form==='manual-search'){const slot=form.dataset.slot,query=String(values.query||'').trim();if(!isManualSlot(slot)||manualFiles[slot]!==true)return notify('Manual missing. Import it again.');if(query.length<2||query.length>80)return notify('Enter 2–80 characters.');const requestId=String(++manualSearchSeq);activeManualSearch={slot,requestId};showManualSearch(slot,query,null,true);window.BoreLabNative?.searchManual(slot,query,requestId);return}else if(form.dataset.form==='mud-stock'){saveMudStock(form,values);return}else if(form.dataset.form==='mud-product'){saveMudProduct(form,values);return}else if(form.dataset.form==='mud-level'){saveMudLevel(values);return}else if(form.dataset.form==='mud-batch'){saveMudPlan(form,values,e.submitter?.dataset?.mudCommit==='yes');return}else if(form.dataset.form==='closeout'){saveCloseout(form,values);return}else if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
@@ -2998,6 +3002,7 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
  if(!Number.isFinite(f)||f<0)return notify('Enter a valid bore length.');
  const id=form.dataset.id,old=state.shots.find(shot=>shot.id===id);
  const address=String(values.address||'').trim();
+ if(!validLocationInput(address))return notify('Short Plus Codes need a nearby place name.');
  let lat=String(values.lat||'').trim(),lon=String(values.lon||'').trim();
  if(old&&address!==old.address&&lat===String(old.lat??'')&&lon===String(old.lon??'')){lat='';lon=''}
  const addressGps=window.BoreLabLocations?.parseCoords(address);
