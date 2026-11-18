@@ -46,14 +46,15 @@ function quickBore(){
  const last=state.quickBoreDefaults||{};
  const size=last.size||prev?.conduits?.[0]?.size||prev?.pipeDiameter||'';
  const quantity=last.quantity||prev?.conduits?.[0]?.quantity||1;
- const name='Shot '+String((state.shots||[]).length+1).padStart(2,'0');
+ let n=(state.shots||[]).length+1;while((state.shots||[]).some(sh=>sh.name==='Shot '+String(n).padStart(2,'0')))n++;
+ const name='Shot '+String(n).padStart(2,'0');
  api().showModal('<div class="modal-head"><h2>Quick Bore</h2><button class="icon-btn" data-action="close-modal" aria-label="Close">✕</button></div>'+
  '<p class="smalltext muted">Create a planned shot using the last conduit size. You can complete detailed bore logs afterward.</p>'+
  '<form data-form="quick-bore" class="bl-quick-form"><label class="field">Bore footage<input type="number" name="feet" min="0.1" max="100000" step="0.1" inputmode="decimal" required placeholder="175" autofocus></label>'+
  '<label class="field">Shot name<input name="name" maxlength="70" required value="'+esc(name)+'"></label>'+
  '<div class="bl-row-2"><label class="field">Conduit size<input name="size" maxlength="40" placeholder="4 inch" value="'+esc(size)+'"></label>'+
  '<label class="field">Conduit quantity<input name="quantity" type="number" min="1" max="50" step="1" value="'+esc(quantity)+'"></label></div>'+
- '<label class="field">Jobsite address<input name="address" placeholder="Type or scan from your work order" maxlength="250" value="'+esc(last.address||'')+'">'+
+ '<label class="field">Jobsite address<input name="address" placeholder="Type or scan from your work order" maxlength="250" value="'+esc(last.address||prev?.address||'')+'">'+
  '<button type="button" class="btn micro ghost" data-address-scan>▣ Scan address from paper</button></label>'+
  '<p class="tiny muted">Status starts as Pending. No reel footage is deducted when you add a bore.</p>'+
  '<div class="modal-footer"><button type="button" class="btn ghost" data-action="close-modal">Cancel</button>'+
@@ -73,8 +74,8 @@ function createQuickBore(form){
   conduits:size?[{size:size.slice(0,40),quantity,perRunFeet:''}]:[],pipeDiameter:size.slice(0,40),
   address:address.slice(0,250),lat:gps?.lat||'',lon:gps?.lon||'',notes:'',status:'planned',
   startedAt:null,completedAt:null,pipeUsed:'',rodCount:'',entryDepth:'',exitDepth:'',
-  equipmentIds:[],updatedAt:new Date().toISOString()};
- state.shots.push(shot);state.quickBoreDefaults={size:size.slice(0,40),quantity,address:address.slice(0,250)};
+  equipmentIds:(state.quickBoreDefaults?.equipmentIds||state.shots[state.shots.length-1]?.equipmentIds||[]).filter(id=>(state.equipment||[]).some(x=>x.id===id&&!x.archived)),updatedAt:new Date().toISOString()};
+ state.shots.push(shot);state.quickBoreDefaults={size:size.slice(0,40),quantity,address:address.slice(0,250),equipmentIds:shot.equipmentIds};
  state.demo=false;
  journal('Quick Bore created',state.activeJobId,shot.id,null,shot);
  b.save();b.closeModal();b.render();b.notify('Quick Bore saved. Tap its name to add photos, depths or readiness.');
@@ -160,11 +161,12 @@ function beginCompletion(jobId,shotId){
  preferred.filter(r=>sizeKey(r.size)===sizeKey(row.size)).map(r=>'<option value="'+esc(r.id)+'" '+(r.id===row.reelId?'selected':'')+'>'+esc(r.name)+' · '+fmt(r.remaining)+' ft on truck</option>').join('')+'</select></label></div>').join('')+'</div>':
  '<p class="tiny muted">No conduit runs recorded for automatic allocation. You may still finish the bore and log pipe manually.</p>')+
  '<div class="modal-footer"><button type="button" class="btn ghost" data-action="close-modal">Cancel</button>'+
- '<button type="submit" class="btn primary" name="completeMode" value="record" '+(!rows.length||tooMany?'disabled':'')+'>Record Pipe & Finish</button>'+
+ '<button type="submit" class="btn primary" name="completeMode" value="record" '+(!rows.length||tooMany||previously>0?'disabled':'')+'>Record Pipe & Finish</button>'+
  '<button type="submit" class="btn ghost" name="completeMode" value="skip">Finish Without Pipe Log</button></div></form>');
 }
 function validateCompletion(shot,job,values,mode,form,state){
  if(mode==='skip')return{runs:[],reels:new Map()};
+ if((state.pipeMoves||[]).some(m=>m.shotId===shot.id&&m.type==='installed'))throw Error('Pipe was already logged on this shot. Finish without an additional deduction, or record extra usage manually.');
  const rows=rowsForCompletion(job,shot);
  if(!rows.rows.length||rows.tooMany)throw Error('No safe automatic allocation. Use manual pipe logging.');
  const reservations=state.pipeReservations||[],reels=new Map((state.reels||[]).map(r=>[r.id,r]));
