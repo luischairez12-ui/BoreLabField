@@ -1364,7 +1364,7 @@ function saveMudPlan(form,values,record=false){
   config.levelChoice='custom'; // Final volume logged, not the old estimated fraction.
   config.targetLevelChoice='custom'; // Recorded volume is no longer just an estimated target.
  }
- state.mudTank=config;state.mudSelectedIds=ids;save();render();
+ clearFormDraft(form);state.mudTank=config;state.mudSelectedIds=ids;save();render();
  notify(record?'Mix recorded. Tracked product stock and tank contents updated.':'Mix plan saved. Previewing never changes inventory.');
 }
 function saveMudLevel(values){
@@ -2200,12 +2200,15 @@ function equipmentSettings(){
 }
 
 function beginGuidedBore(){
- guidedStep=1;
- guidedDraft={feet:'',name:`Shot ${String(state.shots.length+1).padStart(2,'0')}`,address:''};
+ let saved=null;try{saved=JSON.parse(localStorage.getItem(GUIDED_DRAFT_KEY)||'null')}catch{}
+ if(saved&&Number(saved.step)>=1&&Number(saved.step)<=3){
+  guidedStep=Number(saved.step);guidedDraft={feet:String(saved.feet||''),name:String(saved.name||'').slice(0,70),address:String(saved.address||'').slice(0,250)};
+ }else{guidedStep=1;guidedDraft={feet:'',name:`Shot ${String(state.shots.length+1).padStart(2,'0')}`,address:''};}
  showGuidedBore();
 }
 function showGuidedBore(){
  if(!guidedDraft)return beginGuidedBore();
+ persistGuidedDraft();
  const step=guidedStep;
  const progress=`<div class="ux-guide-step">STEP ${step} OF 3 · ${step===1?'LENGTH':step===2?'LOCATION':'REVIEW'}</div>
  <div class="ux-guide-track" aria-label="Step ${step} of 3">
@@ -2245,7 +2248,7 @@ function saveGuidedBore(){
   lat:'',lon:'',notes:'',status:'planned',pipeUsed:'',rodCount:'',entryDepth:'',exitDepth:'',
   equipmentIds:[],startedAt:null,completedAt:null,updatedAt:new Date().toISOString()};
  state.shots.push(shot);
- state.demo=false;save();closeModal();guidedDraft=null;render();
+ state.demo=false;save();clearGuidedDraft();closeModal();render();
  notify('Bore saved ✓ You can add details any time.');
  if(shot.address)resolveShotAfterSave(shot.id);
 }
@@ -2584,7 +2587,12 @@ switch(action){
  case 'new-shot':if(state.uxMode==='advanced')shotForm();else beginGuidedBore();break;
  case 'start-guided-bore':beginGuidedBore();break;
  case 'guided-back':if(guidedDraft&&guidedStep>1){guidedStep--;showGuidedBore();}break;
- case 'guided-advanced':guidedDraft=null;shotForm();break;
+ case 'guided-advanced':{
+  const draft=guidedDraft;clearGuidedDraft();shotForm();
+  const form=$('#modalRoot form[data-form="shot"]');
+  if(form&&draft){for(const name of ['feet','name','address']){const el=form.querySelector('[name="'+name+'"]');if(el)el.value=draft[name]||''}saveDraftForForm(form);}
+  break;
+ }
  case 'guided-tour':showFirstRunTour();break;
  case 'ux-reset-favorites':state.uxFavorites=[...UX_DEFAULT_FAVORITES];save();render();notify('Default home shortcuts restored.');break;
  case 'shot-detail':shotDetail(id);break;
@@ -2601,7 +2609,7 @@ switch(action){
  case 'go-pipe':setPage('pipe');break;
  case 'go-mud':setPage('mud');break;
  case 'go-manuals':setPage('manuals');break;
- case 'manual-machine':if(MANUAL_MACHINES.some(m=>m.id===id)){selectedManualMachine=id;render();refreshManualFiles();}break;
+ case 'manual-machine':if(MANUAL_MACHINES.some(m=>m.id===id)){selectedManualMachine=id;if(page!=='manuals')setPage('manuals');else{render();refreshManualFiles();}}break;
  case 'manual-refresh':refreshManualFiles();break;
  case 'manual-add-link':manualLinkForm();break;
  case 'manual-more':manualExternalUrl(MANUAL_MORE_URL);break;
@@ -2680,11 +2688,11 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
  const name=String(values.name||'').trim();if(!name)return notify('Job name is required.');
  state.jobName=name.slice(0,90);state.jobAddress=String(values.address||'').trim().slice(0,250);
  state.jobNotes=String(values.notes||'').trim().slice(0,2000);state.demo=false;
- save();closeModal();render();notify('Active job details saved.');return;
+ clearFormDraft(form);save();closeModal();render();notify('Active job details saved.');return;
  }if(form.dataset.form==='guided-bore'){
   if(!guidedDraft)beginGuidedBore();
-  if(guidedStep===1){const length=Number(values.feet);if(!Number.isFinite(length)||length<=0||length>100000)return notify('Enter a valid bore length above zero.');guidedDraft.feet=String(length);guidedStep=2;showGuidedBore();return;}
-  if(guidedStep===2){const name=String(values.name||'').trim();if(!name)return notify('Enter a name for this bore.');guidedDraft.name=name.slice(0,70);guidedDraft.address=String(values.address||'').trim().slice(0,250);guidedStep=3;showGuidedBore();return;}
+  if(guidedStep===1){const length=Number(values.feet);if(!Number.isFinite(length)||length<=0||length>100000)return notify('Enter a valid bore length above zero.');guidedDraft.feet=String(length);guidedStep=2;persistGuidedDraft();showGuidedBore();return;}
+  if(guidedStep===2){const name=String(values.name||'').trim();if(!name)return notify('Enter a name for this bore.');guidedDraft.name=name.slice(0,70);guidedDraft.address=String(values.address||'').trim().slice(0,250);guidedStep=3;persistGuidedDraft();showGuidedBore();return;}
   if(guidedStep===3){saveGuidedBore();return;}
   return;
  }else if(form.dataset.form==='manual-link'){saveManualLink(values,form.dataset.id||'');return}else if(form.dataset.form==='manual-search'){const slot=form.dataset.slot,query=String(values.query||'').trim();if(!isManualSlot(slot)||manualFiles[slot]!==true)return notify('Manual missing. Import it again.');if(query.length<2||query.length>80)return notify('Enter 2–80 characters.');const requestId=String(++manualSearchSeq);activeManualSearch={slot,requestId};showManualSearch(slot,query,null,true);window.BoreLabNative?.searchManual(slot,query,requestId);return}else if(form.dataset.form==='mud-stock'){saveMudStock(form,values);return}else if(form.dataset.form==='mud-product'){saveMudProduct(form,values);return}else if(form.dataset.form==='mud-level'){saveMudLevel(values);return}else if(form.dataset.form==='mud-batch'){saveMudPlan(form,values,e.submitter?.dataset?.mudCommit==='yes');return}else if(form.dataset.form==='closeout'){saveCloseout(form,values);return}else if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
@@ -2714,13 +2722,22 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
  const completedAt=status==='complete'?old?.completedAt||now:null;
  const shot={...old,id:old?.id||uid(),name:String(values.name||'').trim().slice(0,70),feet:f,address,lat,lon,pipeUsed,rodCount,entryDepth,exitDepth,equipmentIds,notes:String(values.notes||'').trim(),status,startedAt,completedAt,updatedAt:now};
  if(old)state.shots=state.shots.map(x=>x.id===id?shot:x);else state.shots.push(shot);
- state.demo=false;save();closeModal();render();notify('Bore shot and equipment saved.');
+ state.demo=false;clearFormDraft(form);save();closeModal();render();notify('Bore shot and equipment saved.');
  resolveShotAfterSave(shot.id);
 }else if(form.dataset.form==='time'){
- const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);save();closeModal();render();notify('Crew time saved.');
+ const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);clearFormDraft(form);save();closeModal();render();notify('Crew time saved.');
 }});
-document.addEventListener('input',e=>{if(e.target.matches('form[data-form="mud-batch"] input[name="capacity"]')){const form=e.target.closest('form');updateMudLevelForm(e.target.closest('form'));updateMudTargetForm(form);}});
-document.addEventListener('change',e=>{if(e.target.matches('[data-ux-mode]')){
+document.addEventListener('input',e=>{
+ if(e.target.matches('[data-universal-search]')){universalQuery=e.target.value.slice(0,100);const el=$('#universalSearchResults');if(el)el.innerHTML=renderSearchResults();return;}
+ const form=e.target.closest('form[data-form]');
+ if(form)scheduleFormDraft(form);
+ if(form?.dataset.form==='guided-bore'&&guidedDraft){
+  if(guidedStep===1)guidedDraft.feet=form.querySelector('[name="feet"]')?.value||'';
+  if(guidedStep===2){guidedDraft.name=form.querySelector('[name="name"]')?.value||'';guidedDraft.address=form.querySelector('[name="address"]')?.value||'';}
+  persistGuidedDraft();
+ }
+ if(e.target.matches('form[data-form="mud-batch"] input[name="capacity"]')){const form=e.target.closest('form');updateMudLevelForm(e.target.closest('form'));updateMudTargetForm(form);}});
+document.addEventListener('change',e=>{const form=e.target.closest('form[data-form]');if(form)scheduleFormDraft(form);if(e.target.matches('[data-ux-mode]')){
  state.uxMode=e.target.value==='advanced'?'advanced':'simple';save();applyTheme();
  notify(state.uxMode==='advanced'?'Full bore form enabled.':'Guided bore entry enabled.');return;
 }if(e.target.matches('[data-field-mode]')){
@@ -2747,6 +2764,8 @@ $('#importFile').addEventListener('change',async e=>{const file=e.target.files?.
 for(const inputId of ['mudCameraFile','mudGalleryFile']){
  $('#'+inputId).addEventListener('change',async e=>{const file=e.target.files?.[0];if(file)await scanMudLabelFile(file);e.target.value=''});
 }
+window.addEventListener('pagehide',flushPendingDraft);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){flushPendingDraft();persistGuidedDraft();}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape')borelabGoBack();if((e.key==='Enter'||e.key===' ')&&e.target.matches('.map-pin')){e.preventDefault();e.target.click()}});
 async function init(){applyTheme();await refreshPhotos();render();refreshManualFiles();setTimeout(notifyServiceOnOpen,300);setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
 init();
