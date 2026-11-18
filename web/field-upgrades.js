@@ -174,22 +174,24 @@ document.addEventListener('click',event=>{
   api()?.openMapUrl(api()?.mapsPinUrl({address:value}));return;
  }
  if(what==='apply-address'){
-  const proposed=button.closest('.ba-address-review')?.querySelector('#ba-proposed-address')?.value.trim()||'';
+  const review=button.closest('.ba-address-review');
+  const proposed=review?.querySelector('#ba-proposed-address')?.value.trim()||'';
   if(!scanContext?.input?.isConnected||!proposed)return;
-  if(proposed!==scanContext.input.value){
-   scanContext.input.value=proposed.slice(0,250);
-   const plus=window.BoreLabLocations?.locationKind(proposed)==='plus';
-   if(plus&&!window.BoreLabLocations.isUsablePlusCode(proposed)){
-    scanNotice('A short Plus Code needs a nearby town or region. Add “Big Cypress, Florida”, for example.');return;
-   }
-   const checked=button.closest('.ba-address-review')?.querySelector('[data-ba-use-scanned-gps]')?.checked;
-   const extractedGps=checked?scanContext.options?.find(c=>c.kind==='coords'):null;
-   const gps=window.BoreLabLocations?.parseCoords(proposed)||(extractedGps?window.BoreLabLocations?.parseCoords(extractedGps.value):null);
-   const lat=scanContext.form.querySelector('#shotLat'),lon=scanContext.form.querySelector('#shotLon');
-   if(lat&&lon){lat.value=gps?.lat||'';lon.value=gps?.lon||'';}
-   scanContext.input.dispatchEvent(new Event('input',{bubbles:true}));
+  const plus=window.BoreLabLocations?.locationKind(proposed)==='plus';
+  if(plus&&!window.BoreLabLocations.isUsablePlusCode(proposed)){
+   scanNotice('A short Plus Code needs the nearby town or region, like “Big Cypress, Florida”.');return;
   }
-  button.closest('.ba-address-review')?.remove();scanNotice('Address applied to the form. Tap Save to store it.');return;
+  const checked=review?.querySelector('[data-ba-use-scanned-gps]')?.checked;
+  const extractedGps=checked?scanContext.options?.find(c=>c.kind==='coords'):null;
+  const gps=window.BoreLabLocations?.parseCoords(proposed)||
+    (extractedGps?window.BoreLabLocations?.parseCoords(extractedGps.value):null);
+  scanContext.input.value=proposed.slice(0,250);
+  const lat=scanContext.form.querySelector('#shotLat'),lon=scanContext.form.querySelector('#shotLon');
+  if(lat&&lon){lat.value=gps?.lat||'';lon.value=gps?.lon||'';}
+  scanContext.input.dispatchEvent(new Event('input',{bubbles:true}));
+  review.remove();
+  scanNotice('Location applied to form. Tap Save to keep it. GPS pin is '+(gps?'included.':'not confirmed yet.'));
+  return;
  }
  if(what==='view-shot'||what==='navigate'){
   const state=api().state(),job=(state.jobs||[]).find(x=>x.id===button.dataset.job),shot=(job?.shots||[]).find(x=>x.id===button.dataset.shot);
