@@ -327,56 +327,67 @@ public class BoreLabActivity extends Activity {
 
 
 
-    /** OCR for folder labels and job paperwork; the extracted text must be reviewed before saving. */
+
+    /** OCR for paperwork is user-initiated, on-device, and never auto-saves field data. */
     private void recognizeAddressPhoto(String dataUrl) {
+        recognizePaperwork(dataUrl, false);
+    }
+
+    /** Read a shot sheet; send the raw recognized text to an editable import preview. */
+    private void recognizeShotSheet(String dataUrl) {
+        recognizePaperwork(dataUrl, true);
+    }
+
+    private void recognizePaperwork(String dataUrl, boolean shotSheet) {
         new Thread(() -> {
             Bitmap bitmap = null;
             try {
                 if (dataUrl == null || !dataUrl.startsWith("data:image/") || !dataUrl.contains(",")) {
-                    throw new IllegalArgumentException("Select an address photo.");
+                    throw new IllegalArgumentException("Select a readable photo.");
                 }
                 String encoded = dataUrl.substring(dataUrl.indexOf(',') + 1);
-                if (encoded.length() > 12000000) throw new IllegalArgumentException("Image is too large.");
+                if (encoded.length() > 12000000)
+                    throw new IllegalArgumentException("Picture exceeds the scan limit.");
                 byte[] bytes = Base64.decode(encoded, Base64.DEFAULT);
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inJustDecodeBounds = true;
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
                 if (options.outWidth <= 0 || options.outHeight <= 0)
-                    throw new IllegalArgumentException("Cannot read the selected picture.");
+                    throw new IllegalArgumentException("Picture could not be decoded.");
                 int sample = 1;
                 while (options.outWidth / sample > 2000 || options.outHeight / sample > 2000) sample *= 2;
                 options.inJustDecodeBounds = false;
                 options.inSampleSize = sample;
                 bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
-                if (bitmap == null) throw new IllegalArgumentException("Cannot decode address picture.");
+                if (bitmap == null) throw new IllegalArgumentException("Cannot open the image.");
                 final Bitmap decoded = bitmap;
                 TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
                 recognizer.process(InputImage.fromBitmap(decoded, 0))
                     .addOnSuccessListener(result -> {
-                        sendAddressScanResult(result.getText(), null);
+                        sendPaperworkScanResult(result.getText(), null, shotSheet);
                         decoded.recycle();
                         recognizer.close();
                     })
                     .addOnFailureListener(error -> {
-                        sendAddressScanResult("", error.getMessage());
+                        sendPaperworkScanResult("", error.getMessage(), shotSheet);
                         decoded.recycle();
                         recognizer.close();
                     });
             } catch (Exception e) {
                 if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
-                sendAddressScanResult("", e.getMessage());
+                sendPaperworkScanResult("", e.getMessage(), shotSheet);
             }
-        }, "BoreLab-Address-OCR").start();
+        }, shotSheet ? "BoreLab-ShotSheet-OCR" : "BoreLab-Address-OCR").start();
     }
 
-    private void sendAddressScanResult(String text, String error) {
+    private void sendPaperworkScanResult(String text, String error, boolean shotSheet) {
         String escaped = JSONObject.quote(text == null ? "" : text);
         String escapedError = error == null ? "null" : JSONObject.quote(error);
+        String callback = shotSheet ? "window.borelabOnShotSheetScan" : "window.borelabOnAddressScan";
         runOnUiThread(() -> {
             if (webView != null) {
                 webView.evaluateJavascript(
-                    "window.borelabOnAddressScan && window.borelabOnAddressScan(" +
-                    escaped + "," + escapedError + ");", null);
+                    callback + " && " + callback + "(" + escaped + "," + escapedError + ");", null);
             }
         });
     }
@@ -679,6 +690,10 @@ public class BoreLabActivity extends Activity {
 
         @JavascriptInterface public void scanAddressPhoto(String dataUrl) {
             recognizeAddressPhoto(dataUrl);
+        }
+
+        @JavascriptInterface public void scanShotSheet(String dataUrl) {
+            recognizeShotSheet(dataUrl);
         }
 
         @JavascriptInterface public void setTheme(String mode) {
