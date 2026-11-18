@@ -7,9 +7,9 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fmt=(n,d=0)=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:d});
 const asNumber=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
 const today=()=>api()?.todayLocal?.()||new Date().toISOString().slice(0,10);
-const isToday=stamp=>!!stamp&&String(stamp).slice(0,10)===today();
+const isToday=stamp=>{if(!stamp)return false;const d=new Date(stamp);return Number.isFinite(d.getTime())&&(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'))===today()};
 const jobs=()=>{const s=api().state();return(s.jobs||[]).filter(j=>!j.archived)};
-let gpsOrigin=null,gpsMessage='',boardFilter='all';
+let gpsOrigin=null,gpsMessage='',boardFilter='all',routePanelOpen=false;
 const opts={target:'16:00',pace:70,setup:20,move:15,returnMin:45,lunch:0,buffer:20};
 function pref(){
  const stored=api().state().finishBySettings||{};
@@ -80,7 +80,7 @@ function orderFrom(origin,entries){
  let waiting=[...located],out=[];
  if(!cursor&&waiting.length){out.push(waiting.shift());cursor=out[0].shot}
  while(waiting.length){
-  waiting.sort((a,b)=>(b.hav(cursor,a.shot)-b.hav(cursor,b.shot))||String(a.shot.name).localeCompare(String(b.shot.name)));
+  waiting.sort((a,b)=>api().hav(cursor,a.shot)-api().hav(cursor,b.shot)||String(a.shot.name).localeCompare(String(b.shot.name)));
   const next=waiting.shift();out.push(next);cursor=next.shot;
  }
  return{located:out,unknown};
@@ -95,7 +95,7 @@ function originPreview(){
  '</div>';
 }
 function renderRouteTools(){
- return'<details class="bl-route-extra card spaced"><summary><strong>Start from my GPS</strong> · Local proximity preview</summary>'+
+ return'<details class="bl-route-extra card spaced" '+(routePanelOpen?'open':'')+'><summary><strong>Start from my GPS</strong> · Local proximity preview</summary>'+
  '<p class="tiny muted">This ranks active-job shots by straight-line distance from your current GPS or shop, not road travel time. It does not change the saved route mode.</p>'+
  '<div class="action-row"><button class="btn micro primary" data-bl-origin="gps">Use current GPS</button><button class="btn micro ghost" data-bl-origin="shop">Use shop</button></div>'+
  (gpsMessage?'<p class="tiny muted">'+esc(gpsMessage)+'</p>':'')+originPreview()+'</details>';
@@ -226,8 +226,8 @@ document.addEventListener('click',async e=>{
  }
  const origin=e.target.closest('[data-bl-origin]');
  if(origin){
-  if(origin.dataset.blOrigin==='shop'){gpsOrigin=null;gpsMessage='Starting from saved shop GPS.';api().render();return}
-  try{gpsMessage='Requesting your GPS location…';const pos=await api().getPosition();gpsOrigin=pos;gpsMessage='Using current GPS (accuracy ±'+Math.round(pos.accuracy||0)+' meters).';api().render()}
+  if(origin.dataset.blOrigin==='shop'){routePanelOpen=true;gpsOrigin=null;gpsMessage='Starting from saved shop GPS.';api().render();return}
+  try{routePanelOpen=true;gpsMessage='Requesting your GPS location…';const pos=await api().getPosition();gpsOrigin=pos;gpsMessage='Using current GPS (accuracy ±'+Math.round(pos.accuracy||0)+' meters).';api().render()}
   catch(error){gpsMessage=String(error.message||'Location permission unavailable.');api().render()}
  }
 });
