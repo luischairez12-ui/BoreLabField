@@ -102,9 +102,12 @@ function inventory(){
    record.required+=line.total;record.shots++;needed.set(key,record);
   }
  }
+ const selectedToday=window.BoreLabDailyReels?.activeIds(state)||[];
+ const todayOnly=selectedToday.length>0;
+ const missingFromTruck=selectedToday.filter(id=>!(state.reels||[]).some(r=>r.id===id&&!r.archived&&r.location==='truck')).length;
  let unknownReels=0;
  for(const reel of state.reels||[]){
-  if(reel.archived||reel.location!=='truck')continue;
+  if(reel.archived||reel.location!=='truck'||(todayOnly&&!selectedToday.includes(reel.id)))continue;
   const key=sizeKey(reel.size);
   if(!key){unknownReels++;continue}
   const rec=found.get(key)||{available:0,reels:0,largest:0};
@@ -112,7 +115,7 @@ function inventory(){
   rec.available+=n;rec.reels++;rec.largest=Math.max(rec.largest,n);
   found.set(key,rec);
  }
- return {lines:[...needed.values()].map(n=>({...n,available:found.get(n.key)?.available??null,reels:found.get(n.key)?.reels||0,largest:found.get(n.key)?.largest||0})).sort((a,b)=>a.size.localeCompare(b.size)),missing,unknownReels,trackedReels:found.size};
+ return {lines:[...needed.values()].map(n=>({...n,available:found.get(n.key)?.available??null,reels:found.get(n.key)?.reels||0,largest:found.get(n.key)?.largest||0})).sort((a,b)=>a.size.localeCompare(b.size)),missing,unknownReels,trackedReels:found.size,todayOnly,selectedCount:selectedToday.length,missingFromTruck};
 }
 function renderPlannerSummary(){
  const result=inventory();
@@ -122,10 +125,12 @@ function renderPlannerSummary(){
   return '<div class="bl-size-line"><div><strong>'+esc(r.size)+'</strong><small>'+r.shots+' line(s) across active jobs</small></div>'+
     '<div class="bl-size-numbers"><strong>'+fmt(r.required)+' ft needed</strong><small>'+(r.available==null?'No matching-sized reel':fmt(r.available)+' ft on truck')+' · '+esc(verdict)+'</small></div></div>';
  }).join('');
- return '<div class="card spaced"><div class="between"><h3>Multi-Conduit Pipe by Size</h3><span class="tiny muted">All active jobs</span></div>'+
+ return '<div class="card spaced"><div class="between"><h3>Multi-Conduit Pipe by Size</h3><span class="tiny muted">'+(result.todayOnly?'Today’s selected reels':'All on-truck reels')+' · All active jobs</span></div>'+
   '<p class="tiny muted">For each conduit: quantity × (bore length + allowance), unless you entered custom per-conduit footage. Different sizes are never interchangeable.</p>'+
   lines+(result.missing?'<p class="tiny muted spaced">⚠ '+result.missing+' unfinished shot(s) have no conduit details.</p>':'')+
   (result.unknownReels?'<p class="tiny muted spaced">⚠ '+result.unknownReels+' truck reel(s) have no saved size and are excluded from size comparisons.</p>':'')+
+  (result.todayOnly&&result.selectedCount<2?'<p class="tiny muted spaced">⚠ Choose a second, different reel for today’s loadout.</p>':'')+
+  (result.todayOnly&&result.missingFromTruck?'<p class="tiny muted spaced">⚠ '+result.missingFromTruck+' selected reel(s) are not recorded on the truck.</p>':'')+
   '<p class="tiny muted spaced">These are estimated total feet, not confirmation of continuous usable footage on any one reel, material grade, or available reservations.</p></div>';
 }
 const sheet=document.createElement('style');
