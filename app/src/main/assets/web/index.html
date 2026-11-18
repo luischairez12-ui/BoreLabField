@@ -918,9 +918,19 @@ function section(title,right=''){return `<div class="section-title"><h2><span cl
 function quick(label,icon,sub,action){return `<button class="quick" data-action="${action}"><div class="qicon">${icon}</div><strong>${esc(label)}</strong><small>${esc(sub)}</small></button>`}
 function shotRow(s){return `<div class="shot"><div class="shot-icon">⌁</div><div><h3>${esc(s.name)} <span class="status ${s.status==='complete'?'complete':s.status==='progress'?'progress':'planned'}">${s.status==='complete'?'Complete':s.status==='progress'?'Drilling':'Pending'}</span></h3><small>${feet(s)} ft bore · ${pipeNeed(s)} ft with allowance<br>${esc(s.address||coordsText(s)||'No location set')}</small></div><div class="shot-actions"><span class="foot">${feet(s)}′</span><button data-action="shot-quick" data-id="${esc(s.id)}" aria-label="Quick actions for ${esc(s.name)}" title="Quick actions">⋯</button><button data-action="shot-detail" data-id="${esc(s.id)}" aria-label="Open ${esc(s.name)}">›</button></div></div>`}
 function dailyRecords(day,all=false){
- // Only records from the selected job enter a single-job report.
- const job=activeJob()||{id:state.activeJobId,shots:state.shots,crew:state.crew};
- return jobRecordsForDay({...job,shots:state.shots,crew:state.crew},day,all);
+ // Production: only active-job records are included in a single-job report.
+ if(typeof jobRecordsForDay==='function'&&typeof activeJob==='function'){
+  const job=activeJob()||{id:state.activeJobId,shots:state.shots,crew:state.crew};
+  return jobRecordsForDay({...job,shots:state.shots,crew:state.crew},day,all);
+ }
+ // Standalone legacy report harness uses this equivalent pre-migration view.
+ const inDay=x=>x&&localDay(x)===day;
+ return {shots:state.shots.filter(x=>all||[x.startedAt,x.completedAt,x.updatedAt].some(inDay)),
+  crew:state.crew.filter(x=>all||[x.start,x.end].some(inDay)),
+  pipe:state.pipeMoves.filter(x=>all||inDay(x.at)),
+  mud:state.mudLogs.filter(x=>all||inDay(x.at)),
+  mudStock:state.mudStockMoves.filter(x=>all||inDay(x.at)),
+  photos:photos.filter(x=>all||inDay(x.addedAt)).map(({id,shotId,addedAt,lat,lon,accuracy,kind})=>({id,shotId,addedAt,lat,lon,accuracy,kind}))};
 }
 function snapshotWork(kind,day,notes='',checks=[]){
  const r=dailyRecords(day,kind==='job'),copy=x=>JSON.parse(JSON.stringify(x));
@@ -2059,7 +2069,27 @@ ${state.roster.length?`<div class="crew-picker">${state.roster.map(p=>`<label cl
 ${section('Time Entries',`<button class="btn micro ghost" data-action="new-time">＋ Manual entry</button>`)}${renderCrewEntries()}
 <div class="action-row"><button class="btn ghost" data-action="export-report">▧ Daily Report</button></div><p class="tiny muted spaced">A check-in uses your device's current time, and does not clock anyone in automatically without a tap. At checkout, unpaid lunch defaults to your saved setting and can be overridden for each person. Verify hours and required breaks before payroll.</p>${footnote()}</div>`}
 function manageRoster(){showModal(`${modalHead('Saved Crew Roster')}<p class="smalltext muted">Add people once. Select your regular crew on the Crew Hours screen; BoreLab remembers who you picked.</p><form data-form="roster" class="spaced"><label class="field">Crew names (one per line or separated by commas)<textarea name="names" rows="5" required placeholder="Juan\nMiguel\nCarlos"></textarea></label><button class="btn primary full" type="submit">Save Crew Members</button></form>${state.roster.length?`<div class="divider"></div>${state.roster.map(p=>`<div class="settings-item"><strong>${esc(p.name)}</strong><button class="btn micro danger" data-action="remove-person" data-id="${p.id}">Remove</button></div>`).join('')}`:''}`)}
-function checkInCrew(){const people=selectedRoster();if(!people.length)return notify('Add or select crew members first.');const now=new Date().toISOString(),day=todayLocal();let count=0,already=[];for(const p of people){if(state.crew.some(e=>(e.memberId===p.id||(!e.memberId&&e.name.toLowerCase()===p.name.toLowerCase()))&&localDay(e.start)===day)){already.push(p.name);continue}state.crew.push({id:uid(),jobId:state.activeJobId,memberId:p.id,name:p.name,start:now,end:'',lunch:0,notes:'Checked in with crew',kind:'checkin'});count++}save();render();notify(count?`${count} crew member${count===1?'':'s'} checked in at ${new Date().toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}.${already.length?' Already recorded today: '+already.join(', '):''}`:'Selected crew already has entries for today.');}
+
+function crewClockedElsewhere(person){
+ const id=person.memberId||person.id||'',name=String(person.name||'').toLowerCase().trim();
+ return state.jobs.some(job=>job.id!==state.activeJobId&&job.crew.some(entry=>
+  !entry.end&&(id&&entry.memberId===id||name&&String(entry.name||'').toLowerCase().trim()===name)));
+}
+function overlappingCrewTime(entry){
+ const start=new Date(entry.start).getTime();
+ const end=entry.end?new Date(entry.end).getTime():Date.now();
+ if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return false;
+ const name=String(entry.name||'').toLowerCase().trim();
+ return state.jobs.some(job=>job.id!==state.activeJobId&&job.crew.some(existing=>{
+  if(!(entry.memberId&&existing.memberId===entry.memberId||
+   name&&String(existing.name||'').toLowerCase().trim()===name))return false;
+  const t=new Date(existing.start).getTime();
+  const until=existing.end?new Date(existing.end).getTime():Date.now();
+  return Number.isFinite(t)&&Number.isFinite(until)&&start<until&&t<end;
+ }));
+}
+
+function checkInCrew(){const people=selectedRoster();if(!people.length)return notify('Add or select crew members first.');const now=new Date().toISOString();let count=0,already=[];for(const p of people){if(crewClockedElsewhere(p)){already.push(p.name+' (still working another job)');continue}if(state.crew.some(e=>!e.end&&(e.memberId===p.id||(!e.memberId&&e.name.toLowerCase()===p.name.toLowerCase())))){already.push(p.name+' (already checked in)');continue}state.crew.push({id:uid(),jobId:state.activeJobId,memberId:p.id,name:p.name,start:now,end:'',lunch:0,notes:'Checked in with crew',kind:'checkin'});count++}save();render();notify(count?`${count} crew member${count===1?'':'s'} checked in at ${new Date().toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}.${already.length?' Not checked in: '+already.join(', '):''}`:'No new check-ins. Check out existing shifts first. '+already.join(', '));}
 function checkoutForm(){const active=state.crew.filter(e=>!e.end);if(!active.length)return notify('No active crew check-ins.');showModal(`${modalHead('Check Out Crew')}<p class="smalltext muted">All working crew will clock out at the current time. ${state.autoLunchEnabled?`Automatic lunch deduction is ON (${state.defaultLunchMinutes} min per person).`:'Automatic lunch deduction is OFF.'} You can override lunch minutes for anyone before checking out and edit entries later.</p><form data-form="checkout" class="spaced">${active.map(e=>`<div class="checkout-row"><strong>${esc(e.name)}</strong><label class="field">Unpaid lunch (min)<input name="lunch_${esc(e.id)}" type="number" min="0" max="300" value="${automaticLunch()}" required></label></div>`).join('')}<div class="modal-footer"><button type="button" class="btn ghost" data-action="close-modal">Cancel</button><button class="btn cyan" type="submit">✓ Check Out ${active.length}</button></div></form>`)}
 function renderSettings(){return `<div class="page"><span class="eyebrow">BORELAB / SETTINGS</span><h1 style="margin:5px 0 16px">Field Settings</h1>
 <p class="ux-settings-intro">Choose your experience. All the existing field tools and saved records remain available.</p>
@@ -2994,7 +3024,7 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
  state.demo=false;clearFormDraft(form);save();closeModal();render();notify('Bore shot and equipment saved.');
  resolveShotAfterSave(shot.id);
 }else if(form.dataset.form==='time'){
- const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),jobId:state.activeJobId,memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);clearFormDraft(form);save();closeModal();render();notify('Crew time saved.');
+ const start=new Date(values.start),end=values.end?new Date(values.end):null;if(!Number.isFinite(start.getTime())||(end&&!(end>start)))return notify('Check the clock-in and clock-out times.');const id=form.dataset.id;const old=state.crew.find(x=>x.id===id);const matched=state.roster.find(p=>p.name.toLowerCase()===values.name.trim().toLowerCase());const entry={id:id||uid(),jobId:state.activeJobId,memberId:old?.memberId||matched?.id||null,name:values.name.trim(),start:values.start,end:values.end||'',lunch:Number(values.lunch)||0,notes:values.notes.trim()};if(overlappingCrewTime(entry))return notify('Crew time overlaps a shift on another job. Adjust the times before saving.');if(id)state.crew=state.crew.map(x=>x.id===id?entry:x);else state.crew.push(entry);clearFormDraft(form);save();closeModal();render();notify('Crew time saved.');
 }});
 document.addEventListener('input',e=>{
  if(e.target.matches('[data-universal-search]')){universalQuery=e.target.value.slice(0,100);const el=$('#universalSearchResults');if(el)el.innerHTML=renderSearchResults();return;}
