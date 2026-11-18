@@ -126,7 +126,7 @@ function render(){
  '<div class="bls-card"><p>Scan printed or handwritten paperwork. BoreLab will suggest multiple shots, then you review and choose which ones to import into <strong>'+esc(job)+'</strong>.</p>'+
  '<div class="bls-row"><button type="button" class="bls-btn bls-primary" data-bls-action="camera">📷 Take photo</button><button type="button" class="bls-btn" data-bls-action="gallery">▣ Choose photo</button>'+
  '<button type="button" class="bls-btn" data-bls-action="manual">+ Add draft manually</button></div>'+
- '<p class="bls-muted">Photo OCR runs on-device in the Android app. Writing and table columns may be imperfect. Nothing is imported automatically.</p></div>'+
+ '<p class="bls-muted">Camera tip: capture a close-up of the work-order header or folder tab first. For a long shot sheet, scan one readable page at a time. Original and high-contrast OCR can be reviewed below. Nothing is imported automatically.</p></div>'+
  (sourceName||sourceError?'<p class="bls-status">'+esc(sourceName||'')+(sourceError?' · '+esc(sourceError):'')+'</p>':'')+
  (scanning?'<div class="bls-card">Reading shot sheet…</div>':'')+
  (pendingRows.length?'<div class="bls-card"><h2>Review '+pendingRows.length+' proposed shot(s)</h2><p class="bls-muted">Correct every name, length, address and conduit before selecting Import. Any missing length must be entered manually.</p>'+
@@ -159,13 +159,32 @@ async function scanFile(file){
  }catch(e){scanning=false;sourceError=String(e.message||e);render()}
 }
 for(const input of [fileCamera,fileGallery])input.addEventListener('change',e=>{const file=e.target.files?.[0];e.target.value='';if(file)scanFile(file)});
-window.borelabOnShotSheetScan=function(text,error){
+function pickBestPaperworkReadings(original,enhanced){
+ const first=parseSheet(original||''),second=parseSheet(enhanced||'');
+ const points=rows=>rows.reduce((n,r)=>n+(Number(r.feet)>0?5:0)+(r.address?3:0)+(r.conduitText?2:0),0);
+ const winner=points(second)>points(first)?second:first;
+ const backup=winner===first?second:first;
+ if(winner.length===backup.length){
+  for(let i=0;i<winner.length;i++){
+   if(!winner[i].address&&backup[i].address)winner[i].address=backup[i].address;
+   if(!winner[i].feet&&backup[i].feet)winner[i].feet=backup[i].feet;
+   if(!winner[i].conduitText&&backup[i].conduitText)winner[i].conduitText=backup[i].conduitText;
+  }
+ }
+ return winner;
+}
+window.borelabOnShotSheetScan=function(text,error,alternate){
  if(root.hidden)return;
  scanning=false;
- ocrText=String(text||'').slice(0,15000);
+ const original=String(text||'').slice(0,15000);
+ const enhanced=String(alternate||'').slice(0,15000);
+ ocrText=original+(enhanced&&enhanced!==original?'\n\n— High-contrast reading —\n'+enhanced:'');
  sourceError=error?'Text reading issue: '+String(error).slice(0,200):'';
- pendingRows=parseSheet(ocrText);
- if(!pendingRows.length){sourceError+=' No clear shots detected. Try a closer photo or add entries manually.';pendingRows=[{name:'Shot 01',feet:'',address:'',conduitText:'',selected:false}]} 
+ pendingRows=pickBestPaperworkReadings(original,enhanced);
+ if(!pendingRows.length){
+  sourceError+=(sourceError?' ':'')+'No confirmed shots found. Take a closer photo of the address section or add a reviewed draft manually.';
+  pendingRows=[{name:'Shot 01',feet:'',address:'',conduitText:'',selected:false}];
+ }
  render();
 };
 function importReviewed(){
