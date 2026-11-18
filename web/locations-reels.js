@@ -52,6 +52,7 @@ function findPlusCode(raw){
   if(/[,;]\s*$/.test(locality)&&/^[A-Za-z][A-Za-z .'-]{1,30}$/.test((lines[i+1]||'').trim()))
    locality+=' '+(lines[i+1]||'').trim();
   locality=locality.replace(/^(?:location|near)\s*[:\-]\s*/i,'').trim().replace(/\s+/g,' ').slice(0,90);
+  if(!/^[A-Za-z][A-Za-z ,.'-]*$/.test(locality))locality='';
   // A short local Plus Code requires its locality; never imply it is globally unique.
   return{code,value:(code+(locality?' '+locality:'' )).trim(),hasLocality:m[1].length===8||!!locality,short:m[1].length<8};
  }
@@ -155,4 +156,6 @@ css.textContent='.bl-daily-reel-grid{display:grid;grid-template-columns:repeat(2
 document.head.appendChild(css);
 window.BoreLabLocations={parseCoords,findStreet,findPlusCode,locationCandidates,locationKind,isUsablePlusCode,isNonStreetLocation};
 window.BoreLabDailyReels={todayKey,selections,activeIds,renderSection};
+// Recover the saved planner or reels page after the module loads.
+if(document.querySelector('.bl-daily-card')===null&&document.querySelector('#main .page'))bridge()?.render?.();
 })();
