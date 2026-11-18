@@ -92,6 +92,17 @@ function editorRow(x,i){
  '<label class="bls-wide">Address / location (verify)<input data-bls-address type="text" maxlength="250" placeholder="Optional — edit scanned address" value="'+esc(x.address)+'"></label>'+
  '<label class="bls-wide">Conduits (size and count)<input data-bls-conduits type="text" maxlength="250" placeholder="4 inch x2, 1.25 inch x1" value="'+esc(x.conduitText||'')+'"></label></div></article>';
 }
+function captureEditorDrafts(){
+ const visible=[...root.querySelectorAll('[data-bls-row]')];
+ if(!visible.length)return;
+ pendingRows=visible.map(row=>({
+  name:row.querySelector('[data-bls-name]')?.value||'',
+  feet:row.querySelector('[data-bls-feet]')?.value||'',
+  address:row.querySelector('[data-bls-address]')?.value||'',
+  conduitText:row.querySelector('[data-bls-conduits]')?.value||'',
+  selected:!!row.querySelector('[data-bls-selected]')?.checked
+ }));
+}
 function openScanner(){
  if(!api())return;
  pendingRows=[];ocrText='';sourceError='';sourceName='';scanning=false;
@@ -190,11 +201,11 @@ root.addEventListener('click',e=>{
   if(btn.dataset.blsAction==='back')return closeScanner();
   if(btn.dataset.blsAction==='camera')return fileCamera.click();
   if(btn.dataset.blsAction==='gallery')return fileGallery.click();
-  if(btn.dataset.blsAction==='manual'){pendingRows.push({name:'Shot '+String(pendingRows.length+1).padStart(2,'0'),feet:'',address:'',conduitText:'',selected:false});render();return}
+  if(btn.dataset.blsAction==='manual'){captureEditorDrafts();pendingRows.push({name:'Shot '+String(pendingRows.length+1).padStart(2,'0'),feet:'',address:'',conduitText:'',selected:false});render();return}
   if(btn.dataset.blsAction==='import')return importReviewed();
  }
  const remove=e.target.closest('[data-bls-remove]');
- if(remove){remove.closest('[data-bls-row]')?.remove()}
+ if(remove){remove.closest('[data-bls-row]')?.remove();captureEditorDrafts()}
 });
 document.addEventListener('click',e=>{if(e.target.closest('[data-sheet-action="open"]'))openScanner()});
 root.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();closeScanner()}});
