@@ -258,24 +258,90 @@ html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;borde
 .manual-missing{color:var(--muted);font-size:12px;font-weight:700}
 @media(min-width:650px){.manual-machine-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
+
+/* BoreLab Field v0.10: teach through actions, not a wall of utilities. */
+.ux-welcome{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 18px}
+.ux-welcome h1{font-size:clamp(25px,5.8vw,35px);letter-spacing:-.9px}
+.ux-welcome .eyebrow{letter-spacing:1.15px}
+.ux-job-card{background:var(--surface);border:1px solid var(--line);border-left:5px solid #0b9e94;border-radius:18px;padding:16px;box-shadow:var(--shadow);display:grid;gap:14px}
+.ux-job-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ux-job-title h2{font-size:clamp(20px,4.8vw,26px)}
+.ux-job-title p{font-size:12px;color:var(--muted);margin-top:3px}
+.ux-progress-track{height:11px;border-radius:99px;background:var(--surface3);overflow:hidden}
+.ux-progress-fill{height:100%;background:linear-gradient(90deg,#008d8d,#15b9a3);border-radius:99px}
+.ux-job-meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ux-job-meta span{font-size:12px;color:var(--muted)}
+.ux-job-meta strong{font-size:15px;color:var(--text);display:block;margin-top:3px}
+.ux-section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:22px 0 12px}
+.ux-section-heading h2{font-size:19px}
+.ux-section-heading .btn{white-space:nowrap}
+.ux-tile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.ux-tile{min-width:0;min-height:102px;display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:14px 11px;text-align:left;color:var(--text);box-shadow:var(--shadow);transition:transform .1s ease,border-color .1s ease}
+.ux-tile:active{transform:scale(.98)}.ux-tile:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.ux-tile-icon{display:grid;place-items:center;flex-shrink:0;width:42px;height:42px;border-radius:13px;background:var(--surface2);font-size:26px;color:var(--accent)}
+.ux-tile:nth-child(4n+1) .ux-tile-icon{background:#fff0dc;color:#a75507}
+.ux-tile:nth-child(4n+2) .ux-tile-icon{background:#e2f5f1;color:#057967}
+.ux-tile:nth-child(4n+3) .ux-tile-icon{background:#e6f0fe;color:#2768b0}
+.ux-tile:nth-child(4n+4) .ux-tile-icon{background:#eff0f5;color:#586778}
+.ux-tile strong{display:block;font-size:14px;line-height:1.15}
+.ux-tile small{display:block;color:var(--muted);font-size:11px;line-height:1.3;margin-top:4px}
+.ux-next{border:1px solid #e6c999;border-radius:16px;background:linear-gradient(120deg,#fff6e5,#ffe6bc);color:#442b12;padding:15px;display:flex;gap:12px;align-items:center;margin-top:15px}
+.ux-next strong{display:block;color:#8d4809;font-size:11px;letter-spacing:.8px;text-transform:uppercase}
+.ux-next p{color:#422f1d;font-size:13px;margin-top:4px}
+.ux-next .btn{min-width:85px}
+.ux-tools-section{margin:18px 0}
+.ux-tools-section h2{font-size:15px;margin:0 0 10px}
+.ux-details{border:1px solid var(--line);border-radius:15px;background:var(--surface);padding:13px 14px;margin-top:18px}
+.ux-details>summary{font-weight:800;cursor:pointer;padding:3px 0;list-style-position:inside}
+.ux-details[open]>summary{margin-bottom:12px}
+.ux-settings-group{border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:14px;margin:12px 0}
+.ux-settings-group summary{cursor:pointer;font-size:15px;font-weight:850;padding:2px 0;list-style-position:inside}
+.ux-settings-group[open] summary{margin-bottom:12px}
+.ux-mode-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ux-mode-picker label{padding:10px;border-radius:12px;background:var(--surface2);font-size:13px;display:flex;align-items:center;gap:7px}
+.ux-mode-picker input{accent-color:var(--accent)}
+.ux-favorite-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.ux-favorite-grid label{display:flex;align-items:center;gap:8px;min-height:46px;border:1px solid var(--line);padding:9px;border-radius:10px;font-size:12px}
+.ux-favorite-grid input{accent-color:var(--accent);width:18px;height:18px}
+.ux-guide-step{font-size:12px;color:var(--muted);font-weight:800;margin-bottom:10px}
+.ux-guide-track{display:flex;gap:6px;margin-bottom:18px}
+.ux-guide-track span{height:6px;border-radius:10px;flex:1;background:var(--surface3)}
+.ux-guide-track span.active{background:#008d8d}
+.ux-guide-big-input{font-size:35px!important;font-weight:900;min-height:72px;text-align:center}
+.ux-guide-tip{border-radius:13px;background:var(--surface2);border-left:4px solid var(--cyan);padding:12px;font-size:12px;margin:12px 0;line-height:1.45}
+.ux-settings-intro{font-size:13px;color:var(--muted);margin:7px 0 14px}
+html[data-field-mode="on"] .btn,html[data-field-mode="on"] .icon-btn,html[data-field-mode="on"] .ux-tile,html[data-field-mode="on"] .nav-link,html[data-field-mode="on"] .quick{min-height:54px}
+html[data-field-mode="on"] input,html[data-field-mode="on"] select,html[data-field-mode="on"] textarea{min-height:50px}
+html[data-field-mode="on"] .ux-tile{min-height:122px}
+html[data-large-text="on"]{font-size:18px}
+html[data-large-text="on"] .smalltext{font-size:15px}
+html[data-large-text="on"] .tiny,html[data-large-text="on"] .ux-tile small{font-size:13px}
+html[data-large-text="on"] .ux-tile strong{font-size:16px}
+html[data-large-text="on"] .nav-link small{font-size:13px}
+html[data-theme="dark"] .ux-next{background:linear-gradient(120deg,#443019,#573718);border-color:#966c2c;color:#fff2da}
+html[data-theme="dark"] .ux-next strong,html[data-theme="dark"] .ux-next p{color:#fff2da}
+html[data-theme="dark"] .ux-tile:nth-child(n) .ux-tile-icon{background:#263c4a;color:#ffad4d}
+@media(max-width:365px){.ux-tile{padding:10px 8px;gap:7px}.ux-tile-icon{width:38px;height:38px}.ux-tile strong{font-size:12px}.ux-tile small{font-size:10px}}
+@media(min-width:700px){.ux-tile-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <button class="icon-btn small" data-action="open-settings" aria-label="Settings">☰</button>
+      <button class="icon-btn small" data-page="tools" aria-label="All field tools">☰</button>
       <div class="brand"><div class="brand-mark">B<span>↗</span></div><div><strong>BoreLab <em>Field</em></strong><small>HDD CREW OPERATIONS</small></div></div>
       <div class="top-date" id="topDate"></div>
     </header>
     <main id="main" tabindex="-1"></main>
     <nav class="bottom-nav" aria-label="Main navigation">
-      <button class="nav-link active" data-page="home"><span class="nav-icon">⌂</span><small>Home</small></button>
-      <button class="nav-link" data-page="planner"><span class="nav-icon">⌁</span><small>Planner</small></button>
-      <button class="new-shot-nav" data-action="new-shot" aria-label="New bore shot">+</button>
-      <button class="nav-link" data-page="photos"><span class="nav-icon">▣</span><small>Photos</small></button>
-      <button class="nav-link" data-page="crew"><span class="nav-icon">◷</span><small>Crew</small></button>
-    </nav>
+      <button class="nav-link active" data-page="home" aria-label="Home"><span class="nav-icon">⌂</span><small>Home</small></button>
+      <button class="nav-link" data-page="planner" aria-label="Bores and planner"><span class="nav-icon">⌁</span><small>Bores</small></button>
+      <button class="new-shot-nav" data-action="new-shot" aria-label="Add a bore shot" title="Add a bore">+</button>
+      <button class="nav-link" data-page="tools" aria-label="All field tools"><span class="nav-icon">▦</span><small>Tools</small></button>
+      <button class="nav-link" data-page="settings" aria-label="Settings"><span class="nav-icon">⚙</span><small>Settings</small></button>
+    </nav>nav>
   </div>
   <div id="modalRoot"></div>
   <div id="toast" role="status" aria-live="polite"></div>
@@ -290,7 +356,7 @@ html[data-theme="dark"] .closeout-warning{background:#362d20;color:#ffd799;borde
 'use strict';
 const KEY='borelab-field-v0.1'; // retain existing data key across upgrades
 const uid=()=>globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`;
-const seed=()=>({version:1,demo:true,jobName:'Demo Job · South Glades',allowance:10,pipeAvailable:345,shopName:'',shopAddress:'',shopLat:'',shopLon:'',routeMode:'toward',shotDurationRate:45,setupMinutes:25,roster:[],selectedCrewIds:[],equipment:[],reels:[],pipeMoves:[],pipeReservations:[],history:[],manualLinks:[],mudProducts:[],mudSelectedIds:[],mudLogs:[],mudStockMoves:[],mudTank:{capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'unknown',notes:''},reportScope:'today',shots:[{id:uid(),name:'Shot 01',feet:175,address:'',lat:'',lon:'',notes:'',status:'complete',completedAt:new Date().toISOString()},{id:uid(),name:'Shot 02',feet:155,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 03',feet:90,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 04',feet:80,address:'',lat:'',lon:'',notes:'',status:'planned'}],crew:[]});
+const seed=()=>({version:1,demo:true,jobName:'Demo Job · South Glades',allowance:10,pipeAvailable:345,shopName:'',shopAddress:'',shopLat:'',shopLon:'',routeMode:'toward',shotDurationRate:45,setupMinutes:25,roster:[],selectedCrewIds:[],equipment:[],reels:[],pipeMoves:[],pipeReservations:[],history:[],manualLinks:[],uxMode:'simple',fieldMode:false,largeText:false,uxFavorites:['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'],mudProducts:[],mudSelectedIds:[],mudLogs:[],mudStockMoves:[],mudTank:{capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'unknown',notes:''},reportScope:'today',shots:[{id:uid(),name:'Shot 01',feet:175,address:'',lat:'',lon:'',notes:'',status:'complete',completedAt:new Date().toISOString()},{id:uid(),name:'Shot 02',feet:155,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 03',feet:90,address:'',lat:'',lon:'',notes:'',status:'planned'},{id:uid(),name:'Shot 04',feet:80,address:'',lat:'',lon:'',notes:'',status:'planned'}],crew:[]});
 let state;
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');state=s&&Array.isArray(s.shots)?s:seed()}catch{state=seed()}
 if(!Array.isArray(state.roster))state.roster=[];
@@ -310,6 +376,11 @@ if(typeof state.autoLunchEnabled!=='boolean')state.autoLunchEnabled=false;
 if(!Number.isFinite(Number(state.defaultLunchMinutes)))state.defaultLunchMinutes=60;
 state.defaultLunchMinutes=Math.max(0,Math.min(300,Number(state.defaultLunchMinutes)));
 if(state.theme!=='dark'&&state.theme!=='daylight')state.theme='daylight';
+if(state.uxMode!=='simple'&&state.uxMode!=='advanced')state.uxMode='simple';
+if(typeof state.fieldMode!=='boolean')state.fieldMode=false;
+if(typeof state.largeText!=='boolean')state.largeText=false;
+if(!Array.isArray(state.uxFavorites))state.uxFavorites=['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'];
+state.uxFavorites=[...new Set(state.uxFavorites)].filter(x=>typeof x==='string').slice(0,6);
 let page='home',modal='',photos=[],pendingPhotoShot='',pendingPhotoKind='camera',geocodeWaitUntil=0,toastTimeout;
 let resolvingAddresses=false,attemptedAutoAddressLookup=false,lookupQueue=Promise.resolve();
 let routeMenuOpen=false; // display-only state
@@ -331,6 +402,9 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch{notify
 function applyTheme(){
  const mode=state.theme==='dark'?'dark':'daylight';
  document.documentElement.dataset.theme=mode;
+ document.documentElement.dataset.uxMode=state.uxMode;
+ document.documentElement.dataset.fieldMode=state.fieldMode?'on':'off';
+ document.documentElement.dataset.largeText=state.largeText?'on':'off';
  const meta=document.querySelector('meta[name="theme-color"]');
  if(meta)meta.setAttribute('content',mode==='daylight'?'#ffffff':'#0b1722');
  if(window.BoreLabNative?.setTheme)window.BoreLabNative.setTheme(mode);
@@ -582,7 +656,7 @@ function openManualSource(machineId){
  else window.location.assign(machine.source);
 }
 
-function render(){document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,planner:renderPlanner,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();}
+function render(){const activeTab=['home','planner','settings'].includes(page)?page:'tools';document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===activeTab));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,planner:renderPlanner,tools:renderTools,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();}
 function section(title,right=''){return `<div class="section-title"><h2><span class="accentbar"></span>${esc(title)}</h2>${right}</div>`}
 function quick(label,icon,sub,action){return `<button class="quick" data-action="${action}"><div class="qicon">${icon}</div><strong>${esc(label)}</strong><small>${esc(sub)}</small></button>`}
 function shotRow(s){return `<div class="shot"><div class="shot-icon">⌁</div><div><h3>${esc(s.name)} <span class="status ${s.status==='complete'?'complete':s.status==='progress'?'progress':'planned'}">${s.status==='complete'?'Complete':s.status==='progress'?'Drilling':'Pending'}</span></h3><small>${feet(s)} ft bore · ${pipeNeed(s)} ft with allowance<br>${esc(s.address||coordsText(s)||'No location set')}</small></div><div class="shot-actions"><span class="foot">${feet(s)}′</span><button data-action="shot-detail" data-id="${s.id}" aria-label="Open ${esc(s.name)}">›</button></div></div>`}
@@ -1163,11 +1237,88 @@ function mudLogDetail(id){
  ${(x.products||[]).map(p=>`<div class="mud-dose-item"><strong>${esc(p.name)}</strong><strong>${fmt(p.dose,4)} ${esc(p.unit)}</strong></div>`).join('')}
  ${x.notes?`<p class="smalltext muted spaced">${esc(x.notes)}</p>`:''}</div>`);
 }
-function renderHome(){const pct=totalFeet()?Math.round(doneFeet()/totalFeet()*100):0;let hasDemo=state.demo?`<div class="note spaced">Sample shots are loaded so you can try the app. Add your real job or tap <b>Clear Demo</b> in Settings to start fresh.</div>`:'';
-return `<div class="page"><div class="hero"><span class="eyebrow">HDD FIELD OPERATIONS</span><h1>Ready for today's shots?</h1><p>Plan the route. Count your pipe. Capture the work. Keep your crew organized.</p><div class="hero-tags"><span class="tag teal">● Works offline</span><span class="tag">📍 GPS photo records</span></div></div>
-${oilWarnings()}${section("Today's Job",`<button class="btn micro ghost" data-action="edit-job">Edit job</button>`)}<div class="card"><div class="card-head"><div><div class="eyebrow">ACTIVE JOB</div><h2 style="margin-top:5px">${esc(state.jobName)}</h2><p class="muted tiny">${state.shots.length} bore shots · ${state.shots.filter(s=>s.status==='complete').length} completed</p></div><span class="status ${pct===100?'complete':'progress'}">${pct}%</span></div><div class="progress"><div style="width:${pct}%"></div></div><div class="stats"><div class="stat"><span>Completed footage</span><strong class="teal">${fmt(doneFeet())}′</strong></div><div class="stat"><span>Planned footage</span><strong>${fmt(totalFeet())}′</strong></div><div class="stat"><span>Pipe required (+${extra()}′/shot)</span><strong class="orange">${fmt(totalNeed())}′</strong></div></div></div>${hasDemo}
-${section('Daily Job Board',`<button class="btn micro" data-action="new-shot">+ Add shot</button>`)}<div class="shot-list">${state.shots.length?state.shots.map(shotRow).join(''):`<div class="empty"><div class="emptyicon">⌁</div><strong>No shots yet</strong>Tap Add shot to plan your first bore.</div>`}</div><div class="action-row"><button class="btn cyan" data-page="planner">⌁ Smart Shot Planner</button><button class="btn ghost" data-action="export-report">▤ Daily Report</button></div>
-${section('Field Toolbox')}<div class="quick-grid">${quick('Route Planner','⌁','Shot order & travel','go-planner')}${quick('Bore Logs','▤','Footage & notes','new-shot')}${quick('Pipe Inventory','◈','Reel-by-reel footage','go-pipe')}${quick('Job Photos','▣','GPS & timestamps','go-photos')}${quick('Crew Check-In','◷','Roster & timesheets','go-crew')}${quick('Daily Report','▧','PDF export','export-report')}${quick('Daily Closeout','✓','Review the day','open-closeout')}${quick('Job History','▤','Saved workdays','open-history')}${quick('Equipment','⚙','Trucks, service & drills','open-equipment')}${quick('MixLab','◉','Mixing & tank top-offs','go-mud')}${quick('Manual Library','▤','PDFs saved offline','go-manuals')}</div>${footnote()}</div>`}
+
+const UX_ACTIONS=[
+ {id:'new-shot',label:'Plan a Bore',sub:'Length & pipe needs',icon:'◎',group:'Planning'},
+ {id:'go-photos',label:'Record Work',sub:'Jobsite photos',icon:'▣',group:'Daily work'},
+ {id:'go-mud',label:'Mix Drilling Mud',sub:'Tank & additives',icon:'💧',group:'Materials'},
+ {id:'go-manuals',label:'Find a Manual',sub:'Rigs & PDFs',icon:'▤',group:'Equipment'},
+ {id:'go-pipe',label:'Pipe Inventory',sub:'Reels & remaining feet',icon:'◈',group:'Materials'},
+ {id:'go-crew',label:'Crew',sub:'Hours & check-ins',icon:'◷',group:'Daily work'},
+ {id:'go-planner',label:'Shot Planner',sub:'Route & bore order',icon:'⌁',group:'Planning'},
+ {id:'open-equipment',label:'Equipment',sub:'Rig & truck records',icon:'⚙',group:'Equipment'},
+ {id:'open-closeout',label:'Daily Closeout',sub:'Review completed work',icon:'✓',group:'Daily work'},
+ {id:'open-history',label:'Job History',sub:'Saved workdays',icon:'▤',group:'Daily work'},
+ {id:'export-report',label:'Daily Report',sub:'Generate PDF',icon:'▧',group:'Daily work'},
+ {id:'go-mud-stock',label:'Mud Inventory',sub:'Products & stock',icon:'◉',group:'Materials'}
+];
+const UX_DEFAULT_FAVORITES=['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'];
+function favoriteActions(){
+ const ids=Array.isArray(state.uxFavorites)?state.uxFavorites:UX_DEFAULT_FAVORITES;
+ const items=ids.map(id=>UX_ACTIONS.find(x=>x.id===id)).filter(Boolean);
+ return items.length?items:UX_ACTIONS.filter(t=>UX_DEFAULT_FAVORITES.includes(t.id));
+}
+function actionTile(tool){
+ return `<button type="button" class="ux-tile" data-action="${esc(tool.id)}" aria-label="${esc(tool.label)}">
+  <span class="ux-tile-icon" aria-hidden="true">${esc(tool.icon)}</span>
+  <span><strong>${esc(tool.label)}</strong><small>${esc(tool.sub)}</small></span></button>`;
+}
+function renderTools(){
+ const groups=['Planning','Daily work','Materials','Equipment'];
+ return `<div class="page"><div class="ux-welcome"><div><span class="eyebrow">ALL FIELD TOOLS</span><h1>What can I help with?</h1>
+  <p class="muted smalltext">Every BoreLab feature, organized by task.</p></div></div>
+  ${groups.map(group=>`<section class="ux-tools-section" aria-label="${esc(group)}">
+  <h2>${esc(group)}</h2><div class="ux-tile-grid">${UX_ACTIONS.filter(t=>t.group===group).map(actionTile).join('')}</div></section>`).join('')}
+  <div class="note spaced">Tip: Set your six favorite tools in Settings. They appear on your home screen.</div>${footnote()}</div>`;
+}
+function nextHomeAction(){
+ if(state.demo)return {title:'Get familiar',body:'Try a sample bore, or clear demo data when you are ready for a real job.',action:'guided-tour',button:'Show me'};
+ const pending=state.shots.filter(s=>s.status!=='complete');
+ if(!state.shots.length)return {title:'First step',body:'Add your first bore. We will walk you through the basic details.',action:'new-shot',button:'Add bore'};
+ const pendingFeet=pending.reduce((n,s)=>n+pipeNeed(s),0);
+ const available=pipeOnTruck();
+ if(pending.length&&pendingFeet>available)return {title:'Check your pipe',body:`Pending shots need about ${fmt(pendingFeet)} ft with allowance; recorded stock is ${fmt(available)} ft.`,action:'go-pipe',button:'Check pipe'};
+ if(pending.length)return {title:'Ready for the next bore',body:`${pending.length} shot${pending.length===1?'':'s'} still pending. Review the plan before drilling.`,action:'go-planner',button:'View plan'};
+ return {title:'Review your day',body:'Your listed bores are complete. Review the work before finishing your report.',action:'open-closeout',button:'Review'};
+}
+function renderHome(){
+ const pct=totalFeet()?Math.round(doneFeet()/totalFeet()*100):0;
+ const hour=new Date().getHours(),greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+ const action=nextHomeAction();
+ const shots=state.shots.slice(0,state.uxMode==='advanced'?25:5);
+ return `<div class="page ux-home">
+  <div class="ux-welcome"><div><span class="eyebrow">BORELAB FIELD / FIELD DASHBOARD</span>
+   <h1>${greeting}!</h1><p class="muted smalltext">Everything your crew needs, in a few taps.</p></div>
+   <button class="icon-btn" data-action="guided-tour" aria-label="How to use BoreLab" title="How to use BoreLab">?</button></div>
+  ${oilWarnings()}
+  <div class="ux-job-card">
+   <div class="ux-job-title"><div><span class="eyebrow">ACTIVE JOB</span><h2>${esc(state.jobName)}</h2>
+    <p>${state.shots.filter(x=>x.status==='complete').length} of ${state.shots.length} bores completed</p></div>
+    <button class="btn micro ghost" data-action="edit-job">Edit</button></div>
+   <div class="between"><strong class="smalltext">Job progress</strong><strong class="smalltext">${pct}%</strong></div>
+   <div class="ux-progress-track" role="progressbar" aria-label="Job footage completed" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
+    <div class="ux-progress-fill" style="width:${pct}%"></div></div>
+   <div class="ux-job-meta"><span>Completed footage<strong>${fmt(doneFeet())} ft</strong></span>
+    <span>Planned footage<strong>${fmt(totalFeet())} ft</strong></span>
+    <span>Pipe planned (+${fmt(extra())} ft/shot)<strong>${fmt(totalNeed())} ft</strong></span></div>
+  </div>
+  ${state.demo?'<div class="note spaced">You are viewing sample shots. Use Help (?) to learn, or clear demo in Settings before recording real work.</div>':''}
+  <div class="ux-section-heading"><h2>What do you need to do?</h2><button class="btn micro ghost" data-page="settings">Customize</button></div>
+  <div class="ux-tile-grid">${favoriteActions().map(actionTile).join('')}</div>
+  <div class="ux-next"><span style="font-size:25px" aria-hidden="true">💡</span><div style="flex:1;min-width:0">
+   <strong>${esc(action.title)}</strong><p>${esc(action.body)}</p></div>
+   <button class="btn micro primary" data-action="${esc(action.action)}">${esc(action.button)}</button></div>
+  <details class="ux-details" ${state.uxMode==='advanced'?'open':''}><summary>Today's Job Board · ${state.shots.length} bores</summary>
+   <div class="action-row spaced"><button class="btn micro primary" data-action="new-shot">+ Add bore</button>
+   <button class="btn micro ghost" data-page="planner">Open Planner</button></div>
+   <div class="shot-list">${shots.length?shots.map(shotRow).join(''):'<p class="smalltext muted">No shots yet. Tap Add bore to get started.</p>'}</div>
+   ${state.uxMode==='simple'&&state.shots.length>5?'<p class="tiny muted spaced">Showing the first five bores. Open Bores to view the full job.</p>':''}
+  </details>
+  <div class="ux-section-heading"><h2>Need something else?</h2><button class="btn micro ghost" data-page="tools">All Tools</button></div>
+  <p class="smalltext muted">Maintenance, reports, route planning, and every advanced tool are still available in All Tools.</p>
+  ${footnote()}</div>`;
+}
+
 function coordsValid(o){return o&&o.lat!==''&&o.lon!==''&&o.lat!=null&&o.lon!=null&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lon))&&Math.abs(Number(o.lat))<=90&&Math.abs(Number(o.lon))<=180}
 function coordsText(s){return coordsValid(s)?`${Number(s.lat).toFixed(5)}, ${Number(s.lon).toFixed(5)}`:''}
 function hav(a,b){if(!coordsValid(a)||!coordsValid(b))return NaN;const R=3958.7613,lat1=Number(a.lat)*Math.PI/180,lat2=Number(b.lat)*Math.PI/180,dlat=(Number(b.lat)-Number(a.lat))*Math.PI/180,dlon=(Number(b.lon)-Number(a.lon))*Math.PI/180,q=Math.sin(dlat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dlon/2)**2;return R*2*Math.asin(Math.sqrt(q))}
