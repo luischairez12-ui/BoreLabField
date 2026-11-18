@@ -76,7 +76,18 @@ async function ask(input){
   const shots=j.shots.filter(x=>x.status!=='complete');
   return reply('Next site: '+j.jobName,['Address: '+(j.jobAddress||'No saved address'),shots.length+' remaining shots, '+shots.reduce((n,x)=>n+ft(x),0)+' ft'],btn('Open job','job','data-job="'+html(j.id)+'"')+btn('Navigate','nav','data-job="'+html(j.id)+'"'));
  }
- if(/(pipe|reel)/.test(q))return reply(p.left<0?'Pipe shortage':'Pipe availability',[fmt(p.have)+' ft on truck; '+fmt(p.need)+' ft estimated for '+p.list.length+' remaining shots across jobs, including allowances.',p.left<0?'Short '+fmt(-p.left)+' ft.':fmt(p.left)+' ft estimated surplus.','Check each reel length and reservations before pulling.'],btn('Pipe inventory','pipe')+btn('Planner','planner'));
+ if(/(pipe|reel|conduit)/.test(q)){
+  const multi=window.BoreLabConduits?.inventory();
+  if(multi&&(multi.lines.length||multi.missing)){
+   const shortage=multi.lines.some(line=>line.available!=null&&line.available<line.required);
+   const bySize=multi.lines.map(line=>line.size+': '+fmt(line.required)+' ft needed; '+(line.available==null?'matching reel inventory not recorded':fmt(line.available)+' ft on truck'+(line.available<line.required?' — SHORT '+fmt(line.required-line.available)+' ft':'')));
+   if(multi.missing)bySize.push(multi.missing+' unfinished shot(s) lack size information.');
+   if(multi.unknownReels)bySize.push(multi.unknownReels+' reels have no size recorded.');
+   bySize.push('Reel totals do not confirm continuous available lengths or matching material specifications.');
+   return reply(shortage?'Conduit shortage by size':'Conduit pipe check',bySize,btn('Open Shot Planner','planner')+btn('Pipe reels','pipe'));
+  }
+  return reply(p.left<0?'Pipe shortage':'Pipe availability',[fmt(p.have)+' ft on truck; '+fmt(p.need)+' ft estimated for '+p.list.length+' remaining shots across jobs, including allowances.',p.left<0?'Short '+fmt(-p.left)+' ft.':fmt(p.left)+' ft estimated surplus.','Record conduit sizes to check supply by diameter. Check each reel and reservations before pulling.'],btn('Pipe inventory','pipe')+btn('Planner','planner'));
+ }
  if(/(mud|tank|mix|bentonite)/.test(q))return reply('Mud inventory',[m.pct===null?'Tank level not configured.':'Tank '+m.pct+'% full · '+fmt(m.g)+' / '+fmt(m.c)+' gallons','Mixture: '+(m.t.contentsStatus||'not recorded'),m.products.length?m.products.slice(0,5).map(x=>x.name+': '+(x.stockTracked?fmt(api().mudAvailable(x))+' '+x.unit:'stock not tracked')).join('; '):'No products saved.'],btn('MixLab','mud')+btn('Inventory','stock'));
  if(/(attention|issue|problem|warning)/.test(q)){
   const list=[];if(p.left<0)list.push('Pipe shortage: '+fmt(-p.left)+' ft.');
