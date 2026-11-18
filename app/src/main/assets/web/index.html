@@ -2646,7 +2646,7 @@ switch(action){
  case 'open-full-route':openMapUrl(mapsLink(orderedShots().order));break;
  case 'go-photos':setPage('photos');break;
  case 'go-crew':setPage('crew');break;
- case 'open-equipment':setPage('settings');document.querySelector('#equipmentSettings')?.scrollIntoView({behavior:'smooth',block:'start'});break;
+ case 'open-equipment':openSettingsSections.add('work');setPage('settings');document.querySelector('#equipmentSettings')?.scrollIntoView({behavior:'smooth',block:'start'});break;
  case 'add-equipment':equipmentForm();break;
  case 'edit-equipment':equipmentForm(id);break;
  case 'log-oil':serviceLogForm(id);break;
@@ -2654,7 +2654,7 @@ switch(action){
  case 'roadmap':showModal(`${modalHead('Coming in the Next Build')}<p class="smalltext muted">Manufacturer manual indexing and future workflow improvements are still planned. MixLab is now available in the Field Toolbox.</p>`);break;
  case 'toggle-route-menu':routeMenuOpen=!routeMenuOpen;render();break;
  case 'route-mode':state.routeMode=btn.dataset.mode;routeMenuOpen=false;save();render();notify('Route preference: '+orderedShots().modeName);break;
- case 'edit-homebase':case 'scroll-shop':setPage('settings');document.querySelector('#homeBaseSettings')?.scrollIntoView({behavior:'smooth',block:'start'});break;
+ case 'edit-homebase':case 'scroll-shop':openSettingsSections.add('work');setPage('settings');document.querySelector('#homeBaseSettings')?.scrollIntoView({behavior:'smooth',block:'start'});break;
  case 'save-shop':saveShop();break;
  case 'gps-shop':gpsFill('shop');break;
  case 'gps-shot':gpsFill('shot');break;
