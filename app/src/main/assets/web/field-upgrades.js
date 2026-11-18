@@ -124,7 +124,7 @@ function showLocationReview(raw,error){
  const suggestion=detected[0]?.value||fallback||'';
  const old=form.querySelector('.ba-address-review');if(old)old.remove();
  const card=document.createElement('div');card.className='ba-address-review';
- card.innerHTML='<strong>Review job location</strong><p class="smalltext muted">Choose the printed address, Google Plus Code or GPS pin. Verify the location in Maps before saving.</p>'+
+ card.innerHTML='<strong>Review job location</strong><p class="smalltext muted">Choose the printed address, Google Plus Code or GPS pin. Nothing is saved automatically. Verify the location in Maps before saving.</p>'+
  (detected.length?'<label class="field">Location detected in photo<select data-ba-location-choice>'+
  detected.map((choice,i)=>'<option value="'+i+'">'+escapeHtml(choice.label+': '+choice.value)+'</option>').join('')+
  '<option value="manual">Enter a location manually</option></select></label>':'<p class="smalltext muted">No confident address found. Paste a Google Plus Code with nearby town, GPS coordinates, or type the street address.</p>')+
