@@ -60,6 +60,8 @@ async function readPhoto(file){
   const scale=Math.min(1,2200/Math.max(img.width,img.height));
   const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
   canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);img.close?.();
+  // For full-page paperwork the printed address is usually in the upper portion.
+  // First scan the entire image; the user can retake a close-up if OCR misses the address.
   window.BoreLabNative.scanShotSheet(canvas.toDataURL('image/jpeg',.92));
  }catch(err){status('Unable to read this photo: '+String(err.message||err))}
 }
