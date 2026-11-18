@@ -135,7 +135,7 @@ function renderReelOptimizer(){
  const state=b.state(),day=today(),selection=candidateReels(state,day);
  const pending=shotEntries().filter(x=>x.shot.status!=='complete');
  const outcome=simulateReels(state,day,pending,selection.chosen);
- return'<details class="card spaced bl-optimizer" open><summary><strong>Smart Reel Optimizer</strong> · Two-reel what-if plan</summary>'+
+ return'<details class="card spaced bl-optimizer"><summary><strong>Smart Reel Optimizer</strong> · Two-reel what-if plan</summary>'+
  '<p class="tiny muted">Uses the reels selected for today, grouped by matching conduit diameter. Each conduit needs one continuous run. No reel footage is deducted or reserved until you record a real pull.</p>'+
  (selection.incomplete?'<p class="tiny muted">⚠ Select two different on-truck reels in “Two Reels for the Day” above to create a complete loadout.</p>':'')+
  (selection.chosen.length?outcome.reels.map(r=>'<div class="bl-gps-line"><span><strong>'+esc(r.name)+'</strong><small>'+esc(r.size||'Size not recorded')+'</small></span><span>'+fmt(r.available,1)+' → '+fmt(r.remaining,1)+' ft</span></div>').join(''):'<p class="smalltext muted">No daily reels assigned. Open the Two Reels selector above.</p>')+
