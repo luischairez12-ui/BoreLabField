@@ -414,6 +414,10 @@ html[data-large-text="on"] .ux-tile small,html[data-large-text="on"] .ux-next p{
 }
 @media(min-width:700px){.ux-tile-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.ux-tile{min-height:94px}}
 
+
+.ux-brief-foot{font-size:10px;color:var(--muted);text-align:center;margin:14px 0 4px;line-height:1.5}
+@media (prefers-reduced-motion:reduce){.ux-tile{transition:none}.ux-tile:active{transform:none}}
+
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -504,7 +508,7 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.10.1 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · v0.10.1 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
@@ -1462,7 +1466,7 @@ function renderHome(){
   </details>
   <div class="ux-footer-row"><strong>More field tools</strong>
    <button data-page="tools" class="btn micro ghost">Browse all tools ›</button></div>
-  ${footnote()}</div>`;
+  <p class="ux-brief-foot">Offline-friendly · Your field records stay on this device.</p></div>`;
 }
 
 function coordsValid(o){return o&&o.lat!==''&&o.lon!==''&&o.lat!=null&&o.lon!=null&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lon))&&Math.abs(Number(o.lat))<=90&&Math.abs(Number(o.lon))<=180}
