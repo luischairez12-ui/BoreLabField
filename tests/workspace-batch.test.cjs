@@ -72,7 +72,7 @@ const uiBuilder=new Function('state','esc',
 const ui=uiBuilder(state,escape);
 const workspace=ui.renderJobWorkspace();
 assert(workspace.includes('SMART JOB WORKSPACE')&&workspace.includes('South Glades'));
-assert(workspace.includes('Photos on bores')&&workspace.includes('Today&#39;s crew hours'));
+assert(workspace.includes('Photos on bores')&&workspace.includes("Today's crew hours"));
 assert(workspace.includes('shot-quick')&&workspace.includes('Edit Job'));
 assert(!workspace.includes('<script>unsafe</script>'),'Job notes must be HTML-escaped');
 ui.editActiveJob();
