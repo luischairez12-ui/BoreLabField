@@ -1,0 +1,28 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync('web/index.html','utf8'),android=fs.readFileSync('app/src/main/assets/web/index.html','utf8');
+const locations=fs.readFileSync('web/locations-reels.js','utf8'),upgrade=fs.readFileSync('web/field-upgrades.js','utf8'),sheet=fs.readFileSync('web/shot-sheet.js','utf8'),native=fs.readFileSync('app/src/main/java/com/borelab/field/BoreLabActivity.java','utf8');
+assert.equal(html,android);
+for(const name of ['field-upgrades.js','shot-sheet.js','locations-reels.js'])assert.equal(fs.readFileSync('web/'+name,'utf8'),fs.readFileSync('app/src/main/assets/web/'+name,'utf8'));
+for(const src of [locations,upgrade,sheet])new Function(src);new Function(html.split('<script>')[1].split('</script>')[0]);
+for(const word of ['highContrastPaperwork(Bitmap source)','recognizer.process(InputImage.fromBitmap(improved, 0))','sendPaperworkScanResult(raw, contrast.getText(), null, shotSheet)','JSONObject.quote(enhanced == null ? "" : enhanced)'])assert(native.includes(word),word);
+assert(upgrade.includes('window.borelabOnAddressScan=function onAddressScan(text,error,alternate)'));
+assert(upgrade.includes('View scanned photo')&&upgrade.includes('High-contrast OCR text'));
+assert(sheet.includes('window.borelabOnShotSheetScan=function(text,error,alternate)')&&sheet.includes('Review the photo you scanned'));
+assert(html.includes('function missingGpsPanel()')&&html.includes('missingGpsPanel()}'));
+const part=locations.slice(locations.indexOf('function parseCoords('),locations.indexOf('function todayKey()'));
+const loc=new Function(part+'return {findStreet,locationCandidates,parseCoords,isNonStreetLocation};')();
+assert.equal(loc.findStreet('Work Order 870980\nAddress\n225 N MAYORAL ST\nPhone Number'),'225 N MAYORAL ST');
+assert.equal(loc.findStreet('870980 - South\n225 N Mayoral St\nHendry\nS# 348'),'225 N Mayoral St');
+assert.equal(loc.findStreet('Work Order 870980\nAddress\n225\nN\nMAYORAL\nST'),'225 N MAYORAL ST');
+const parser=sheet.slice(sheet.indexOf('function parseConduitSpec('),sheet.indexOf('function editorRow('));
+const picker=sheet.slice(sheet.indexOf('function pickBestPaperworkReadings('),sheet.indexOf('window.borelabOnShotSheetScan='));
+const scan=new Function('window',parser+picker+'return pickBestPaperworkReadings;')({BoreLabLocations:loc});
+const draft=scan('Work Order 870980\nAddress','Work Order 870980\nAddress\n225 N MAYORAL ST');
+assert.equal(draft[0].address,'225 N MAYORAL ST');assert.equal(draft[0].feet,'');assert.equal(draft[0].selected,false);
+const start=html.indexOf('async function resolveMissingAddresses(manual=true){'),end=html.indexOf('async function geocode(target){',start);assert(start>=0&&end>start);
+const state={shopLat:'26.3',shopLon:'-81',shopAddress:'Home',shots:[{id:'p',name:'Plus',status:'planned',address:'7XRX+RWP Big Cypress, Florida',lat:'',lon:''},{id:'g',name:'GPS',status:'planned',address:'26.292092,-81.000171',lat:'',lon:''},{id:'s',name:'Street',status:'planned',address:'225 N MAYORAL ST',lat:'',lon:''},{id:'x',name:'Empty',status:'planned',address:'',lat:'',lon:''}]};
+let calls=0;const messages=[];
+const api=new Function('state','coordsValid','shop','save','render','lookupAddressCoordinates','notify','window','esc','let resolvingAddresses=false;const page="planner";'+html.slice(start,end)+'return {resolveMissingAddresses,missingGpsPanel};')(
+state,x=>!!(x&&x.lat!==''&&x.lon!==''&&x.lat!=null&&x.lon!=null&&Number.isFinite(Number(x.lat))&&Number.isFinite(Number(x.lon))),()=>({lat:state.shopLat,lon:state.shopLon}),()=>{},()=>{},async address=>{calls++;assert.equal(address,'225 N MAYORAL ST');return{lat:'26.3',lon:'-81.2'}},x=>messages.push(x),{BoreLabLocations:loc},x=>String(x));
+(async()=>{const result=await api.resolveMissingAddresses(true);assert.equal(calls,1);assert.equal(result.found,2);assert.equal(result.plus,1);assert.equal(result.missing,1);assert.equal(state.shots[1].lat,'26.292092');assert.equal(state.shots[0].lat,'');assert(!messages.some(x=>x.startsWith('Could not resolve')));assert(api.missingGpsPanel().includes('data-action="edit-shot"'));console.log('Paperwork OCR + Plus Code routing regression tests passed.');})().catch(e=>{console.error(e);process.exitCode=1});
