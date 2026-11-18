@@ -5,10 +5,12 @@ const api=()=>window.BoreLabAssistantBridge;
 const conduits=()=>window.BoreLabConduits;
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clamp=(x,n=250)=>String(x??'').trim().slice(0,n);
-let pendingRows=[],ocrText='',sourceError='',sourceName='',scanning=false,scanPreview='',scannerSource='';
+let pendingRows=[],ocrText='',sourceError='',sourceName='',scanning=false,scanPreview='',scannerSource='',cropStage=null,ocrFields=null;
 const root=document.createElement('div');root.id='bl-shot-sheet';root.hidden=true;document.body.appendChild(root);
 const css=document.createElement('style');
 css.textContent='#bl-shot-sheet[hidden]{display:none!important}#bl-shot-sheet{position:fixed;inset:0;overflow:auto;overscroll-behavior:contain;z-index:10500;background:var(--bg,#09141f);color:var(--text,#f4f8fb);font-family:system-ui,sans-serif;padding:18px 14px 80px}#bl-shot-sheet *{box-sizing:border-box}#bl-shot-sheet .bls-wrap{max-width:760px;margin:auto}#bl-shot-sheet button{cursor:pointer}#bl-shot-sheet .bls-header{display:flex;gap:12px;align-items:center;margin-bottom:15px}#bl-shot-sheet h1{font-size:24px;margin:0}#bl-shot-sheet h2{font-size:17px}#bl-shot-sheet .bls-card{background:var(--surface2,#162839);border:1px solid var(--line,#294258);padding:14px;border-radius:16px;margin:12px 0}#bl-shot-sheet .bls-muted{font-size:12px;color:var(--muted,#95acbd);line-height:1.5}#bl-shot-sheet .bls-btn{border:1px solid var(--line,#294258);color:var(--text,#f4f8fb);background:var(--surface3,#203448);border-radius:11px;padding:11px 13px;font-weight:750}#bl-shot-sheet .bls-primary{border-color:transparent;background:var(--accent,#ff992c);color:#10202b}#bl-shot-sheet .bls-row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}#bl-shot-sheet .bls-shot{border-bottom:1px solid var(--line,#294258);padding:13px 0}#bl-shot-sheet .bls-shot:last-child{border-bottom:0}#bl-shot-sheet .bls-fields{display:grid;grid-template-columns:minmax(110px,1fr) minmax(75px,.4fr);gap:9px}#bl-shot-sheet .bls-fields .bls-wide{grid-column:1/-1}#bl-shot-sheet label{font-size:12px;font-weight:750;display:block}#bl-shot-sheet input[type=text],#bl-shot-sheet input[type=number],#bl-shot-sheet textarea{display:block;width:100%;margin-top:5px;min-width:0;padding:11px;border:1px solid var(--line,#294258);border-radius:10px;background:var(--surface,#111f2d);color:var(--text)}#bl-shot-sheet input[type=checkbox]{width:17px;height:17px}#bl-shot-sheet .bls-status{margin:12px 0;font-size:13px}#bl-shot-sheet .bls-raw{max-height:160px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-size:11px}#bl-shot-sheet .bls-finish{position:sticky;bottom:0;background:var(--bg,#09141f);padding:9px 0;border-top:1px solid var(--line,#294258)}';
+
+css.textContent+='#bl-shot-sheet .bls-crop-surface{position:relative;width:100%;max-height:440px;overflow:hidden;touch-action:none;border-radius:12px;border:1px solid var(--line,#294258);user-select:none;cursor:crosshair}#bl-shot-sheet .bls-crop-surface img{display:block;width:100%;height:auto;object-fit:contain;pointer-events:none;user-select:none}#bl-shot-sheet .bls-crop-region{position:absolute;border:3px solid var(--accent,#ff992c);background:rgba(255,160,40,.12);pointer-events:none;box-shadow:0 0 0 1000px rgba(0,0,0,.08)}#bl-shot-sheet .bls-card h2{margin:3px 0 9px}';
 document.head.appendChild(css);
 const fileCamera=document.createElement('input');fileCamera.type='file';fileCamera.accept='image/*';fileCamera.setAttribute('capture','environment');fileCamera.hidden=true;
 const fileGallery=document.createElement('input');fileGallery.type='file';fileGallery.accept='image/*';fileGallery.hidden=true;
@@ -93,6 +95,81 @@ function parseSheet(text){
  if(!found.length&&defaultAddress)found.push({name:orderId?'Work Order '+orderId:'Shot 01',feet:'',address:defaultAddress,conduits:[],selected:false});
  return found.slice(0,70).map(x=>({...x,conduitText:specFromConduits(x.conduits)}));
 }
+
+function parseHeaderFields(raw){
+ const text=String(raw||''),lines=text.split(/\r?\n/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
+ const workOrder=text.match(/\b(?:work\s*order|wo)\s*(?:#|no\.?|number)?\s*[:/\-]?\s*(\d{5,9})\b/i)||
+  text.match(/\b(\d{5,9})\s*[-–]\s*(?:SOUTH|NORTH|EAST|WEST|CENTRAL)\b/i)||
+  (/\bwork\s*order\b/i.test(text)?text.match(/\b\d{5,9}\b/):null);
+ const district=text.match(/\b(?:district|division)\s*[:/#\-]?\s*(SOUTH|NORTH|EAST|WEST|CENTRAL)\b/i)||
+  text.match(/\b\d{5,9}\s*[-–]\s*(SOUTH|NORTH|EAST|WEST|CENTRAL)\b/i)||
+  (/\bwork\s*order\b/i.test(text)?text.match(/(?:^|\n)\s*(SOUTH|NORTH|EAST|WEST|CENTRAL)\s*(?:\n|$)/im):null);
+ const numbers={s:(text.match(/\bS\s*#\s*(\d{1,6})\b/i)||[])[1]||'',e:(text.match(/\bE\s*#\s*(\d{1,6})\b/i)||[])[1]||''};
+ const loc=(typeof window!=='undefined'?window.BoreLabLocations?.locationCandidates(text):null)||[];
+ return{order:workOrder?.[1]||workOrder?.[0]?.match(/\d{5,9}/)?.[0]||'',
+  district:district?.[1]||'',sMeter:numbers.s,eMeter:numbers.e,
+  addresses:loc.filter(x=>x.kind==='street'||x.kind==='plus'||x.kind==='coords').map(x=>x.value)};
+}
+function loadImage(src){
+ return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Photo cannot be opened.'));img.src=src});
+}
+async function rotateCropPhoto(){
+ if(!cropStage)return;
+ const image=await loadImage(cropStage.data);
+ const canvas=document.createElement('canvas');canvas.width=image.naturalHeight;canvas.height=image.naturalWidth;
+ const ctx=canvas.getContext('2d');ctx.translate(canvas.width,0);ctx.rotate(Math.PI/2);
+ ctx.drawImage(image,0,0);
+ cropStage.data=canvas.toDataURL('image/jpeg',.92);cropStage.rect=null;
+ render();
+}
+function cropPhotoRegion(image,rect){
+ const x=Math.max(0,Math.min(1,Number(rect.x)||0)),y=Math.max(0,Math.min(1,Number(rect.y)||0));
+ const w=Math.min(1-x,Math.max(.01,Number(rect.w)||0)),h=Math.min(1-y,Math.max(.01,Number(rect.h)||0));
+ const canvas=document.createElement('canvas');
+ canvas.width=Math.max(1,Math.round(w*image.naturalWidth));canvas.height=Math.max(1,Math.round(h*image.naturalHeight));
+ canvas.getContext('2d').drawImage(image,Math.round(x*image.naturalWidth),Math.round(y*image.naturalHeight),
+  Math.max(1,Math.round(w*image.naturalWidth)),Math.max(1,Math.round(h*image.naturalHeight)),
+  0,0,canvas.width,canvas.height);
+ return canvas.toDataURL('image/jpeg',.94);
+}
+async function submitSelectedPhoto(crop){
+ if(!cropStage||scanning)return;
+ try{
+  if(crop&&!cropStage.rect){sourceError='Touch the address area on the photo or drag a box around it first.';render();return}
+  scanning=true;sourceError='';render();
+  const image=await loadImage(cropStage.data);
+  const data=crop?cropPhotoRegion(image,cropStage.rect):cropStage.data;
+  scanPreview=data;
+  if(!window.BoreLabNative?.scanShotSheet){
+   scanning=false;sourceError='Automatic OCR requires the Android app. You can still add reviewed shots manually.';render();return;
+  }
+  window.BoreLabNative.scanShotSheet(data);
+ }catch(err){scanning=false;sourceError=String(err.message||err);render()}
+}
+function cropUi(){
+ if(!cropStage)return'';
+ const region=cropStage.rect;
+ const style=region?'left:'+(region.x*100)+'%;top:'+(region.y*100)+'%;width:'+(region.w*100)+'%;height:'+(region.h*100)+'%':'display:none';
+ return'<div class="bls-card"><h2>Prepare photo for recognition</h2>'+
+ '<p class="bls-muted">Tap the address on the photo to focus on it, or drag around a work-order box. Rotate if needed. Scan the selected area for a clearer reading, or the full sheet for multiple shots.</p>'+
+ '<div class="bls-crop-surface" data-bls-crop-surface role="img" aria-label="Touch or drag on the paperwork image to select an OCR region">'+
+ '<img draggable="false" src="'+esc(cropStage.data)+'" alt="Photo awaiting OCR, with optional selection crop"><div class="bls-crop-region" data-bls-crop-region style="'+style+'"></div></div>'+
+ '<div class="bls-row" style="margin-top:10px"><button type="button" class="bls-btn" data-bls-action="rotate">↻ Rotate 90°</button>'+
+ '<button type="button" class="bls-btn" data-bls-action="clear-crop">Clear crop</button>'+
+ '<button type="button" class="bls-btn bls-primary" data-bls-action="scan-crop">Read selected area</button>'+
+ '<button type="button" class="bls-btn" data-bls-action="scan-full">Read full page</button></div></div>';
+}
+function metadataUi(){
+ if(!ocrFields)return'';
+ const meta=ocrFields;
+ const line=[meta.order?'Work order: '+meta.order:'',meta.district?'District: '+meta.district:'',meta.sMeter?'S#: '+meta.sMeter:'',meta.eMeter?'E#: '+meta.eMeter:''].filter(Boolean);
+ return'<div class="bls-card"><h2>Recognized header details</h2>'+
+ (line.length?'<p class="bls-muted">'+esc(line.join(' · '))+'</p>':'<p class="bls-muted">No reliable work-order or meter identifiers detected in this scan.</p>')+
+ (meta.addresses.length?'<p class="bls-muted"><strong>Detected locations:</strong> '+esc(meta.addresses.join(' · '))+'</p>'+
+ '<button class="bls-btn" type="button" data-bls-action="apply-header-address">Use first detected address for blank drafts</button>':'<p class="bls-muted">No address detected. Select a tighter crop or type the address below.</p>')+
+ '<p class="bls-muted">Work-order and meter IDs are shown for checking and are never mistaken for bore lengths or saved without your review.</p></div>';
+}
+
 function editorRow(x,i){
  return '<article class="bls-shot" data-bls-row><div class="bls-row"><label><input data-bls-selected type="checkbox" '+(x.selected?'checked':'')+'> Import this shot</label><strong>Draft '+(i+1)+'</strong><button type="button" class="bls-btn" data-bls-remove>Remove</button></div>'+
  '<div class="bls-fields"><label>Shot name<input data-bls-name type="text" maxlength="70" value="'+esc(x.name)+'" required></label>'+
@@ -114,13 +191,13 @@ function captureEditorDrafts(){
 function openScanner(button){
  if(!api())return;
  scannerSource=button?.closest('form[data-form]')?.dataset.form||'';
- pendingRows=[];ocrText='';sourceError='';sourceName='';scanning=false;scanPreview='';
+ pendingRows=[];ocrText='';sourceError='';sourceName='';scanning=false;scanPreview='';cropStage=null;ocrFields=null;
  root.hidden=false;
  document.body.style.overflow='hidden';
  render();
  root.scrollTop=0;
 }
-function closeScanner(){root.hidden=true;root.innerHTML='';scanPreview='';scannerSource='';document.body.style.overflow=''}
+function closeScanner(){root.hidden=true;root.innerHTML='';scanPreview='';cropStage=null;ocrFields=null;scannerSource='';document.body.style.overflow=''}
 function render(){
  const job=api()?.state()?.jobName||'Active job';
  root.innerHTML='<div class="bls-wrap"><div class="bls-header"><button type="button" class="bls-btn" data-bls-action="back">‹ Back</button><div><small class="bls-muted">BORELAB FIELD / IMPORT</small><h1>Scan Shot Sheet</h1></div></div>'+
@@ -129,7 +206,9 @@ function render(){
  '<button type="button" class="bls-btn" data-bls-action="manual">+ Add draft manually</button></div>'+
  '<p class="bls-muted">Camera tip: capture a close-up of the work-order header or folder tab first. For a long shot sheet, scan one readable page at a time. Original and high-contrast OCR can be reviewed below. Nothing is imported automatically.</p></div>'+
  (sourceName||sourceError?'<p class="bls-status">'+esc(sourceName||'')+(sourceError?' · '+esc(sourceError):'')+'</p>':'')+
+ (cropStage?cropUi():'')+
  (scanning?'<div class="bls-card">Reading shot sheet…</div>':'')+
+ (ocrFields?metadataUi():'')+
  (pendingRows.length?'<div class="bls-card"><h2>Review '+pendingRows.length+' proposed shot(s)</h2><p class="bls-muted">Correct every name, length, address and conduit before selecting Import. Any missing length must be entered manually.</p>'+
  '<div id="bls-rows">'+pendingRows.map(editorRow).join('')+'</div>'+
  '<label class="bls-row" style="margin-top:12px"><input type="checkbox" id="bls-confirm"> I reviewed the selected shots against the original sheet.</label></div>'+
@@ -156,9 +235,9 @@ async function scanFile(file){
  try{
   scanning=true;sourceError='';sourceName=file.name||'Camera capture';render();
   const data=await resizeFile(file);
-  scanPreview=data;
-  if(!window.BoreLabNative?.scanShotSheet){scanning=false;sourceError='Automatic text recognition requires the Android APK. Add entries manually in the preview.';render();return}
-  window.BoreLabNative.scanShotSheet(data);
+  // Nothing sent for OCR until the user selects full page or a focused region.
+  pendingRows=[];ocrFields=null;ocrText='';scanPreview='';
+  cropStage={data,rect:null};scanning=false;render();
  }catch(e){scanning=false;sourceError=String(e.message||e);render()}
 }
 for(const input of [fileCamera,fileGallery])input.addEventListener('change',e=>{const file=e.target.files?.[0];e.target.value='';if(file)scanFile(file)});
@@ -183,6 +262,7 @@ window.borelabOnShotSheetScan=function(text,error,alternate){
  const enhanced=String(alternate||'').slice(0,15000);
  ocrText=original+(enhanced&&enhanced!==original?'\n\n— High-contrast reading —\n'+enhanced:'');
  sourceError=error?'Text reading issue: '+String(error).slice(0,200):'';
+ ocrFields=parseHeaderFields([original,enhanced].filter(Boolean).join('\n'));
  pendingRows=pickBestPaperworkReadings(original,enhanced);
  if(!pendingRows.length){
   sourceError+=(sourceError?' ':'')+'No confirmed shots found. Take a closer photo of the address section or add a reviewed draft manually.';
@@ -230,11 +310,61 @@ function renderStatusOnly(){
  if(!node){node=document.createElement('p');node.id='bls-import-error';node.className='bls-status';root.querySelector('.bls-finish')?.prepend(node)}
  if(node)node.textContent=sourceError;
 }
+
+let cropPointerStart=null;
+root.addEventListener('pointerdown',event=>{
+ const surface=event.target.closest('[data-bls-crop-surface]');
+ if(!surface||!cropStage||scanning)return;
+ const bounds=surface.getBoundingClientRect();
+ if(!bounds.width||!bounds.height)return;
+ const x=Math.max(0,Math.min(1,(event.clientX-bounds.left)/bounds.width));
+ const y=Math.max(0,Math.min(1,(event.clientY-bounds.top)/bounds.height));
+ cropPointerStart={x,y,id:event.pointerId,surface};
+ surface.setPointerCapture?.(event.pointerId);
+ event.preventDefault();
+});
+root.addEventListener('pointermove',event=>{
+ const start=cropPointerStart;if(!start||start.id!==event.pointerId||!cropStage)return;
+ const bounds=start.surface.getBoundingClientRect();
+ const ex=Math.max(0,Math.min(1,(event.clientX-bounds.left)/bounds.width));
+ const ey=Math.max(0,Math.min(1,(event.clientY-bounds.top)/bounds.height));
+ const rect={x:Math.min(start.x,ex),y:Math.min(start.y,ey),w:Math.abs(ex-start.x),h:Math.abs(ey-start.y)};
+ cropStage.rect=rect;
+ const region=start.surface.querySelector('[data-bls-crop-region]');
+ if(region){region.style.display='block';region.style.left=(rect.x*100)+'%';region.style.top=(rect.y*100)+'%';region.style.width=(rect.w*100)+'%';region.style.height=(rect.h*100)+'%'}
+ event.preventDefault();
+});
+root.addEventListener('pointerup',event=>{
+ const start=cropPointerStart;if(!start||start.id!==event.pointerId||!cropStage)return;
+ const bounds=start.surface.getBoundingClientRect();
+ const ex=Math.max(0,Math.min(1,(event.clientX-bounds.left)/bounds.width)),ey=Math.max(0,Math.min(1,(event.clientY-bounds.top)/bounds.height));
+ let rect={x:Math.min(start.x,ex),y:Math.min(start.y,ey),w:Math.abs(ex-start.x),h:Math.abs(ey-start.y)};
+ if(rect.w<.035||rect.h<.035){
+  // A single tap focuses on the surrounding text rather than claiming one pixel can be OCR'd.
+  rect={x:Math.max(0,Math.min(.35,ex-.32)),y:Math.max(0,Math.min(.80,ey-.10)),w:.65,h:.19};
+ }
+ cropStage.rect=rect;cropPointerStart=null;
+ const region=start.surface.querySelector('[data-bls-crop-region]');
+ if(region){region.style.display='block';region.style.left=(rect.x*100)+'%';region.style.top=(rect.y*100)+'%';region.style.width=(rect.w*100)+'%';region.style.height=(rect.h*100)+'%'}
+ event.preventDefault();
+});
+root.addEventListener('pointercancel',()=>{cropPointerStart=null});
+
 root.addEventListener('click',e=>{
  const btn=e.target.closest('[data-bls-action]');
  if(btn){
   if(btn.dataset.blsAction==='back')return closeScanner();
   if(btn.dataset.blsAction==='camera')return fileCamera.click();
+  if(btn.dataset.blsAction==='rotate'){rotateCropPhoto().catch(err=>{sourceError=err.message;render()});return}
+  if(btn.dataset.blsAction==='clear-crop'){if(cropStage)cropStage.rect=null;render();return}
+  if(btn.dataset.blsAction==='scan-full'){submitSelectedPhoto(false);return}
+  if(btn.dataset.blsAction==='scan-crop'){submitSelectedPhoto(true);return}
+  if(btn.dataset.blsAction==='apply-header-address'){
+   const address=ocrFields?.addresses?.[0];if(!address)return;
+   let count=0;
+   root.querySelectorAll('[data-bls-row]').forEach(row=>{const box=row.querySelector('[data-bls-address]');if(box&&!box.value.trim()){box.value=address;count++}});
+   captureEditorDrafts();sourceError='Applied header address to '+count+' empty draft(s). Review before importing.';renderStatusOnly();return;
+  }
   if(btn.dataset.blsAction==='gallery')return fileGallery.click();
   if(btn.dataset.blsAction==='manual'){captureEditorDrafts();pendingRows.push({name:'Shot '+String(pendingRows.length+1).padStart(2,'0'),feet:'',address:'',conduitText:'',selected:false});render();return}
   if(btn.dataset.blsAction==='import')return importReviewed();
@@ -244,5 +374,5 @@ root.addEventListener('click',e=>{
 });
 document.addEventListener('click',e=>{const trigger=e.target.closest('[data-sheet-action="open"]');if(trigger)openScanner(trigger)});
 root.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();closeScanner()}});
-window.BoreLabShotSheet={parseSheet,parseConduitSpec,parseSizeSpecs,lineAddress,lengthOnLine};
+window.BoreLabShotSheet={parseSheet,parseConduitSpec,parseSizeSpecs,lineAddress,lengthOnLine,parseHeaderFields,cropPhotoRegion};
 })();
