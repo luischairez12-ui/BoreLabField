@@ -49,7 +49,8 @@ function lineAddress(line){
  const value=String(line||'');
  // Avoid capturing preceding shot length or conduit descriptions as part of an address.
  const match=value.match(/\b(\d{1,6}\s+[A-Za-z][A-Za-z0-9 .'-]{1,65}\s+(?:Street|St|Road|Rd|Avenue|Ave|Boulevard|Blvd|Drive|Dr|Lane|Ln|Court|Ct|Way|Highway|Hwy|Circle|Cir|Trail|Trl)\b\.?(?:\s*,?\s*[A-Za-z .'-]+,?\s*[A-Z]{2}\s*\d{5})?)/i);
- return match?match[1].trim().slice(0,250):'';
+ const rural=value.match(/\b((?:County Road|State Road|CR|SR|US Highway|US Hwy|Highway|Hwy)\s*[-#]?\s*\d{1,5}[A-Za-z]?)\b/i);
+ return (match?match[1]:rural?rural[1]:'').trim().slice(0,250);
 }
 function lengthOnLine(line){
  const raw=String(line||''),match=raw.match(/(?:^|[^\d])(\d{1,5}(?:\.\d+)?)\s*(?:ft\b|feet\b|foot\b|['′](?=\s|$|[^\w]))/i);
