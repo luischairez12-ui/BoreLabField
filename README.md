@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.9.4 (debug/test build)
+**Current version:** v0.10.0 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.9.4-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.10.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,19 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.10.0 — Field-Friendly Redesign
+
+- **Home dashboard rebuilt:** short, friendly greeting; active job progress and footage; six large action-based shortcuts (Plan a Bore, Record Work, Mix Drilling Mud, Find a Manual, Pipe Inventory, Crew); a contextual next-step suggestion; an expandable Daily Job Board; and an All Tools shortcut.
+- **New bottom navigation:** Home, Bores, prominent + Add Bore, Tools, Settings. Tools groups all existing 12 entry actions into Planning, Daily Work, Materials, and Equipment. Features were not deleted, and manual-library/offline PDF functions remain available from Home and Tools.
+- **Guided Add Bore in Simple Mode:** three short stages (bore footage, name/location, review), with automatic planned-pipe allowance and a Saved Pending shot in the **same existing job data**. The old advanced bore log still exists, can edit guided shots, and is available immediately through the wizard's Full Form button.
+- **Advanced Mode** restores the original detailed entry form directly from + Add Bore. User can switch modes without migrating, deleting, or rewriting any work records.
+- **Settings reorganized** into My Experience (always visible), My Work & Equipment, Reports & Closeouts, Active Job, Appearance, Crew & Lunch, Data & Backup, Help & Tutorial, and a separately visible Demo & Reset section. Opening a settings group is remembered while settings re-render.
+- **Glove-Friendly Field Mode** enlarges tap targets and controls; **Large Text** enlarges common labels. These are optional, stored locally, and can be switched at any time.
+- **Home Shortcuts** can be personalized to 1–6 actions. Full feature access stays in Tools; shortcuts, modes, and display preferences are stored in the normal app state and included in JSON backup/restore.
+- An optional **Welcome Tour** explains the three basic workflows from the Home ? button or Settings. No forced onboarding or new sign-in.
+- **Compatibility:** keeps `borelab-field-v0.1` as the existing localStorage key, preserves the Android PDF manual and photo bridges, and adds compatibility defaults when older backups are restored.
+- Tested at build time with `tests/ux-redesign.test.cjs` and existing regression suites. Phone interaction/legibility still needs on-device validation. This is a prototype debug APK, not a store release.
 
 ## New in v0.9.4 — Working Manual Readers & My Links
 
