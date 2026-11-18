@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.12.1 (debug/test build)
+**Current version:** v0.12.2 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.12.1-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.12.2-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,13 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.12.2 — Professionally illustrated HDD Crew Hero
+
+- Replaces the previously blocky hand-assembled SVG workers in the **Good morning!** tile with a processed, illustrated three-person HDD crew scene. The crew includes a locator, someone preparing the bore, and an operator at the rig, accented with BoreLab orange.
+- Ships the illustration as a small optimized **320 × 140 local transparent PNG** at `assets/crew-hero.png`, mirrored in Android and browser preview. It loads fully offline and contains no live text or UI controls.
+- Does not change the dashboard text, layout, job cards, buttons, saved jobs, or other field operations. The help icon is still a separate accessible button above the art.
+- Adds binary-asset and artwork replacement regression tests. Previous app storage keys are unchanged.
 
 ## New in v0.12.1 — HDD Crew Silhouette Hero Artwork
 
