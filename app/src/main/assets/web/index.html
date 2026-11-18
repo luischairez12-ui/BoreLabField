@@ -1518,6 +1518,108 @@ function renderHome(){
   <p class="ux-brief-foot">Offline-friendly · Your field records stay on this device.</p></div>`;
 }
 
+
+function renderJobWorkspace(){
+ const complete=state.shots.filter(x=>x.status==='complete').length;
+ const day=todayLocal();
+ const todayEntries=state.crew.filter(e=>[e.start,e.end].some(d=>d&&localDay(d)===day));
+ const hoursToday=todayEntries.reduce((sum,e)=>sum+hours(e),0);
+ const activeIds=new Set(state.shots.map(x=>x.id));
+ const linked=photos.filter(p=>activeIds.has(p.shotId)).length;
+ const pct=totalFeet()?Math.round(doneFeet()/totalFeet()*100):0;
+ return `<div class="page ux-workspace">
+ <div class="ux-workspace-heading"><span class="eyebrow">SMART JOB WORKSPACE</span>
+ <h1>${esc(state.jobName)}</h1>
+ <p class="smalltext muted">${esc(state.jobAddress||'Your active HDD job')}</p>
+ <button class="btn primary" data-action="edit-job" aria-label="Edit active job details">✎ Edit Job</button></div>
+ <div class="ux-progress-track" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Footage completed">
+  <div class="ux-progress-fill" style="width:${pct}%"></div></div>
+ <div class="ux-workspace-metrics">
+  <div><span>Bores completed</span><strong>${complete} / ${state.shots.length}</strong></div>
+  <div><span>Footage done</span><strong>${fmt(doneFeet())} ft</strong></div>
+  <div><span>Photos on bores</span><strong>${linked}</strong></div>
+  <div><span>Today's crew hours</span><strong>${fmt(hoursToday,1)}</strong></div>
+ </div>
+ ${state.jobNotes?`<div class="note spaced"><strong>Job notes</strong><p class="smalltext">${esc(state.jobNotes)}</p></div>`:''}
+ <div class="ux-section-heading"><h2>Bores on this job</h2><button class="btn micro primary" data-action="new-shot">+ Add Bore</button></div>
+ ${state.shots.length?`<div class="ux-workspace-shots">${state.shots.map(shot=>`<div class="ux-workspace-shot">
+  <button type="button" class="ux-workspace-shot-main" data-action="shot-detail" data-id="${esc(shot.id)}">
+   <strong>${esc(shot.name)}</strong><small>${fmt(feet(shot),1)} ft · ${shot.status==='complete'?'Complete':shot.status==='progress'?'Drilling':'Pending'}</small></button>
+  <button class="btn micro ghost" data-action="shot-quick" data-id="${esc(shot.id)}">Actions</button>
+ </div>`).join('')}</div>`:'<div class="note spaced">No bores yet. Add your first bore to get started.</div>'}
+ <div class="ux-section-heading"><h2>Job tools</h2></div>
+ <div class="ux-tile-grid">
+  ${UX_ACTIONS.filter(t=>['go-photos','go-crew','go-planner','go-pipe','open-equipment','export-report'].includes(t.id)).map(actionTile).join('')}
+ </div>
+ <div class="action-row spaced"><button class="btn ghost" data-action="open-closeout">Daily Closeout</button>
+  <button class="btn ghost" data-action="open-history">Saved History</button></div>
+ <p class="smalltext muted">Crew hours are from today's time entries. Photo totals count photos attached to these bores.</p>
+ ${footnote()}</div>`;
+}
+function editActiveJob(){
+ showModal(`${modalHead('Edit Active Job')}
+  <p class="smalltext muted">Change the details of your active job. Existing bores and reports will stay intact.</p>
+  <form data-form="job-details" class="ux-job-edit-form">
+   <label class="field">Job name<input name="name" required maxlength="90" autocomplete="off" value="${esc(state.jobName)}"></label>
+   <label class="field">Job address / work area (optional)<input name="address" maxlength="250" value="${esc(state.jobAddress||'')}" placeholder="South Glades, Work Area 2"></label>
+   <label class="field">Job notes (optional)<textarea name="notes" maxlength="2000" placeholder="Access, crossings, crew notes...">${esc(state.jobNotes||'')}</textarea></label>
+   <div class="modal-footer"><button type="button" class="btn ghost" data-action="close-modal">Cancel</button>
+    <button type="submit" class="btn primary">Save Job Changes</button></div>
+  </form>`);
+}
+function quickBoreActions(id){
+ const shot=state.shots.find(s=>s.id===id);if(!shot)return;
+ showModal(`${modalHead('Quick Actions · '+shot.name)}
+  <p class="smalltext muted">${fmt(feet(shot),1)} ft · ${shot.status==='planned'?'Pending':shot.status==='progress'?'Drilling':'Complete'}</p>
+  <div class="ux-quick-shot-actions">
+   <button class="btn primary" data-action="next-status" data-id="${esc(id)}">${shot.status==='planned'?'▶ Start Drilling':shot.status==='progress'?'✓ Finish Bore':'↶ Reopen Bore'}</button>
+   <button class="btn ghost" data-action="edit-shot" data-id="${esc(id)}">✎ Edit Bore Log</button>
+   <button class="btn ghost" data-action="capture-for-shot" data-id="${esc(id)}">▣ Add Photo</button>
+   ${mapsPinUrl(shot)?`<button class="btn ghost" data-action="open-map-pin" data-id="${esc(id)}">↗ Open Map</button>`:''}
+   <button class="btn ghost" data-action="shot-detail" data-id="${esc(id)}">View Bore Details</button>
+  </div>
+  <p class="tiny muted spaced">Status updates are saved immediately with timestamps. Other edits are saved when you tap Save.</p>`);
+}
+function searchNormal(value){return String(value??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase()}
+function universalSearchGroups(query){
+ const q=searchNormal(String(query||'').trim());if(!q)return [];
+ const match=(...parts)=>parts.some(part=>searchNormal(part).includes(q));
+ const groups=[
+  {name:'Active Job',items:match(state.jobName,state.jobAddress,state.jobNotes)?[
+   {label:state.jobName,detail:state.jobAddress||'Active job workspace',action:'open-job',id:''}]:[]},
+  {name:'Bores',items:state.shots.filter(shot=>match(shot.name,shot.address,shot.notes,String(shot.feet))).slice(0,20)
+    .map(shot=>({label:shot.name,detail:fmt(feet(shot),1)+' ft · '+(shot.status==='complete'?'Complete':shot.status==='progress'?'Drilling':'Pending'),action:'shot-detail',id:shot.id}))},
+  {name:'Equipment',items:state.equipment.filter(e=>match(e.name,e.type,e.serial,e.notes)).slice(0,20)
+    .map(e=>({label:e.name,detail:e.type||'Equipment',action:'edit-equipment',id:e.id}))},
+  {name:'Manual Library',items:MANUAL_MACHINES.filter(m=>match(m.make,m.model,m.id)).slice(0,20)
+    .map(m=>({label:m.make+' '+m.model,detail:'Manuals, PDF imports and references',action:'manual-machine',id:m.id}))},
+  {name:'Saved Manual Links',items:(state.manualLinks||[]).filter(m=>match(m.label,m.url,m.note)).slice(0,20)
+    .map(m=>({label:m.label,detail:'Your saved manual link',action:'manual-user-open',id:m.id}))},
+  {name:'Job History',items:state.history.filter(h=>match(h.jobName,h.notes,h.day)).slice(0,15)
+    .map(h=>({label:h.jobName||'Saved job record',detail:h.day||'Saved history',action:'history-detail',id:h.id}))}
+ ];
+ return groups.filter(g=>g.items.length);
+}
+function renderSearchResults(){
+ const q=universalQuery.trim();if(!q)return '<div class="note spaced">Type a job name, bore, equipment model, or manual. Search works offline with saved names and descriptions.</div>';
+ const groups=universalSearchGroups(q);
+ if(!groups.length)return '<div class="note spaced">No matches yet. Try a shorter name or model number.</div>';
+ return groups.map(g=>`<section class="ux-search-group"><h2>${esc(g.name)} <small>${g.items.length} found</small></h2>
+  ${g.items.map(item=>`<button class="ux-search-result" data-action="${esc(item.action)}" data-id="${esc(item.id)}">
+   <strong>${esc(item.label)}</strong><span>${esc(item.detail)}</span><b aria-hidden="true">›</b>
+  </button>`).join('')}</section>`).join('');
+}
+function renderSearch(){
+ return `<div class="page ux-search-page">
+  <span class="eyebrow">FIND IT FAST</span><h1>Search BoreLab</h1>
+  <p class="smalltext muted spaced">Find a bore, job, rig, manual or saved history in one place.</p>
+  <label class="field">Search saved records
+   <input data-universal-search type="search" maxlength="100" placeholder="e.g. JT20, South Glades, Shot 02" value="${esc(universalQuery)}" autocomplete="off"></label>
+  <div id="universalSearchResults" class="spaced">${renderSearchResults()}</div>
+  <p class="tiny muted spaced">Manual results search their titles and saved links. To search inside a PDF, open it in the Manual Library.</p>
+ </div>`;
+}
+
 function coordsValid(o){return o&&o.lat!==''&&o.lon!==''&&o.lat!=null&&o.lon!=null&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lon))&&Math.abs(Number(o.lat))<=90&&Math.abs(Number(o.lon))<=180}
 function coordsText(s){return coordsValid(s)?`${Number(s.lat).toFixed(5)}, ${Number(s.lon).toFixed(5)}`:''}
 function hav(a,b){if(!coordsValid(a)||!coordsValid(b))return NaN;const R=3958.7613,lat1=Number(a.lat)*Math.PI/180,lat2=Number(b.lat)*Math.PI/180,dlat=(Number(b.lat)-Number(a.lat))*Math.PI/180,dlon=(Number(b.lon)-Number(a.lon))*Math.PI/180,q=Math.sin(dlat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dlon/2)**2;return R*2*Math.asin(Math.sqrt(q))}
