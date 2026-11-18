@@ -2513,7 +2513,7 @@ function showGuidedBore(){
     ${kv('Location',esc(guidedDraft.address||'Not set yet'))}</div>
     <div class="ux-guide-tip">✓ Saves as Pending. Later, open the bore log to start drilling or record progress.</div>`;
  showModal(modalHead('Add Your First Bore')+progress+
-  `<form data-form="guided-bore">${step===1?'<div class="card spaced ux-shot-scan-option"><div class="between"><div><strong>Already have shot paperwork?</strong><p class="tiny muted">Scan a sheet to add several bores to this job, or enter this bore manually below.</p></div><button type="button" class="btn micro ghost" data-sheet-action="open">▣ Scan paperwork</button></div></div>':''}${middle}
+  `<form data-form="guided-bore">${step===1?'<div class="card spaced ux-shot-scan-option"><div class="between"><div><strong>Have a sheet with multiple bores?</strong><p class="tiny muted">Import multiple shots from a sheet, or tap Next and use the camera beside the address field to scan one address.</p></div><button type="button" class="btn micro ghost" data-sheet-action="open">▣ Import shot sheet</button></div></div>':''}${middle}
    <div class="modal-footer">
     ${step>1?'<button type="button" class="btn ghost" data-action="guided-back">Back</button>':
      '<button type="button" class="btn ghost" data-action="guided-advanced">Full form</button>'}
@@ -2553,7 +2553,7 @@ function shotForm(id){
  const available=state.equipment.filter(e=>!e.archived||assigned.has(e.id));
  showModal(`${modalHead(exists?'Edit Bore Shot':'New Bore Shot')}
  <form data-form="shot" data-id="${esc(id||'')}">
-  ${!exists?'<div class="card spaced ux-shot-scan-option"><div class="between"><div><strong>Have a shot sheet?</strong><p class="tiny muted">Import one or multiple reviewed bores from a photo instead of typing each entry.</p></div><button type="button" class="btn micro ghost" data-sheet-action="open">▣ Scan paperwork</button></div></div>':''}
+  ${!exists?'<div class="card spaced ux-shot-scan-option"><div class="between"><div><strong>Have multiple bores on a sheet?</strong><p class="tiny muted">Import several shots at once. To read only the address, tap the camera beside the address field below.</p></div><button type="button" class="btn micro ghost" data-sheet-action="open">▣ Import shot sheet</button></div></div>':''}
   <div class="form-grid">
     <label class="field wide">Shot name<input name="name" value="${esc(s.name)}" maxlength="70" required></label>
     <label class="field">Bore length<span class="ux-number-line"><input name="feet" type="number" inputmode="decimal" step="0.1" min="0" value="${esc(s.feet)}" required><span class="ux-number-unit">ft</span></span></label>
