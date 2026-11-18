@@ -102,7 +102,7 @@ function inventory(){
    record.required+=line.total;record.shots++;needed.set(key,record);
   }
  }
- const selectedToday=window.BoreLabDailyReels?.activeIds(state)||[];
+ const selectedToday=typeof window!=='undefined'?window.BoreLabDailyReels?.activeIds(state)||[]:[];
  const todayOnly=selectedToday.length>0;
  const missingFromTruck=selectedToday.filter(id=>!(state.reels||[]).some(r=>r.id===id&&!r.archived&&r.location==='truck')).length;
  let unknownReels=0;
