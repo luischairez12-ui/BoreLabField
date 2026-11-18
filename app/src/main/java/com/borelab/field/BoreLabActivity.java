@@ -661,8 +661,20 @@ public class BoreLabActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) webView.goBack();
-        else super.onBackPressed();
+        // WebView screens use in-app navigation rather than real URL history.
+        // Let JavaScript close an open modal or return to the previous field screen first.
+        if (webView == null) {
+            super.onBackPressed();
+            return;
+        }
+        webView.evaluateJavascript(
+            "(function(){ return !!(window.borelabHandleBack && window.borelabHandleBack()); })();",
+            handled -> {
+                if ("true".equals(handled)) return;
+                // Only leave the app once its own navigation is exhausted.
+                if (webView != null && webView.canGoBack()) webView.goBack();
+                else BoreLabActivity.super.onBackPressed();
+            });
     }
 
     @Override protected void onDestroy() {
