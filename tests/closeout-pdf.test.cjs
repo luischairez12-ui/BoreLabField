@@ -20,7 +20,7 @@ assert(js.includes("data-closeout-day"),'Date chooser missing');
 assert(js.includes("case 'archive-job-snapshot'"),'Single-job history snapshot missing');
 assert(js.includes("if(!Array.isArray(state.history))state.history=[]"),'Backward-compatible history migration missing');
 assert(js.includes("history:[]"),'Seed history missing');
-assert(!js.includes("state.activeJobId="),'No multiple job-switching should be added');
+assert(js.includes('state.activeJobId='),'Multi-job switching and legacy migration must now be supported');
 const begin=js.indexOf('function dailyRecords('),end=js.indexOf('function renderCloseout(',begin);
 assert(begin>=0&&end>begin);
 const state={
