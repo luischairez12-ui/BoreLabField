@@ -61,13 +61,15 @@ function candidateAddress(raw){
  const lines=String(raw||'').split(/\r?\n/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
  const street=/\b(\d{1,6}\s+(?:[NSEW]\.?\s+)?(?:[A-Za-z0-9][A-Za-z0-9.'-]*\s+){1,6}(?:ST(?:REET)?|RD|ROAD|AVE(?:NUE)?|BLVD|BOULEVARD|DR(?:IVE)?|LN|LANE|CT|COURT|CIR|CIRCLE|WAY|TR(?:AI)?L|HWY|HIGHWAY|PL|PLACE|PKWY|PARKWAY)\.?\b)/i;
  const rural=/\b((?:County Road|State Road|CR|SR|US Highway|US Hwy|Highway|Hwy)\s*[-#]?\s*\d+[A-Za-z]?)\b/i;
- for(let i=0;i<lines.length;i++){
-  for(const input of [lines[i],lines[i]+' '+(lines[i+1]||'')]){
+ for(const combined of [false,true]){
+  for(let i=0;i<lines.length;i++){
+   if(combined&&!/^\d{1,6}(?:\s+|$)/.test(lines[i]))continue;
+   const input=combined?lines[i]+' '+(lines[i+1]||''):lines[i];
    const found=input.match(street)||input.match(rural);
    if(!found)continue;
    let address=found[1].trim();
    const after=lines[i+1]||'';
-   if(/^[A-Za-z][A-Za-z .'-]{2,55},?\s+(?:[A-Z]{2}|Florida)\s*\d{5}(?:-\d{4})?$/i.test(after))address+=', '+after;
+   if(!combined&&/^[A-Za-z][A-Za-z .'-]{2,55},?\s+(?:[A-Z]{2}|Florida)\s*\d{5}(?:-\d{4})?$/i.test(after))address+=', '+after;
    return address.slice(0,250);
   }
  }
