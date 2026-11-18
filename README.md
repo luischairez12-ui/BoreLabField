@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.12.0 (debug/test build)
+**Current version:** v0.12.1 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.12.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.12.1-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,13 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.12.1 — HDD Crew Silhouette Hero Artwork
+
+- Kept the user-approved BoreLab Field dashboard layout, colors, wording, header, active job card, tools and navigation **unchanged**.
+- Replaced only the tiny SVG of the drilling machine in the Good Morning / field dashboard hero tile with a subtle **three-person HDD field crew** silhouette: a standing locator on the radio, a crouched crew member marking a position, and a supervisor holding a field tablet. Safety cone, soft hills and sunrise are subdued in BoreLab's existing blue-gray palette.
+- The new SVG remains bundled in the offline WebView, with no image downloads, permissions, or network calls. The existing `uxRigArt()` function and markup stay intact for layout/test compatibility.
+- Preserves all job records, crews, equipment, photos, search, backup and multi-job closeout behavior.
 
 ## New in v0.12.0 — Multiple Jobs and All-Job End-of-Day Assistant
 
