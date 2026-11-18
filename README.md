@@ -2,7 +2,7 @@
 
 Android prototype for horizontal directional drilling (HDD) crews.
 
-**Current version:** v0.10.1 (debug/test build)
+**Current version:** v0.11.0 (debug/test build)
 
 ## Features
 
@@ -30,7 +30,7 @@ The planner shows schematic GPS pin positions, **not a live street map**. Online
 1. Open the [Actions tab](https://github.com/luischairez12-ui/BoreLabField/actions).
 2. Open **Build BoreLab Field Android APK**.
 3. Select the latest successful run.
-4. Download **BoreLab-Field-v0.10.1-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
+4. Download **BoreLab-Field-v0.11.0-Debug-APK**, extract the ZIP, and install `app-debug.apk` on your Android phone.
 
 The APK is a debug/test build, not Play Store signed.
 
@@ -39,6 +39,22 @@ The APK is a debug/test build, not Play Store signed.
 Early debug APKs were signed with temporary GitHub runner keys. Android may reject an in-place upgrade to v0.3 with an `App not installed` signature error. Before uninstalling v0.2, open **Settings → Backup everything** and export the JSON backup to your phone. Only after confirming the file exists, uninstall the old app, install the v0.3 APK, then use **Settings → Restore backup**. Uninstalling erases the app's local data if no backup is saved.
 
 Starting with the new persistent debug signing cache, future v0.3+ APK builds from this workflow should be able to update one another, provided the signing cache remains intact. These are for testing only, not Play Store releases.
+
+## New in v0.11.0 — Smart Job Workspace & Everyday UX Batch
+
+**Approved items completed in one build:**
+
+- **#1 Edit Active Job directly:** Home → Edit goes to the actual active job workspace and opens a job editor, with name, optional work-area address, and job notes. Saving updates the job and home dashboard without touching existing bore records.
+- **#2 Back navigation:** Android hardware Back and the app's top-left Back button close a popup first, then follow the real previous screen stack, returning Home before leaving the app.
+- **#3 Whole Active Job card:** Tap anywhere on the job card (except the distinct Edit and View Bores buttons) to open its Smart Job Workspace.
+- **#4 Continue where you left off:** The last visited page is persisted on-device between app opens, with a previous-screen stack in session storage. Android's existing WebView also retains an active page while the app is backgrounded.
+- **#5 Draft autosave:** Text, number, and checkbox changes in the job editor, bore form, crew time form and MixLab batch planner are stored as **drafts** on-device. A "Draft saved" label distinguishes this from a committed bore/mix/status change. Unfinished entries are restored when you reopen the form; successful form saves clear that form's draft. Guided bore steps are also remembered, separately from committed bores. JSON exports can now optionally restore pending drafts; older version-2 backups still import.
+- **#7 Better numeric entry:** Numeric fields request the appropriate Android numeric keypad; bore length shows `ft` visibly in both guided and advanced entry, with optimized keyboard hints. Calculations remain unchanged.
+- **#9 Quick Bore Actions:** New Actions button per bore in the job workspace and current bore rows gives Start Drilling, Finish Bore/Reopen, Edit Bore Log, Add Photo, and Open Map (when a location is available). Status timestamps use the existing log logic.
+- **#10 Universal Search:** Header search finds locally saved active jobs, bore names/addresses/notes, equipment, machine-manual titles, personal manual links, and saved job history. Results are grouped and actionable; full *PDF text search* still lives inside the Manual Library.
+- **Smart Job Workspace:** Live progress, bore list, linked photo count, today's recorded crew hours, job notes, and shortcuts to related tools and reports, using the current active job's existing records. It does **not** invent separate multi-job records.
+
+The update preserves the original `borelab-field-v0.1` localStorage key and pre-existing drilling/pipe calculations, photos, manuals and report features. The debug APK is tested automatically; on-phone navigation, layout, and draft behavior should still be checked before critical field use.
 
 ## New in v0.10.1 — Visual Polish Based on Real Phone Screenshots
 
