@@ -617,7 +617,7 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · v0.13.0 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · v0.14.0 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
@@ -916,7 +916,7 @@ function openManualSource(machineId){
 function render(){const navButton=$('#topNavButton');if(navButton){const home=page==='home';navButton.textContent=home?'☰':'‹';navButton.dataset.action=home?'open-tools':'nav-back';navButton.setAttribute('aria-label',home?'All field tools':'Back to previous screen');}const activeTab=['home','planner','settings'].includes(page)?page:page==='jobs'?'home':'tools';document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===activeTab));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,job:renderJobWorkspace,jobs:renderJobs,dayassist:renderDayAssistant,search:renderSearch,planner:renderPlanner,tools:renderTools,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();enhanceNumericInputs($('#main'));if(page==='mud')restoreFormDraft($('#main form[data-form="mud-batch"]'));}
 function section(title,right=''){return `<div class="section-title"><h2><span class="accentbar"></span>${esc(title)}</h2>${right}</div>`}
 function quick(label,icon,sub,action){return `<button class="quick" data-action="${action}"><div class="qicon">${icon}</div><strong>${esc(label)}</strong><small>${esc(sub)}</small></button>`}
-function shotRow(s){return `<div class="shot"><div class="shot-icon">⌁</div><div><h3>${esc(s.name)} <span class="status ${s.status==='complete'?'complete':s.status==='progress'?'progress':'planned'}">${s.status==='complete'?'Complete':s.status==='progress'?'Drilling':'Pending'}</span></h3><small>${feet(s)} ft bore · ${pipeNeed(s)} ft with allowance<br>${esc(s.address||coordsText(s)||'No location set')}</small></div><div class="shot-actions"><span class="foot">${feet(s)}′</span><button data-action="shot-quick" data-id="${esc(s.id)}" aria-label="Quick actions for ${esc(s.name)}" title="Quick actions">⋯</button><button data-action="shot-detail" data-id="${esc(s.id)}" aria-label="Open ${esc(s.name)}">›</button></div></div>`}
+function shotRow(s){return `<div class="shot"><div class="shot-icon">⌁</div><div><h3>${esc(s.name)} <span class="status ${s.status==='complete'?'complete':s.status==='progress'?'progress':'planned'}">${s.status==='complete'?'Complete':s.status==='progress'?'Drilling':'Pending'}</span></h3><small>${feet(s)} ft bore${s.pipeDiameter?' · '+esc(s.pipeDiameter):''} · ${pipeNeed(s)} ft with allowance<br>${esc(s.address||coordsText(s)||'No location set')}</small></div><div class="shot-actions"><span class="foot">${feet(s)}′</span><button data-action="shot-quick" data-id="${esc(s.id)}" aria-label="Quick actions for ${esc(s.name)}" title="Quick actions">⋯</button><button data-action="shot-detail" data-id="${esc(s.id)}" aria-label="Open ${esc(s.name)}">›</button></div></div>`}
 function dailyRecords(day,all=false){
  // Production: only active-job records are included in a single-job report.
  if(typeof jobRecordsForDay==='function'&&typeof activeJob==='function'){
@@ -2485,12 +2485,14 @@ function showGuidedBore(){
  step===2?
   `<h2>Give this bore a name</h2><p class="smalltext muted">You can add GPS, depths, photos, and rod counts afterward.</p>
    <label class="field spaced">Bore name<input name="name" required maxlength="70" placeholder="Shot 01" value="${esc(guidedDraft.name)}"></label>
+   <label class="field spaced">Conduit / product size (optional)<input name="pipeDiameter" list="guidedPipeSizes" maxlength="32" value="${esc(guidedDraft.pipeDiameter||'')}" placeholder="e.g. 4 inch"></label><datalist id="guidedPipeSizes"><option value="2 inch"><option value="4 inch"><option value="6 inch"><option value="8 inch"></datalist>
    <label class="field spaced">Jobsite address or landmark (optional)
      <input name="address" placeholder="Street, crossing, or landmark" value="${esc(guidedDraft.address)}"></label>
    <div class="ux-guide-tip">📍 You can leave the address blank and add it later from the bore log.</div>`:
   `<h2>Ready to save this bore?</h2>
     <div class="card spaced">${kv('Bore',esc(guidedDraft.name))}${kv('Length',fmt(guidedDraft.feet,1)+' ft')}
     ${kv('Pipe to plan',fmt(Number(guidedDraft.feet)+extra(),1)+' ft')}
+    ${kv('Conduit size',esc(guidedDraft.pipeDiameter||'Not set'))}
     ${kv('Location',esc(guidedDraft.address||'Not set yet'))}</div>
     <div class="ux-guide-tip">✓ Saves as Pending. Later, open the bore log to start drilling or record progress.</div>`;
  showModal(modalHead('Add Your First Bore')+progress+
@@ -2507,7 +2509,7 @@ function saveGuidedBore(){
  if(!Number.isFinite(f)||f<=0)return notify('Enter a bore length greater than zero.');
  const name=String(guidedDraft.name||'').trim();
  if(!name)return notify('Give this bore a name.');
- const shot={id:uid(),name:name.slice(0,70),feet:f,address:String(guidedDraft.address||'').trim(),
+ const shot={id:uid(),name:name.slice(0,70),feet:f,pipeDiameter:String(guidedDraft.pipeDiameter||'').trim().slice(0,32),address:String(guidedDraft.address||'').trim(),
   lat:'',lon:'',notes:'',status:'planned',pipeUsed:'',rodCount:'',entryDepth:'',exitDepth:'',
   equipmentIds:[],startedAt:null,completedAt:null,updatedAt:new Date().toISOString()};
  state.shots.push(shot);
@@ -2528,7 +2530,7 @@ function showFirstRunTour(){
 
 function shotForm(id){
  const shot=state.shots.find(x=>x.id===id);
- const s=shot||{name:`Shot ${String(state.shots.length+1).padStart(2,'0')}`,feet:'',address:'',lat:'',lon:'',notes:'',status:'planned',pipeUsed:'',rodCount:'',entryDepth:'',exitDepth:'',equipmentIds:[]};
+ const s=shot||{name:`Shot ${String(state.shots.length+1).padStart(2,'0')}`,feet:'',pipeDiameter:'',address:'',lat:'',lon:'',notes:'',status:'planned',pipeUsed:'',rodCount:'',entryDepth:'',exitDepth:'',equipmentIds:[]};
  const exists=!!shot,assigned=new Set(s.equipmentIds||[]);
  const available=state.equipment.filter(e=>!e.archived||assigned.has(e.id));
  showModal(`${modalHead(exists?'Edit Bore Shot':'New Bore Shot')}
@@ -2542,7 +2544,7 @@ function shotForm(id){
     <label class="field">Longitude<input id="shotLon" name="lon" type="number" step="any" value="${esc(s.lon)}" placeholder="GPS longitude"></label>
   </div>
   <div class="divider"></div>
-  <h3>Pipe & Bore Log</h3><p class="smalltext muted">Planned: ${fmt(pipeNeed(s),1)} ft, including +${fmt(extra(),1)} ft allowance. Enter actual pipe separately.</p>
+  <h3>Pipe & Bore Log</h3><label class="field spaced">Conduit / product size (editable)<input name="pipeDiameter" list="pipeDiameterOptions" maxlength="32" value="${esc(s.pipeDiameter||'')}" placeholder="e.g. 4 inch"></label><datalist id="pipeDiameterOptions"><option value="1 inch"><option value="1.25 inch"><option value="2 inch"><option value="3 inch"><option value="4 inch"><option value="6 inch"><option value="8 inch"><option value="12 inch"></datalist><p class="smalltext muted">Planned: ${fmt(pipeNeed(s),1)} ft, including +${fmt(extra(),1)} ft allowance. Enter actual pipe separately.</p>
   <div class="form-grid">
     <label class="field">Actual pipe used (ft)<input name="pipeUsed" type="number" min="0" step="0.1" value="${esc(pipeOnShot(s)??'')}" ${s.id&&state.pipeMoves.some(m=>m.type==='installed'&&m.shotId===s.id)?'readonly title="From reel inventory history"':''} placeholder="Not recorded"></label>
     <label class="field">Rod count<input name="rodCount" type="number" min="0" step="1" value="${esc(s.rodCount??'')}" placeholder="Optional"></label>
@@ -2567,6 +2569,7 @@ function shotDetail(id){
  <div class="card"><div class="between"><h2>${fmt(feet(shot),1)} ft</h2><span class="status ${shot.status==='complete'?'complete':shot.status==='progress'?'progress':'planned'}">${shot.status==='complete'?'Completed':shot.status==='progress'?'Drilling':'Pending'}</span></div>
  ${kv('Planned pipe',`${fmt(pipeNeed(shot),1)} ft (+${fmt(extra())} ft allowance)`)}
  ${kv('Actual pipe used',actual)}
+ ${kv('Conduit / product size',esc(shot.pipeDiameter||'Not recorded'))}
  ${optional('Rod count',shot.rodCount)}
  ${optional('Entry depth',shot.entryDepth!==''&&shot.entryDepth!=null?`${shot.entryDepth} ft`:'')}
  ${optional('Exit depth',shot.exitDepth!==''&&shot.exitDepth!=null?`${shot.exitDepth} ft`:'')}
@@ -2718,7 +2721,7 @@ function buildPdfPayload(snapshot=null,requestedDay=''){
   shots:r.shots.map(sh=>({
    name:sh.name||'Unnamed bore',status:sh.status||'',feet:fmt(sh.feet,1),
    plannedPipe:fmt(Number(sh.feet||0)+Number(sh.plannedAllowance??snapshot?.allowance??extra()),1),
-   actualPipe:shotPipe(sh)!=null?fmt(shotPipe(sh),1):'Not entered',
+   actualPipe:shotPipe(sh)!=null?fmt(shotPipe(sh),1):'Not entered',pipeDiameter:sh.pipeDiameter||'',
    notes:sh.notes||'',address:sh.address||(sh.lat&&sh.lon?`${sh.lat}, ${sh.lon}`:'Unknown'),
    equipment:(sh.equipmentIds||[]).map(id=>machines.find(x=>x.id===id)).filter(Boolean).map(x=>x.name).join(', ')||'Not recorded',
    rodCount:sh.rodCount??'',entryDepth:sh.entryDepth??'',exitDepth:sh.exitDepth??'',
@@ -2979,7 +2982,7 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
  }if(form.dataset.form==='guided-bore'){
   if(!guidedDraft)beginGuidedBore();
   if(guidedStep===1){const length=Number(values.feet);if(!Number.isFinite(length)||length<=0||length>100000)return notify('Enter a valid bore length above zero.');guidedDraft.feet=String(length);guidedStep=2;persistGuidedDraft();showGuidedBore();return;}
-  if(guidedStep===2){const name=String(values.name||'').trim();if(!name)return notify('Enter a name for this bore.');guidedDraft.name=name.slice(0,70);guidedDraft.address=String(values.address||'').trim().slice(0,250);guidedStep=3;persistGuidedDraft();showGuidedBore();return;}
+  if(guidedStep===2){const name=String(values.name||'').trim();if(!name)return notify('Enter a name for this bore.');guidedDraft.name=name.slice(0,70);guidedDraft.address=String(values.address||'').trim().slice(0,250);guidedDraft.pipeDiameter=String(values.pipeDiameter||'').trim().slice(0,32);guidedStep=3;persistGuidedDraft();showGuidedBore();return;}
   if(guidedStep===3){saveGuidedBore();return;}
   return;
  }else if(form.dataset.form==='manual-link'){saveManualLink(values,form.dataset.id||'');return}else if(form.dataset.form==='manual-search'){const slot=form.dataset.slot,query=String(values.query||'').trim();if(!isManualSlot(slot)||manualFiles[slot]!==true)return notify('Manual missing. Import it again.');if(query.length<2||query.length>80)return notify('Enter 2–80 characters.');const requestId=String(++manualSearchSeq);activeManualSearch={slot,requestId};showManualSearch(slot,query,null,true);window.BoreLabNative?.searchManual(slot,query,requestId);return}else if(form.dataset.form==='mud-stock'){saveMudStock(form,values);return}else if(form.dataset.form==='mud-product'){saveMudProduct(form,values);return}else if(form.dataset.form==='mud-level'){saveMudLevel(values);return}else if(form.dataset.form==='mud-batch'){saveMudPlan(form,values,e.submitter?.dataset?.mudCommit==='yes');return}else if(form.dataset.form==='closeout'){saveCloseout(form,values);return}else if(form.dataset.form==='reel'){saveReel(form,values);return}else if(form.dataset.form==='reel-action'){recordReelAction(form,values);return}else if(form.dataset.form==='equipment'){saveCompanyEquipment(form,values);return}else if(form.dataset.form==='oil-service'){saveOilService(form,values);return}else if(form.dataset.form==='roster'){const names=String(values.names||'').split(/[\n,;]+/).map(n=>n.trim()).filter(Boolean);let count=0;for(const name of names){if(!state.roster.some(p=>p.name.toLowerCase()===name.toLowerCase())){const member={id:uid(),name:name.slice(0,70)};state.roster.push(member);state.selectedCrewIds.push(member.id);count++}}save();closeModal();render();notify(count?`Added ${count} crew member${count===1?'':'s'}. Selection saved.`:'Everyone listed is already in your roster.');
@@ -3007,7 +3010,7 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
  const status=values.status;
  const startedAt=status==='planned'?old?.startedAt||null:old?.startedAt||now;
  const completedAt=status==='complete'?old?.completedAt||now:null;
- const shot={...old,id:old?.id||uid(),name:String(values.name||'').trim().slice(0,70),feet:f,address,lat,lon,pipeUsed,rodCount,entryDepth,exitDepth,equipmentIds,notes:String(values.notes||'').trim(),status,startedAt,completedAt,updatedAt:now};
+ const shot={...old,id:old?.id||uid(),name:String(values.name||'').trim().slice(0,70),feet:f,pipeDiameter:String(values.pipeDiameter||'').trim().slice(0,32),address,lat,lon,pipeUsed,rodCount,entryDepth,exitDepth,equipmentIds,notes:String(values.notes||'').trim(),status,startedAt,completedAt,updatedAt:now};
  if(old)state.shots=state.shots.map(x=>x.id===id?shot:x);else state.shots.push(shot);
  state.demo=false;clearFormDraft(form);save();closeModal();render();notify('Bore shot and equipment saved.');
  resolveShotAfterSave(shot.id);
@@ -3020,7 +3023,7 @@ document.addEventListener('input',e=>{
  if(form)scheduleFormDraft(form);
  if(form?.dataset.form==='guided-bore'&&guidedDraft){
   if(guidedStep===1)guidedDraft.feet=form.querySelector('[name="feet"]')?.value||'';
-  if(guidedStep===2){guidedDraft.name=form.querySelector('[name="name"]')?.value||'';guidedDraft.address=form.querySelector('[name="address"]')?.value||'';}
+  if(guidedStep===2){guidedDraft.name=form.querySelector('[name="name"]')?.value||'';guidedDraft.address=form.querySelector('[name="address"]')?.value||'';guidedDraft.pipeDiameter=form.querySelector('[name="pipeDiameter"]')?.value||'';}
   persistGuidedDraft();
  }
  if(e.target.matches('form[data-form="mud-batch"] input[name="capacity"]')){const form=e.target.closest('form');updateMudLevelForm(e.target.closest('form'));updateMudTargetForm(form);}});
@@ -3054,12 +3057,13 @@ for(const inputId of ['mudCameraFile','mudGalleryFile']){
 window.addEventListener('pagehide',flushPendingDraft);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){flushPendingDraft();persistGuidedDraft();}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape')borelabGoBack();if((e.key==='Enter'||e.key===' ')&&e.target.matches('.map-pin')){e.preventDefault();e.target.click()}});
-window.BoreLabAssistantBridge={state:()=>{syncActiveJob();return state},save,orderedShots,getPosition,hav,coordsValid,shop,pipeOnTruck,mudConfig,mudAvailable,mapsPinUrl,openMapUrl,switchActiveJob,setPage};
+window.BoreLabAssistantBridge={state:()=>{syncActiveJob();return state},save,orderedShots,getPosition,hav,coordsValid,shop,pipeOnTruck,mudConfig,mudAvailable,mapsPinUrl,openMapUrl,switchActiveJob,shotDetail,setPage};
 async function init(){applyTheme();await refreshPhotos();render();refreshManualFiles();setTimeout(notifyServiceOnOpen,300);setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
 init();
 })();
 
 </script>
 <script src="./assistant.js"></script>
+<script src="./field-upgrades.js"></script>
 </body>
 </html>
