@@ -91,10 +91,10 @@ async function resizeScan(file){
  const url=URL.createObjectURL(file);
  try{
   const image=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Cannot read image.'));img.src=url});
-  const scale=Math.min(1,1800/Math.max(image.naturalWidth,image.naturalHeight)),canvas=document.createElement('canvas');
+  const scale=Math.min(1,2300/Math.max(image.naturalWidth,image.naturalHeight)),canvas=document.createElement('canvas');
   canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
   canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
-  return canvas.toDataURL('image/jpeg',.82);
+  return canvas.toDataURL('image/jpeg',.91);
  }finally{URL.revokeObjectURL(url)}
 }
 async function scanFile(file){
