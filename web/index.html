@@ -324,6 +324,100 @@ html[data-theme="dark"] .ux-tile:nth-child(n) .ux-tile-icon{background:#263c4a;c
 @media(max-width:365px){.ux-tile{padding:10px 8px;gap:7px}.ux-tile-icon{width:38px;height:38px}.ux-tile strong{font-size:12px}.ux-tile small{font-size:10px}}
 @media(min-width:700px){.ux-tile-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
+
+/* v0.10.1: tuned against actual 350–400 CSS px phone screenshots */
+.topbar{height:62px;padding:8px 13px}
+.brand{gap:8px}.brand-mark{font-size:29px}.brand-mark span{font-size:14px}
+.brand strong{font-size:17px;letter-spacing:-.55px}.brand small{font-size:7.5px;letter-spacing:1.45px}
+.top-date{font-size:11px}
+.topbar .icon-btn.small{min-height:42px;min-width:42px;padding:5px 9px;font-size:21px}
+.bottom-nav{height:74px;padding-top:2px}
+.nav-link{gap:3px;min-width:51px;min-height:53px;padding:4px 8px}
+.nav-link small{font-size:11px;font-weight:700}
+.nav-icon{height:27px;line-height:1;display:grid;place-items:center}
+.nav-icon svg{width:23px;height:23px}
+.new-shot-nav{height:54px;width:54px;font-size:34px}
+.ux-home{padding:11px 13px 22px}
+.ux-home .ux-welcome{position:relative;min-height:96px;margin:0 0 12px;padding:16px 14px;
+ display:flex;align-items:flex-start;overflow:hidden;border:1px solid #d5e3eb;
+ background:linear-gradient(112deg,#ffffff 12%,#eef6fa 60%,#e3eef4);border-radius:17px}
+.ux-home .ux-welcome::after{content:"";position:absolute;bottom:0;left:15px;width:34px;height:3px;background:#df7418;border-radius:4px}
+.ux-banner-copy{position:relative;z-index:1;max-width:73%;pointer-events:none}
+.ux-banner-copy .eyebrow{font-size:9px;letter-spacing:1.15px;color:#ae5712}
+.ux-banner-copy h1{font-size:clamp(22px,5.8vw,29px);margin:6px 0 3px;color:#1c2d39;letter-spacing:-.7px;line-height:1.13}
+.ux-banner-copy p{color:#5d7180;font-size:11.5px;font-weight:550}
+.ux-rig-art{position:absolute;bottom:0;right:0;height:112px;width:min(70%,320px);opacity:.55;pointer-events:none}
+.ux-help-btn{position:absolute;z-index:2;right:11px;top:11px;border:1px solid #b6cbd7;background:#ffffffe8;color:#285266;
+ border-radius:100%;width:32px;height:32px;font-size:18px;font-weight:800}
+.ux-job-card{gap:8px;padding:13px 14px;border-left-width:4px;border-radius:15px;box-shadow:0 3px 12px #1f415813}
+.ux-job-title{align-items:center;gap:8px}
+.ux-job-title .eyebrow{font-size:9px;letter-spacing:1px}
+.ux-job-title h2{font-size:clamp(17px,4.4vw,21px);line-height:1.1;margin:5px 0 4px;letter-spacing:-.45px}
+.ux-job-name{min-width:0;flex:1}
+.ux-job-title p{font-size:11px;margin:0}
+.ux-job-edit{border:1px solid var(--line);background:var(--surface2);border-radius:11px;padding:8px;color:var(--text);
+ min-width:44px;min-height:40px;font-size:12px;font-weight:750;flex-shrink:0}
+.ux-progress-row{display:flex;align-items:center;gap:9px}
+.ux-progress-track{flex:1;height:9px}
+.ux-progress-pct{font-size:12px;color:var(--text);min-width:34px;text-align:right}
+.ux-job-meta{display:flex;align-items:center;gap:7px 14px;justify-content:space-between;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:8px}
+.ux-job-meta span{font-size:11px;white-space:nowrap}
+.ux-job-meta strong{font-size:12px;display:inline;margin:0 2px 0 0}
+.ux-job-more{border:0;background:transparent;color:var(--accent);font-size:11px;font-weight:800;padding:4px}
+.ux-demo-label{font-size:10px;color:var(--muted);margin:0}
+.ux-section-heading{margin:16px 0 9px;align-items:center;gap:8px}
+.ux-section-heading h2{font-size:clamp(17px,4.4vw,19px);line-height:1.2;letter-spacing:-.4px}
+.ux-section-heading .btn{font-size:11px;padding:7px 9px}
+.ux-tile-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.ux-tile{min-height:83px;gap:10px;padding:10px 11px;border-radius:14px;box-shadow:0 2px 7px #15354912}
+.ux-tile-icon{width:40px;height:40px;border-radius:11px;flex:0 0 40px}
+.ux-tile-icon svg{width:25px;height:25px}
+.ux-tile span:last-child{min-width:0}
+.ux-tile strong{font-size:13px;line-height:1.2;letter-spacing:-.1px}
+.ux-tile small{font-size:10.5px;margin-top:4px;line-height:1.2}
+.ux-next{padding:11px 12px;margin-top:11px;gap:10px;border-radius:14px;min-height:67px}
+.ux-next-icon{flex:0 0 33px;color:#ae660c}
+.ux-next-icon svg{width:26px;height:26px}
+.ux-next-content{min-width:0;flex:1}
+.ux-next strong{font-size:10px}
+.ux-next p{font-size:11px;line-height:1.3;margin-top:2px}
+.ux-next-cta{border:0;background:#d96c04;color:#fff;font-size:11px;font-weight:850;min-width:66px;min-height:39px;
+ padding:8px 10px;border-radius:10px;white-space:nowrap}
+.ux-details{margin-top:14px;padding:11px 12px;border-radius:13px}
+.ux-details>summary{font-size:13px}
+.ux-footer-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:15px 0 5px}
+.ux-footer-row strong{font-size:14px}
+.ux-home .footer-note{font-size:9px;line-height:1.45;opacity:.8;margin:14px auto 8px}
+.ux-favorite-label{display:flex;gap:6px;align-items:center;min-width:0}
+.ux-favorite-label svg{width:18px;height:18px;flex:0 0 18px}
+html[data-theme="dark"] .ux-home .ux-welcome{background:linear-gradient(112deg,#172c3c,#233849 75%,#1c2f3b);border-color:#3e5d6e}
+html[data-theme="dark"] .ux-banner-copy h1{color:#edf7fa}
+html[data-theme="dark"] .ux-banner-copy p{color:#a8c5d3}
+html[data-theme="dark"] .ux-help-btn{background:#203c4b;color:#f3f8fa;border-color:#4a6a7c}
+html[data-theme="dark"] .ux-rig-art{opacity:.3}
+html[data-theme="dark"] .ux-job-card{box-shadow:0 3px 18px #0003}
+html[data-field-mode="on"] .ux-tile{min-height:103px}
+html[data-field-mode="on"] .ux-next-cta,html[data-field-mode="on"] .ux-job-edit,html[data-field-mode="on"] .ux-help-btn{min-height:50px;min-width:50px}
+html[data-large-text="on"] .ux-tile strong{font-size:16px}
+html[data-large-text="on"] .ux-tile small,html[data-large-text="on"] .ux-next p{font-size:13px}
+@media(max-width:365px){
+ .topbar{padding:7px 10px}.brand strong{font-size:15px}.brand small{font-size:7px}
+ .ux-home{padding:10px 10px 20px}
+ .ux-tile{gap:7px;padding:8px;min-height:79px}
+ .ux-tile-icon{width:35px;height:35px;flex-basis:35px}
+ .ux-tile-icon svg{width:23px;height:23px}
+ .ux-tile strong{font-size:12px}.ux-tile small{font-size:10px}
+ .ux-job-meta{gap:5px 8px}
+ .ux-job-more{padding:2px}
+ .ux-next{gap:7px}
+ .ux-next-cta{min-width:58px;padding:6px}
+}
+@media(min-width:700px){.ux-tile-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.ux-tile{min-height:94px}}
+
+
+.ux-brief-foot{font-size:10px;color:var(--muted);text-align:center;margin:14px 0 4px;line-height:1.5}
+@media (prefers-reduced-motion:reduce){.ux-tile{transition:none}.ux-tile:active{transform:none}}
+
 </style>
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
@@ -336,12 +430,12 @@ html[data-theme="dark"] .ux-tile:nth-child(n) .ux-tile-icon{background:#263c4a;c
     </header>
     <main id="main" tabindex="-1"></main>
     <nav class="bottom-nav" aria-label="Main navigation">
-      <button class="nav-link active" data-page="home" aria-label="Home"><span class="nav-icon">⌂</span><small>Home</small></button>
-      <button class="nav-link" data-page="planner" aria-label="Bores and planner"><span class="nav-icon">⌁</span><small>Bores</small></button>
+      <button class="nav-link active" data-page="home" aria-label="Home"><span class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></span><small>Home</small></button>
+      <button class="nav-link" data-page="planner" aria-label="Bores and planner"><span class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18 10 6l4 12 6-12"/><path d="M3 19h18"/></svg></span><small>Bores</small></button>
       <button class="new-shot-nav" data-action="new-shot" aria-label="Add a bore shot" title="Add a bore">+</button>
-      <button class="nav-link" data-page="tools" aria-label="All field tools"><span class="nav-icon">▦</span><small>Tools</small></button>
-      <button class="nav-link" data-page="settings" aria-label="Settings"><span class="nav-icon">⚙</span><small>Settings</small></button>
-    </nav>nav>
+      <button class="nav-link" data-page="tools" aria-label="All field tools"><span class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><small>Tools</small></button>
+      <button class="nav-link" data-page="settings" aria-label="Settings"><span class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3h4l.7 2.4 2 1.1 2.5-.5 2 3.5-1.8 1.9v2.4l1.8 1.9-2 3.5-2.5-.5-2 1.1L14 22h-4l-.7-2.4-2-1.1-2.5.5-2-3.5 1.8-1.9v-2.4L2.8 9.3l2-3.5 2.5.5 2-1.1z"/><circle cx="12" cy="12.5" r="3"/></svg></span><small>Settings</small></button>
+    </nav>
   </div>
   <div id="modalRoot"></div>
   <div id="toast" role="status" aria-live="polite"></div>
@@ -414,7 +508,7 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · Android preview v0.9.4 · Data saved on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · v0.10.1 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
@@ -1261,9 +1355,47 @@ function favoriteActions(){
  const items=ids.map(id=>UX_ACTIONS.find(x=>x.id===id)).filter(Boolean);
  return items.length?items:UX_ACTIONS.filter(t=>UX_DEFAULT_FAVORITES.includes(t.id));
 }
+
+const UX_ICON_PATHS={
+ 'new-shot':'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 1v5M12 18v5M1 12h5M18 12h5"/>',
+ 'go-photos':'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5h6M8 10h8M8 14h3l2 2 3-4"/>',
+ 'go-mud':'<path d="M12 2C10 6 4 11 4 16a8 8 0 0 0 16 0c0-5-6-10-8-14z"/><path d="M8 16a4 4 0 0 0 4 4"/>',
+ 'go-manuals':'<path d="M12 7c-3-2-6-2-10-1v14c4-1 7-1 10 1 3-2 6-2 10-1V6c-4-1-7-1-10 1z"/><path d="M12 7v14"/>',
+ 'go-pipe':'<circle cx="7" cy="7" r="4"/><circle cx="17" cy="7" r="4"/><circle cx="12" cy="17" r="4"/>',
+ 'go-crew':'<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M17 16a5 5 0 0 1 5 5"/>',
+ 'go-planner':'<circle cx="5" cy="18" r="2"/><circle cx="19" cy="5" r="2"/><path d="M7 18c10 0-3-12 10-13"/><path d="m16 16 3 3 3-3"/>',
+ 'open-equipment':'<path d="m14 4 6 6-9 9a4 4 0 0 1-6-6l9-9z"/><path d="m13 5 6 6M4 20l-2 2"/>',
+ 'open-closeout':'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+ 'open-history':'<circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2M3 5v5h5"/>',
+ 'export-report':'<path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5M9 12h8M9 16h8"/>',
+ 'go-mud-stock':'<path d="M4 9h16v12H4zM2 9l5-6h10l5 6M8 13h8M12 13v5"/>',
+ 'tip':'<path d="M9 18h6M10 22h4M8 14c-2-1.5-3-3.5-3-6a7 7 0 0 1 14 0c0 2.5-1 4.5-3 6l-1 3H9z"/>'
+};
+function uxIconSvg(id){
+ const path=UX_ICON_PATHS[id]||UX_ICON_PATHS['go-planner'];
+ return '<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>';
+}
+function uxRigArt(){
+ return '<svg class="ux-rig-art" viewBox="0 0 320 140" aria-hidden="true" focusable="false">'+
+  '<path d="M0 121Q52 105 95 116t93 0q58-20 132 4v20H0z" fill="#d2dfe6" opacity=".9"/>'+
+  '<path d="M0 126q48-14 102-1t100-1q52-12 118 3" fill="none" stroke="#8eacba" stroke-width="2" opacity=".65"/>'+
+  '<path d="M10 94h68m-57-12h27M43 105h52M14 116h24" stroke="#94aeba" stroke-width="1.5" opacity=".45"/>'+
+  '<g fill="#607d8d" stroke="#536e7c" stroke-width="2" stroke-linejoin="round">'+
+   '<rect x="169" y="109" width="110" height="18" rx="9" fill="#7b919d"/><path d="M178 118h91" stroke="#e1eaf0" stroke-dasharray="8 7"/>'+
+   '<path d="M178 81h65l21 30h-96z" fill="#8b9fac"/><path d="m183 82 6-24h30l8 24" fill="#a4b8c2"/>'+
+   '<path d="M190 64h29l4 16h-39z" fill="#dbe7eb"/>'+
+   '<path d="M225 80 290 12l8 7-64 69z" fill="#748e9d"/>'+
+   '<path d="m291 12 13-7 7 6-12 8" fill="#e39d4f"/>'+
+   '<path d="m213 85 66-70" stroke="#dfe9ec" stroke-width="3"/>'+
+   '<path d="m176 94-25 0-15 12h37" fill="#bd8549"/>'+
+  '</g><circle cx="196" cy="117" r="5" fill="#cbd9df"/><circle cx="255" cy="117" r="5" fill="#cbd9df"/>'+
+  '<path d="M270 130h50M30 130h70" stroke="#8da8b6" stroke-width="2" opacity=".65"/>'+
+  '</svg>';
+}
+
 function actionTile(tool){
  return `<button type="button" class="ux-tile" data-action="${esc(tool.id)}" aria-label="${esc(tool.label)}">
-  <span class="ux-tile-icon" aria-hidden="true">${esc(tool.icon)}</span>
+  <span class="ux-tile-icon" aria-hidden="true">${uxIconSvg(tool.id)}</span>
   <span><strong>${esc(tool.label)}</strong><small>${esc(tool.sub)}</small></span></button>`;
 }
 function renderTools(){
@@ -1284,42 +1416,57 @@ function nextHomeAction(){
  if(pending.length)return {title:'Ready for the next bore',body:`${pending.length} shot${pending.length===1?'':'s'} still pending. Review the plan before drilling.`,action:'go-planner',button:'View plan'};
  return {title:'Review your day',body:'Your listed bores are complete. Review the work before finishing your report.',action:'open-closeout',button:'Review'};
 }
+
 function renderHome(){
  const pct=totalFeet()?Math.round(doneFeet()/totalFeet()*100):0;
  const hour=new Date().getHours(),greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
  const action=nextHomeAction();
  const shots=state.shots.slice(0,state.uxMode==='advanced'?25:5);
+ const complete=state.shots.filter(x=>x.status==='complete').length;
  return `<div class="page ux-home">
-  <div class="ux-welcome"><div><span class="eyebrow">BORELAB FIELD / FIELD DASHBOARD</span>
-   <h1>${greeting}!</h1><p class="muted smalltext">Everything your crew needs, in a few taps.</p></div>
-   <button class="icon-btn" data-action="guided-tour" aria-label="How to use BoreLab" title="How to use BoreLab">?</button></div>
+  <div class="ux-welcome">
+   <div class="ux-banner-copy"><span class="eyebrow">HDD FIELD DASHBOARD</span>
+    <h1>${greeting}!</h1><p>Ready for today's work.</p></div>
+   ${uxRigArt()}
+   <button class="ux-help-btn" data-action="guided-tour" aria-label="How to use BoreLab" title="How to use BoreLab">?</button>
+  </div>
   ${oilWarnings()}
   <div class="ux-job-card">
-   <div class="ux-job-title"><div><span class="eyebrow">ACTIVE JOB</span><h2>${esc(state.jobName)}</h2>
-    <p>${state.shots.filter(x=>x.status==='complete').length} of ${state.shots.length} bores completed</p></div>
-    <button class="btn micro ghost" data-action="edit-job">Edit</button></div>
-   <div class="between"><strong class="smalltext">Job progress</strong><strong class="smalltext">${pct}%</strong></div>
-   <div class="ux-progress-track" role="progressbar" aria-label="Job footage completed" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
-    <div class="ux-progress-fill" style="width:${pct}%"></div></div>
-   <div class="ux-job-meta"><span>Completed footage<strong>${fmt(doneFeet())} ft</strong></span>
-    <span>Planned footage<strong>${fmt(totalFeet())} ft</strong></span>
-    <span>Pipe planned (+${fmt(extra())} ft/shot)<strong>${fmt(totalNeed())} ft</strong></span></div>
+   <div class="ux-job-title">
+    <div class="ux-job-name"><span class="eyebrow">ACTIVE JOB</span><h2>${esc(state.jobName)}</h2>
+     <p>${complete} of ${state.shots.length} bores completed</p></div>
+    <button class="ux-job-edit" data-action="edit-job" aria-label="Edit active job">Edit</button>
+   </div>
+   <div class="ux-progress-row">
+    <div class="ux-progress-track" role="progressbar" aria-label="Job footage completed" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
+     <div class="ux-progress-fill" style="width:${pct}%"></div></div>
+    <strong class="ux-progress-pct">${pct}%</strong>
+   </div>
+   <div class="ux-job-meta">
+    <span><strong>${fmt(doneFeet())} ft</strong> completed</span>
+    <span><strong>${fmt(totalNeed())} ft</strong> pipe planned</span>
+    <button type="button" data-page="planner" class="ux-job-more">View bores ›</button>
+   </div>
+   ${state.demo?'<p class="ux-demo-label">ⓘ Demo job · sample records</p>':''}
   </div>
-  ${state.demo?'<div class="note spaced">You are viewing sample shots. Use Help (?) to learn, or clear demo in Settings before recording real work.</div>':''}
-  <div class="ux-section-heading"><h2>What do you need to do?</h2><button class="btn micro ghost" data-page="settings">Customize</button></div>
+  <div class="ux-section-heading"><h2>What do you need to do?</h2>
+   <button class="btn micro ghost" data-page="settings" aria-label="Customize home shortcuts">Customize</button></div>
   <div class="ux-tile-grid">${favoriteActions().map(actionTile).join('')}</div>
-  <div class="ux-next"><span style="font-size:25px" aria-hidden="true">💡</span><div style="flex:1;min-width:0">
-   <strong>${esc(action.title)}</strong><p>${esc(action.body)}</p></div>
-   <button class="btn micro primary" data-action="${esc(action.action)}">${esc(action.button)}</button></div>
-  <details class="ux-details" ${state.uxMode==='advanced'?'open':''}><summary>Today's Job Board · ${state.shots.length} bores</summary>
+  <div class="ux-next">
+   <span class="ux-next-icon" aria-hidden="true">${uxIconSvg('tip')}</span>
+   <div class="ux-next-content"><strong>${esc(action.title)}</strong><p>${esc(action.body)}</p></div>
+   <button class="ux-next-cta" data-action="${esc(action.action)}">${esc(action.button)} ›</button>
+  </div>
+  <details class="ux-details" ${state.uxMode==='advanced'?'open':''}>
+   <summary>Today's Job Board · ${state.shots.length} bores</summary>
    <div class="action-row spaced"><button class="btn micro primary" data-action="new-shot">+ Add bore</button>
-   <button class="btn micro ghost" data-page="planner">Open Planner</button></div>
+    <button class="btn micro ghost" data-page="planner">Open Planner</button></div>
    <div class="shot-list">${shots.length?shots.map(shotRow).join(''):'<p class="smalltext muted">No shots yet. Tap Add bore to get started.</p>'}</div>
    ${state.uxMode==='simple'&&state.shots.length>5?'<p class="tiny muted spaced">Showing the first five bores. Open Bores to view the full job.</p>':''}
   </details>
-  <div class="ux-section-heading"><h2>Need something else?</h2><button class="btn micro ghost" data-page="tools">All Tools</button></div>
-  <p class="smalltext muted">Maintenance, reports, route planning, and every advanced tool are still available in All Tools.</p>
-  ${footnote()}</div>`;
+  <div class="ux-footer-row"><strong>More field tools</strong>
+   <button data-page="tools" class="btn micro ghost">Browse all tools ›</button></div>
+  <p class="ux-brief-foot">Offline-friendly · Your field records stay on this device.</p></div>`;
 }
 
 function coordsValid(o){return o&&o.lat!==''&&o.lon!==''&&o.lat!=null&&o.lon!=null&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lon))&&Math.abs(Number(o.lat))<=90&&Math.abs(Number(o.lon))<=180}
@@ -1522,7 +1669,7 @@ function renderSettings(){return `<div class="page"><span class="eyebrow">BORELA
  <p class="smalltext muted spaced">Choose your most-used tools on Home. Every tool stays available in the Tools tab.</p>
  <div class="ux-favorite-grid">${UX_ACTIONS.map(t=>`<label>
   <input type="checkbox" data-ux-favorite="${esc(t.id)}" ${(state.uxFavorites||UX_DEFAULT_FAVORITES).includes(t.id)?'checked':''}>
-  <span>${esc(t.icon)} ${esc(t.label)}</span></label>`).join('')}</div>
+  <span class="ux-favorite-label">${uxIconSvg(t.id)} ${esc(t.label)}</span></label>`).join('')}</div>
  <div class="action-row spaced"><button class="btn micro ghost" data-action="ux-reset-favorites">Restore default shortcuts</button>
   <button class="btn micro ghost" data-action="guided-tour">Show me how BoreLab works</button></div>
 </div>
