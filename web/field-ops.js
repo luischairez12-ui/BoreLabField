@@ -100,6 +100,14 @@ function readiness(shotId){
  const state=cur();if(!state.shotReadiness)state.shotReadiness={};
  return state.shotReadiness[shotId]||{checks:{},notes:'',at:''};
 }
+function warnBeforeStart(jobId,shotId){
+ const shot=shotIn(getJob(jobId),shotId);
+ if(!shot)return false;
+ const r=readiness(shotId),unchecked=checks.filter(([key])=>!r.checks?.[key]);
+ if(!unchecked.length)return true;
+ return window.confirm(unchecked.length+' readiness checks have not been marked reviewed for '+shot.name+'.\n\n'+
+  'Confirm utility markings, site conditions and safety requirements independently before drilling.\n\nStart drilling anyway?');
+}
 function renderReadiness(shot){
  const data=readiness(shot.id),done=checks.filter(([key])=>data.checks?.[key]).length;
  return'<details class="card spaced bl-ready"><summary><strong>Job Readiness · '+done+'/'+checks.length+' reviewed</strong></summary>'+
@@ -210,7 +218,7 @@ function completeBore(form,event){
  setShot(jobId,updated);
  journal('Bore completed'+(checked.runs.length?' + reel usage':''),jobId,shotId,before,updated,
   {reelBefore:prevReels,reelAfter:prevReels.map(x=>({id:x.id,remaining:Number(checked.reels.get(x.id).remaining)})),
-   moveIds,reservationsBefore:prevReservations});
+   moveIds,reservationsBefore:prevReservations,reservationsAfter:clone(state.pipeReservations||[])});
  b.save();b.closeModal();b.render();
  b.notify('Shot completed'+(checked.runs.length?' · '+fmt(checked.runs.reduce((n,r)=>n+r.feet,0))+' ft logged on reels':' · Pipe log still needed')+'.');
 }
@@ -267,6 +275,8 @@ async function undo(id){
   }
   if(entry.moveIds.some(moveId=>!state.pipeMoves.some(m=>m.id===moveId)))
    return b.notify('Recorded pipe movements changed; undo is blocked.');
+  if(entry.reservationsAfter&&JSON.stringify(state.pipeReservations||[])!==JSON.stringify(entry.reservationsAfter))
+   return b.notify('Pipe reservations changed afterward; undo is blocked to protect newer work.');
  }
  if(!window.confirm('Undo "'+entry.kind+'"? This restores the previous shot and any pipe usage from that action.'))return;
  if(entry.moveIds?.length){
@@ -275,7 +285,13 @@ async function undo(id){
   state.pipeMoves=state.pipeMoves.filter(m=>!entry.moveIds.includes(m.id));
   state.pipeReservations=clone(entry.reservationsBefore||[]);
  }
- if(entry.before)setShot(entry.jobId,entry.before);else removeShot(entry.jobId,entry.shotId);
+ if(entry.before)setShot(entry.jobId,entry.before);else if(entry.after)removeShot(entry.jobId,entry.shotId);
+ if(entry.photoIds?.length){
+  const all=b.photos?.()||[];
+  for(const photoId of entry.photoIds){const photo=all.find(p=>p.id===photoId);
+   if(photo&&!photo.shotId){await b.photoDB?.('put',{...photo,shotId:entry.shotId,jobId:entry.jobId});}}
+  await b.refreshPhotos?.();
+ }
  entry.undone=true;entry.undoneAt=new Date().toISOString();
  b.save();b.closeModal();b.render();b.notify('Previous bore record restored. Check affected photos and reports.');
 }
@@ -299,6 +315,6 @@ document.addEventListener('change',e=>{
 const style=document.createElement('style');
 style.textContent='.bl-field-quick-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.bl-quick-form{display:grid;gap:13px}.bl-row-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.bl-photo-stage{padding:12px 0;border-bottom:1px solid var(--line)}.bl-photo-stage small{color:var(--muted);display:block;font-size:11px}.bl-photo-strip{display:flex;overflow-x:auto;gap:8px;margin-top:8px}.bl-photo-preview{min-width:116px;width:116px;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:5px;color:var(--text)}.bl-photo-preview img{height:84px;width:100%;object-fit:cover;border-radius:7px}.bl-photo-preview small{display:block;font-size:10px}.bl-ready-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}.bl-ready-row input{width:18px;height:18px}.bl-complete-scroll{max-height:46vh;overflow-y:auto}.bl-complete-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,2fr);gap:7px;align-items:end;padding:12px 0;border-bottom:1px solid var(--line)}.bl-complete-row select,.bl-complete-row input{width:100%;min-width:0}.bl-recovery-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}.bl-recovery-row small{display:block;color:var(--muted);font-size:11px}.bl-day-review p{margin:6px 0}@media(max-width:560px){.bl-complete-row{grid-template-columns:1fr 1fr}.bl-complete-row strong{grid-column:1/-1}.bl-quick-form .bl-row-2{grid-template-columns:1fr}}';
 document.head.appendChild(style);
-window.BoreLabFieldOps={quickBore,createQuickBore,renderTimeline,renderReadiness,renderQuickActions,beginCompletion,completeBore,
+window.BoreLabFieldOps={quickBore,createQuickBore,renderTimeline,renderReadiness,renderQuickActions,warnBeforeStart,beginCompletion,completeBore,
  dayWarnings,renderDayReview,renderRecovery,openRecovery,journal,undo,captureShot,setShot,plans,rowsForCompletion,validateCompletion};
 })();
