@@ -2693,7 +2693,14 @@ function missingGpsPanel(){
 async function geocode(target){
  const addr=document.querySelector(`#${target}Address`)?.value?.trim();
  if(!addr)return notify('Enter an address first.');
- notify('Looking up the address…');
+ const direct=window.BoreLabLocations?.parseCoords(addr);
+ if(direct){
+  if(target==='shop'){state.shopAddress=addr;state.shopLat=direct.lat;state.shopLon=direct.lon;save();if(page==='planner')render();notify('Shop GPS coordinates saved.');}
+  else{const lat=document.querySelector('#shotLat'),lon=document.querySelector('#shotLon');if(lat&&lon){lat.value=direct.lat;lon.value=direct.lon;notify('GPS coordinates entered. Tap Save Shot to keep them.')}}
+  return;
+ }
+ if(window.BoreLabLocations?.isNonStreetLocation(addr))return notify('Plus Code can open in Google Maps. For shot-distance routing, enter its GPS coordinates under Edit GPS.');
+ notify('Looking up the street address…');
  try{
    const point=await lookupAddressCoordinates(addr);
    if(target==='shop'){
