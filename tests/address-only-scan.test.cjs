@@ -1,0 +1,26 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync('web/index.html','utf8');
+const apkHtml=fs.readFileSync('app/src/main/assets/web/index.html','utf8');
+const code=fs.readFileSync('web/address-scan.js','utf8');
+const apkCode=fs.readFileSync('app/src/main/assets/web/address-scan.js','utf8');
+assert.equal(html,apkHtml);
+assert.equal(code,apkCode);
+new Function(code);
+new Function(html.split('<script>')[1].split('</script>')[0]);
+assert.equal((html.match(/data-address-scan/g)||[]).length,2,'Both guided and full shot forms need the address scanner');
+assert(html.includes('<script src="./address-scan.js"></script>'));
+assert(code.includes('data-addr-apply')&&code.includes('target.value=value'));
+assert(code.includes("if(!active)return previous?.(text,error,alternate)"),'Existing shot-sheet scanner callback must still work');
+assert(!code.includes('state.shots.push('),'Address-only scanner must never create a bore');
+const start=code.indexOf('function extractAddress('),end=code.indexOf('function open(',start);
+const findStreet=text=>{
+ const match=String(text).match(/\b\d{1,6}\s+[NSEW]\s+[A-Z][A-Z'-]+(?:\s+ST)?\b/i);
+ return match?[{kind:'street',value:match[0]}]:[];
+};
+const extract=new Function('window',code.slice(start,end)+'return extractAddress;')({BoreLabLocations:{locationCandidates:findStreet}});
+assert.equal(extract('Work Order # / District\n872919\nSOUTH\nAddress\n265 S LINDERO\nQty 122 ft'),'265 S LINDERO');
+assert.equal(extract('Address\n225 N MAYORAL ST\nPhone 786 443 0333'),'225 N MAYORAL ST');
+assert.equal(extract('Address: 265 S LINDERO\nQty 122 ft'),'265 S LINDERO');
+assert.equal(extract('Work order 872919\n2.5 inch roll pipe 122 ft'),'');
+console.log('Address-only scanner integration and recognition: PASS');
