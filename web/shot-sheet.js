@@ -50,7 +50,9 @@ function lineAddress(line){
  // Avoid capturing preceding shot length or conduit descriptions as part of an address.
  const match=value.match(/\b(\d{1,6}\s+[A-Za-z][A-Za-z0-9 .'-]{1,65}\s+(?:Street|St|Road|Rd|Avenue|Ave|Boulevard|Blvd|Drive|Dr|Lane|Ln|Court|Ct|Way|Highway|Hwy|Circle|Cir|Trail|Trl)\b\.?(?:\s*,?\s*[A-Za-z .'-]+,?\s*[A-Z]{2}\s*\d{5})?)/i);
  const rural=value.match(/\b((?:County Road|State Road|CR|SR|US Highway|US Hwy|Highway|Hwy)\s*[-#]?\s*\d{1,5}[A-Za-z]?)\b/i);
- return (match?match[1]:rural?rural[1]:'').trim().slice(0,250);
+ const plus=value.match(/\b([23456789CFGHJMPQRVWX]{2,8}\s*\+\s*[23456789CFGHJMPQRVWX]{2,3})(?:\s+([A-Za-z][A-Za-z ,.'-]{2,65}))?/i);
+ const gps=value.match(/(-?\d{1,2}\.\d{4,})\s*[,;]\s*(-?\d{1,3}\.\d{4,})/);
+ return (match?match[1]:rural?rural[1]:plus?(plus[1]+(plus[2]?' '+plus[2]:'')):gps?(gps[1]+','+gps[2]):'').trim().slice(0,250);
 }
 function lengthOnLine(line){
  const raw=String(line||''),match=raw.match(/(?:^|[^\d])(\d{1,5}(?:\.\d+)?)\s*(?:ft\b|feet\b|foot\b|['′](?=\s|$|[^\w]))/i);
@@ -61,9 +63,13 @@ function lengthOnLine(line){
 function parseSheet(text){
  const raw=String(text||'').slice(0,15000);
  const lines=raw.split(/\r?\n/).map(s=>s.replace(/\s+/g,' ').trim()).filter(Boolean);
+ const locations=(typeof window!=='undefined'?window.BoreLabLocations?.locationCandidates(raw):null)||[];
+ const defaultAddress=locations[0]?.value||lines.map(lineAddress).find(Boolean)||'';
+ const orderLine=lines.findIndex(line=>/work\s*order\s*(?:#|number)?/i.test(line));
+ const orderId=((orderLine>=0?lines.slice(orderLine,orderLine+3).join(' '):'').match(/\b\d{5,8}\b/)||[])[0]||'';
  const found=[];let current=null,serial=0;
  const shotHeading=/\b(?:shot|bore)\s*(?:#|no\.?\s*)?([0-9]{1,3}[a-z]?)\b/i;
- function finish(){if(!current)return;found.push(current);current=null}
+ function finish(){if(!current)return;if(!current.address)current.address=defaultAddress;found.push(current);current=null}
  for(let i=0;i<lines.length&&found.length<70;i++){
   const line=lines[i],heading=line.match(shotHeading),distance=lengthOnLine(line);
   const shotStarts=!!heading||(distance!==''&&(!current||current.feet!==''));
@@ -84,6 +90,7 @@ function parseSheet(text){
   }
  }
  finish();
+ if(!found.length&&defaultAddress)found.push({name:orderId?'Work Order '+orderId:'Shot 01',feet:'',address:defaultAddress,conduits:[],selected:false});
  return found.slice(0,70).map(x=>({...x,conduitText:specFromConduits(x.conduits)}));
 }
 function editorRow(x,i){
@@ -136,10 +143,10 @@ async function resizeFile(file){
  const url=URL.createObjectURL(file);
  try{
   const img=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(Error('Cannot open picture.'));image.src=url});
-  const size=Math.min(1,1900/Math.max(img.naturalWidth,img.naturalHeight));
+  const size=Math.min(1,2300/Math.max(img.naturalWidth,img.naturalHeight));
   const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*size));c.height=Math.max(1,Math.round(img.naturalHeight*size));
   c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-  return c.toDataURL('image/jpeg',0.86);
+  return c.toDataURL('image/jpeg',0.91);
  }finally{URL.revokeObjectURL(url)}
 }
 async function scanFile(file){
@@ -176,11 +183,13 @@ function importReviewed(){
    const conduitText=String(row.querySelector('[data-bls-conduits]')?.value||'').trim();
    if(!name)throw Error('Every selected shot needs a name.');
    if(!rawFeet||!Number.isFinite(feetNum)||feetNum<=0||feetNum>100000)throw Error(name+': enter a confirmed bore length greater than 0.');
+   if(address&&window.BoreLabLocations?.locationKind(address)==='plus'&&!window.BoreLabLocations.isUsablePlusCode(address))throw Error(name+': include a city or region after the short Plus Code.');
+   const gps=window.BoreLabLocations?.parseCoords(address);
    const conduitList=parseConduitSpec(conduitText);
    const key=[name.toLowerCase(),feetNum,address.toLowerCase()].join('|');
    if(existing.has(key)){duplicates.push(name);continue}
    existing.add(key);
-   drafts.push({id:api().uid(),jobId:state.activeJobId,name,feet:feetNum,address,lat:'',lon:'',conduits:conduitList,
+   drafts.push({id:api().uid(),jobId:state.activeJobId,name,feet:feetNum,address,lat:gps?.lat||'',lon:gps?.lon||'',conduits:conduitList,
     pipeDiameter:conduitList[0]?.size||'',notes:'Imported from reviewed shot-sheet scan; verify locates and dimensions.',
     status:'planned',pipeUsed:'',rodCount:'',entryDepth:'',exitDepth:'',equipmentIds:[],startedAt:null,completedAt:null,updatedAt:new Date().toISOString()});
   }
