@@ -2282,6 +2282,8 @@ function recordReelAction(form,values){
  const reel=state.reels.find(r=>r.id===form.dataset.id&&!r.archived);
  if(!reel)return notify('Reel not found.');
  const kind=form.dataset.kind,n=Number(values.feet),shotId=String(values.shotId||'');
+ const reservationsBefore=JSON.parse(JSON.stringify(state.pipeReservations||[]));
+ const priorShot=shotId?JSON.parse(JSON.stringify(state.shots.find(s=>s.id===shotId)||null)):null;
  if(!Number.isFinite(n)||n<=0||Math.abs(Math.round(n*10)-n*10)>1e-6)return notify('Enter positive footage in tenths of a foot.');
  const feet=Math.round(n*10)/10;
  if((kind==='reserve'||(kind==='use'&&shotId))&&!state.shots.some(x=>x.id===shotId))return notify('Select a valid shot.');
@@ -2313,7 +2315,9 @@ function recordReelAction(form,values){
    }
  }else return notify('Unknown pipe action.');
  reel.remaining=Math.round(newRemaining*10)/10;
- state.pipeMoves.push({id:uid(),jobId:state.activeJobId,reelId:reel.id,shotId,type,feet,at:new Date().toISOString(),before,after:reel.remaining,note:String(values.note||'').trim().slice(0,180)});
+ const pipeMove={id:uid(),jobId:state.activeJobId,reelId:reel.id,shotId,type,feet,at:new Date().toISOString(),before,after:reel.remaining,note:String(values.note||'').trim().slice(0,180)};
+ state.pipeMoves.push(pipeMove);
+ window.BoreLabFieldOps?.journal(type==='installed'?'Reel pipe logged':'Reel balance adjusted',state.activeJobId,shotId,priorShot,priorShot,{reelBefore:[{id:reel.id,remaining:before}],reelAfter:[{id:reel.id,remaining:reel.remaining}],moveIds:[pipeMove.id],reservationsBefore,reservationsAfter:JSON.parse(JSON.stringify(state.pipeReservations||[]))});
  save();closeModal();render();notify(`${feet} ft ${type} · ${fmt(reel.remaining,1)} ft left on ${reel.name}.`);
 }
 function saveCompanyEquipment(form,values){
