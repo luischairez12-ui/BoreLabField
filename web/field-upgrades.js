@@ -103,6 +103,7 @@ async function scanFile(file){
  scanBusy=true;scanNotice('Reading photo on this device…');
  try{
   const data=await resizeScan(file);
+  scanContext.lastImage=data;
   if(!api()||!window.BoreLabNative?.scanAddressPhoto){
    scanNotice('Address text recognition requires the Android app. You can still type the address.');
    scanBusy=false;return;
@@ -140,6 +141,7 @@ function showLocationReview(raw,error,enhanced=''){
  '<p class="smalltext muted">The scanner could not confidently read the street or house number. You can type it below without losing the form.</p>')+
  '<label class="field">Correct address, Plus Code or GPS<input id="ba-proposed-address" maxlength="250" value="'+escapeHtml(suggestion)+'" placeholder="225 N Mayoral St or 7XRX+RWP Big Cypress, Florida"></label>'+
  (gps.length?'<label class="field"><input type="checkbox" data-ba-use-scanned-gps checked> Use GPS pin detected in the same photo for distance planning: '+escapeHtml(gps[0].value)+'</label>':'')+
+ (scanContext.lastImage?'<details><summary>View scanned photo</summary><img src="'+escapeHtml(scanContext.lastImage)+'" alt="Document submitted for on-device recognition" style="width:100%;max-height:350px;object-fit:contain;border-radius:10px;margin-top:7px"></details>':'')+
  (original?'<details><summary>Original OCR text — compare with photo</summary><pre>'+escapeHtml(original)+'</pre></details>':'')+
  (contrast&&contrast!==original?'<details><summary>High-contrast OCR text — alternate reading</summary><pre>'+escapeHtml(contrast)+'</pre></details>':'')+
  (!sources.length?'<p class="smalltext muted">No text was recognized. For handwritten folder tabs, take a close-up photo with the full label centered, good light and no shadows.</p>':'')+
