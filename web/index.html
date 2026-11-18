@@ -625,7 +625,7 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · v0.17.0 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · v0.17.1 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
@@ -2503,7 +2503,7 @@ function showGuidedBore(){
   `<h2>Give this bore a name</h2><p class="smalltext muted">You can add GPS, depths, photos, and rod counts afterward.</p>
    <label class="field spaced">Bore name<input name="name" required maxlength="70" placeholder="Shot 01" value="${esc(guidedDraft.name)}"></label>
    <label class="field spaced">Conduit / product size (optional)<input name="pipeDiameter" list="guidedPipeSizes" maxlength="32" value="${esc(guidedDraft.pipeDiameter||'')}" placeholder="e.g. 4 inch"></label><datalist id="guidedPipeSizes"><option value="2 inch"><option value="4 inch"><option value="6 inch"><option value="8 inch"></datalist>
-   <label class="field spaced">Jobsite address or landmark (optional)
+   <label class="field spaced">Jobsite address (type or scan paperwork) · optional
      <input name="address" placeholder="Street, crossing, or landmark" value="${esc(guidedDraft.address)}"></label>
    <div class="ux-guide-tip">📍 You can leave the address blank and add it later from the bore log.</div>`:
   `<h2>Ready to save this bore?</h2>
@@ -2513,7 +2513,7 @@ function showGuidedBore(){
     ${kv('Location',esc(guidedDraft.address||'Not set yet'))}</div>
     <div class="ux-guide-tip">✓ Saves as Pending. Later, open the bore log to start drilling or record progress.</div>`;
  showModal(modalHead('Add Your First Bore')+progress+
-  `<form data-form="guided-bore">${step===1?'<div class="card spaced ux-shot-scan-option"><div class="between"><div><strong>Already have shot paperwork?</strong><p class="tiny muted">Scan a sheet to add several bores to this job, or enter this bore manually below.</p></div><button type="button" class="btn micro ghost" data-sheet-action="open">▣ Scan paperwork</button></div></div>':''}${middle}
+  `<form data-form="guided-bore">${step===1?'<div class="card spaced ux-shot-scan-option"><div class="between"><div><strong>Have a sheet with multiple bores?</strong><p class="tiny muted">Import multiple shots from a sheet, or tap Next and use the camera beside the address field to scan one address.</p></div><button type="button" class="btn micro ghost" data-sheet-action="open">▣ Import shot sheet</button></div></div>':''}${middle}
    <div class="modal-footer">
     ${step>1?'<button type="button" class="btn ghost" data-action="guided-back">Back</button>':
      '<button type="button" class="btn ghost" data-action="guided-advanced">Full form</button>'}
@@ -2553,7 +2553,7 @@ function shotForm(id){
  const available=state.equipment.filter(e=>!e.archived||assigned.has(e.id));
  showModal(`${modalHead(exists?'Edit Bore Shot':'New Bore Shot')}
  <form data-form="shot" data-id="${esc(id||'')}">
-  ${!exists?'<div class="card spaced ux-shot-scan-option"><div class="between"><div><strong>Have a shot sheet?</strong><p class="tiny muted">Import one or multiple reviewed bores from a photo instead of typing each entry.</p></div><button type="button" class="btn micro ghost" data-sheet-action="open">▣ Scan paperwork</button></div></div>':''}
+  ${!exists?'<div class="card spaced ux-shot-scan-option"><div class="between"><div><strong>Have multiple bores on a sheet?</strong><p class="tiny muted">Import several shots at once. To read only the address, tap the camera beside the address field below.</p></div><button type="button" class="btn micro ghost" data-sheet-action="open">▣ Import shot sheet</button></div></div>':''}
   <div class="form-grid">
     <label class="field wide">Shot name<input name="name" value="${esc(s.name)}" maxlength="70" required></label>
     <label class="field">Bore length<span class="ux-number-line"><input name="feet" type="number" inputmode="decimal" step="0.1" min="0" value="${esc(s.feet)}" required><span class="ux-number-unit">ft</span></span></label>

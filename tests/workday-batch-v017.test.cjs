@@ -15,7 +15,7 @@ assert(html.includes("window.BoreLabWorkday?.renderRouteTools()"));
 assert(html.includes("window.BoreLabWorkday?.renderReelOptimizer()"));
 assert(html.includes("window.BoreLabWorkday?.renderFinishBy()"));
 assert(html.includes('<script src="./workday.js"></script>'));
-assert(html.includes('BoreLab Field · v0.17.0'));
+assert(html.includes('BoreLab Field · v0.17.1'));
 assert(!html.includes('Tap “Locate Saved Addresses” for missing pins.</div>'),'Old large GPS warning should be gone');
 assert(workday.includes('window.confirm('),'Reopening a completed shot must be confirmed');
 assert(workday.includes("if(jobId===state.activeJobId)"),'Keep active and non-active job snapshots consistent');

@@ -39,7 +39,21 @@ function findStreet(raw){
      best={score,value:address.slice(0,250)};
   }
  }
- return best?.value||'';
+ if(best)return best.value;
+ // Glades-style Underground Forms sometimes omit the street suffix entirely:
+ // "Address" / "265 S LINDERO" is a valid address label, not a bore length.
+ const bareStreet=/\b(\d{1,6}\s+[NSEW]\.?\s+[A-Za-z][A-Za-z'-]{2,})\b/i;
+ let found=null;
+ for(let i=0;i<lines.length;i++){
+  for(let span=1;span<=Math.min(3,lines.length-i);span++){
+   const line=lines.slice(i,i+span).join(' ');
+   const m=line.match(bareStreet);if(!m)continue;
+   const nearLabel=/\baddress\b/i.test(lines.slice(Math.max(0,i-4),i+1).join(' '));
+   const score=(nearLabel?10:0)+(span===1?2:0)-span;
+   if(!found||score>found.score)found={score,value:m[1].replace(/\s+/g,' ').trim()};
+  }
+ }
+ return found?.value.slice(0,250)||'';
 }
 function findPlusCode(raw){
  const lines=String(raw||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
