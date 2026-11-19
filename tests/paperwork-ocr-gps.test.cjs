@@ -11,7 +11,7 @@ assert(upgrade.includes('View scanned photo')&&upgrade.includes('High-contrast O
 assert(sheet.includes('window.borelabOnShotSheetScan=function(text,error,alternate)')&&sheet.includes('Review the photo you scanned'));
 assert(html.includes('function missingGpsPanel()')&&html.includes('window.BoreLabWorkday?.renderGpsPanel(plan)'), 'Compact GPS panel should replace the old expanded planner warning');
 const part=locations.slice(locations.indexOf('function parseCoords('),locations.indexOf('function todayKey()'));
-const loc=new Function(part+'return {findStreet,locationCandidates,parseCoords,isNonStreetLocation,findPlusCode,isUsablePlusCode,decodeFullPlusCode,plusCodeLocality,recoverShortPlusCode};')();
+const loc=new Function(part+'return {findStreet,locationCandidates,parseCoords,isNonStreetLocation,locationKind,findPlusCode,isUsablePlusCode,decodeFullPlusCode,plusCodeLocality,recoverShortPlusCode};')();
 assert.equal(loc.findStreet('Work Order 870980\nAddress\n225 N MAYORAL ST\nPhone Number'),'225 N MAYORAL ST');
 assert.equal(loc.findStreet('870980 - South\n225 N Mayoral St\nHendry\nS# 348'),'225 N Mayoral St');
 assert.equal(loc.findStreet('Work Order 870980\nAddress\n225\nN\nMAYORAL\nST'),'225 N MAYORAL ST');
