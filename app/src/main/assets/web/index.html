@@ -488,6 +488,7 @@ html[data-large-text="on"] .ux-tile small,html[data-large-text="on"] .ux-next p{
   <link rel="stylesheet" href="./visual-polish.css">
   <link rel="stylesheet" href="./home-dashboard.css">
   <link rel="stylesheet" href="./jobsite-map.css">
+  <link rel="stylesheet" href="./field-pins.css">
   <link rel="stylesheet" href="./closeout-photo-v2.css">
   <link rel="stylesheet" href="./connected-ops-3.css">
   <link rel="stylesheet" href="./crew-mode.css">
@@ -1737,8 +1738,10 @@ function universalSearchGroups(query){
  const groups=[
   {name:'Active Job',items:match(state.jobName,state.jobAddress,state.jobNotes)?[
    {label:state.jobName,detail:state.jobAddress||'Active job workspace',action:'open-job',id:''}]:[]},
-  {name:'Bores',items:state.shots.filter(shot=>match(shot.name,shot.address,shot.notes,String(shot.feet))).slice(0,20)
+  {name:'Bores',items:state.shots.filter(shot=>match(shot.name,shot.address,shot.notes,String(shot.feet),window.BoreLabFieldPins?.dateTerms(shot)||'')).slice(0,20)
     .map(shot=>({label:shot.name,detail:fmt(feet(shot),1)+' ft · '+(shot.status==='complete'?'Complete':shot.status==='progress'?'Drilling':'Pending'),action:'shot-detail',id:shot.id}))},
+  {name:'Field Pins',items:(window.BoreLabFieldPins?.pins()||[]).filter(p=>match(p.name,p.address,p.notes,window.BoreLabFieldPins?.kindLabel(p.kind),window.BoreLabFieldPins?.dateTerms(p))).slice(0,20)
+    .map(p=>({label:p.name,detail:(window.BoreLabFieldPins?.kindLabel(p.kind)||'Field Pin')+' · '+window.BoreLabFieldPins?.displayDate(p),action:'field-pin-open',id:p.id}))},
   {name:'Equipment',items:state.equipment.filter(e=>match(e.name,e.type,e.serial,e.notes)).slice(0,20)
     .map(e=>({label:e.name,detail:e.type||'Equipment',action:'edit-equipment',id:e.id}))},
   {name:'Manual Library',items:MANUAL_MACHINES.filter(m=>match(m.make,m.model,m.id)).slice(0,20)
@@ -1762,9 +1765,9 @@ function renderSearchResults(){
 function renderSearch(){
  return `<div class="page ux-search-page">
   <span class="eyebrow">FIND IT FAST</span><h1>Search BoreLab</h1>
-  <p class="smalltext muted spaced">Find a bore, job, rig, manual or saved history in one place.</p>
+  <p class="smalltext muted spaced">Find a bore, installed field pin, work date, job, rig, manual or saved history in one place.</p>
   <label class="field">Search saved records
-   <input data-universal-search type="search" maxlength="100" placeholder="e.g. JT20, South Glades, Shot 02" value="${esc(universalQuery)}" autocomplete="off"></label>
+   <input data-universal-search type="search" maxlength="100" placeholder="e.g. 11/19/2026, Shot 02, coupling" value="${esc(universalQuery)}" autocomplete="off"></label>
   <div id="universalSearchResults" class="spaced">${renderSearchResults()}</div>
   <p class="tiny muted spaced">Manual results search their titles and saved links. To search inside a PDF, open it in the Manual Library.</p>
  </div>`;
@@ -2037,7 +2040,7 @@ function locateMessage(){
  return `${pieces.join(' · ')}. Tap Locate Saved Addresses to look up entered addresses online, or use GPS at the location.`;
 }
 function renderPlanner(){const plan=orderedShots(),{order,allGeo,estimate,modeName,message,usable,homeReady}=plan,available=pipeOnTruck(),short=state.shots.filter(s=>s.status!=='complete').reduce((sum,s)=>sum+pipeNeed(s),0)-available,planned=state.shots.filter(s=>s.status!=='complete'),modes=[['toward','Far away → toward shop'],['short','Shortest shot last'],['drive','Least total distance'],['short_near','Short shot near shop last']];return `<div class="page"><div class="between"><div><span class="eyebrow">FIELD / ROUTING</span><h1 style="margin-top:5px">Smart Shot Planner</h1></div><div class="action-row"><button class="btn micro ghost" data-page="jobmap">⌖ Jobsite Map</button><button class="btn micro ghost" data-action="edit-job">Edit job</button></div></div><p class="muted smalltext spaced">Get the shot order you prefer, then check your pipe before the crew leaves. Mixed conduit sizes are checked separately below.</p>
-<div class="card planner-home-summary"><div class="between"><div style="min-width:0"><span class="eyebrow">STARTING FROM · HOME BASE</span><strong class="planner-home-label">${esc(state.shopAddress||coordsText(shop())||'Not set')}</strong><small class="muted">${coordsValid(shop())?'✓ Shop GPS is saved':'⚠ Shop GPS still needed for shop-based routing'}</small></div><button class="btn micro ghost" data-action="edit-homebase">Settings</button></div></div>
+${window.BoreLabFieldPins?.renderBoresTools()||''}
 ${section('Plan My Route')}<div class="card">
 <button type="button" class="route-picker-toggle" data-action="toggle-route-menu" aria-expanded="${routeMenuOpen?'true':'false'}" aria-controls="route-mode-choices">
  <span class="route-picker-text"><strong>Choose how you'd like to finish your day</strong><small>${esc(modeName)}</small></span>
@@ -3052,6 +3055,7 @@ switch(action){
  case 'reel-adjust':reelActionForm(id,'adjust');break;
  case 'reel-archive':archiveReel(id);break;
  case 'reel-release':{const hold=state.pipeReservations.find(h=>h.id===id);if(hold&&confirm('Release this pipe reservation?')){state.pipeReservations=state.pipeReservations.filter(h=>h.id!==id);save();render();notify('Reservation released.')}break}
+ case 'field-pin-open':window.BoreLabFieldPins?.open(id,'pin');break;
  case 'open-map-pin':{const p=id==='shop'?{address:state.shopAddress,lat:state.shopLat,lon:state.shopLon}:state.shots.find(s=>s.id===id);openMapUrl(mapsPinUrl(p||{}));break}
  case 'open-full-route':openMapUrl(mapsLink(orderedShots().order));break;
  case 'go-photos':setPage('photos');break;
@@ -3184,7 +3188,7 @@ for(const inputId of ['mudCameraFile','mudGalleryFile']){
 window.addEventListener('pagehide',flushPendingDraft);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){flushPendingDraft();persistGuidedDraft();}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape')borelabGoBack();if((e.key==='Enter'||e.key===' ')&&e.target.matches('.map-pin')){e.preventDefault();e.target.click()}});
-window.BoreLabAssistantBridge={state:()=>{syncActiveJob();return state},currentPage:()=>page,save,openRosterForm:manageRoster,openEquipmentForm:equipmentForm,oilStatus,jobRecordsForDay,jobDaySummary,jobDayIssues,exportDailyPdf:(day)=>exportRealPdf('',day),openCloseoutForDay:(day)=>{closeoutDay=day;setPage('closeout')},orderedShots,getPosition,hav,coordsValid,shop,pipeOnTruck,mudConfig,mudAvailable,mapsPinUrl,openMapUrl,switchActiveJob:(...args)=>window.BoreLabLocalAccounts?.guardJobSwitch?.()===false?false:switchActiveJob(...args),shotDetail,setPage,uid,render,notify,todayLocal,reelForm,resolveMissingAddresses,resolveShotAfterSave,closeModal,clearGuidedDraft,showModal,photoChoose,photos:()=>photos,photoDB,refreshPhotos,activeJob};
+window.BoreLabAssistantBridge={getPosition,state:()=>{syncActiveJob();return state},currentPage:()=>page,save,openRosterForm:manageRoster,openEquipmentForm:equipmentForm,oilStatus,jobRecordsForDay,jobDaySummary,jobDayIssues,exportDailyPdf:(day)=>exportRealPdf('',day),openCloseoutForDay:(day)=>{closeoutDay=day;setPage('closeout')},orderedShots,getPosition,hav,coordsValid,shop,pipeOnTruck,mudConfig,mudAvailable,mapsPinUrl,openMapUrl,switchActiveJob:(...args)=>window.BoreLabLocalAccounts?.guardJobSwitch?.()===false?false:switchActiveJob(...args),shotDetail,setPage,uid,render,notify,todayLocal,reelForm,resolveMissingAddresses,resolveShotAfterSave,closeModal,clearGuidedDraft,showModal,photoChoose,photos:()=>photos,photoDB,refreshPhotos,activeJob};
 async function init(){applyTheme();await refreshPhotos();render();refreshManualFiles();setTimeout(notifyServiceOnOpen,300);setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
 init();
 })();
@@ -3202,6 +3206,7 @@ init();
 <script src="./visual-polish.js"></script>
 <script src="./home-dashboard.js"></script>
 <script src="./jobsite-map.js"></script>
+<script src="./field-pins.js"></script>
 <script src="./closeout-photo-v2.js"></script>
 <script src="./connected-ops-3.js"></script>
 <script src="./crew-mode.js"></script>
