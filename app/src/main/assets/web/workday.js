@@ -72,7 +72,7 @@ function renderGpsPanel(plan){
  if(!missing.length&&!noShop)return'<p class="tiny muted bl-gps-good">✓ All active job shot GPS pins and shop pin are saved.</p>';
  const total=missing.length+(noShop?1:0);
  return'<details class="bl-gps-details"><summary><strong>'+total+' location'+(total===1?' needs':'s need')+' GPS</strong> <span>· Fix pins</span></summary>'+
- '<p class="smalltext muted">BoreLab can route to saved street addresses or Plus Codes in Maps. Straight-line optimization still needs numeric GPS pins. These are separate.</p>'+
+ '<p class="smalltext muted">Saved addresses still open in Maps. Full Plus Codes can generate GPS pins offline; streets and short codes with a town need online lookup. Verify the resulting pin before relying on distance ordering.</p>'+
  (noShop?'<div class="bl-gps-line"><span>Home base has no GPS</span><button class="btn micro ghost" data-action="edit-homebase">Edit shop</button></div>':'')+
  missing.map(sh=>'<div class="bl-gps-line"><span><strong>'+esc(sh.name)+'</strong><small>'+esc(sh.address||'No location')+'</small></span><button class="btn micro ghost" data-action="edit-shot" data-id="'+esc(sh.id)+'">Edit GPS</button></div>').join('')+
  '</details>';

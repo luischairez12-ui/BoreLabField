@@ -96,6 +96,55 @@ function isNonStreetLocation(value){
  const raw=String(value||'');
  return locationKind(raw)==='plus'||!!parseCoords(raw);
 }
+// Plus Code geometry: full codes decode offline; short codes require a named locality.
+
+function decodeFullPlusCode(raw){
+ const info=findPlusCode(raw),code=info?.code||String(raw||'').trim().toUpperCase();
+ const match=code.match(/^([23456789CFGHJMPQRVWX]{8})\+([23456789CFGHJMPQRVWX]{2,7})$/);
+ if(!match)return null;
+ const chars=match[1]+match[2],pairSteps=[20,1,.05,.0025,.000125];
+ let lat=-90,lon=-180,latStep=0,lonStep=0;
+ for(let i=0;i<10;i+=2){
+  const step=pairSteps[i/2],a=supportedChars.indexOf(chars[i]),b=supportedChars.indexOf(chars[i+1]);
+  if(a<0||b<0)return null;
+  lat+=a*step;lon+=b*step;latStep=step;lonStep=step;
+ }
+ for(let i=10;i<chars.length;i++){
+  const digit=supportedChars.indexOf(chars[i]);if(digit<0)return null;
+  latStep/=5;lonStep/=4;
+  lat+=Math.floor(digit/4)*latStep;lon+=(digit%4)*lonStep;
+ }
+ return{lat:(lat+latStep/2).toFixed(6),lon:(lon+lonStep/2).toFixed(6)};
+}
+function plusCodeLocality(raw){
+ const p=findPlusCode(raw);
+ return p?.short&&p.hasLocality?p.value.slice(p.code.length).trim():'';
+}
+function referencePrefix(lat,lon,missing){
+ let a=Math.max(0,Math.min(180-1e-9,Number(lat)+90));
+ let b=((Number(lon)+180)%360+360)%360;
+ let out='';
+ for(const step of [20,1,.05,.0025]){
+  const i=Math.min(19,Math.floor(a/step+1e-10)),j=Math.min(19,Math.floor(b/step+1e-10));
+  out+=supportedChars[i]+supportedChars[j];a=Math.max(0,a-i*step);b=Math.max(0,b-j*step);
+ }
+ return out.slice(0,missing);
+}
+function recoverShortPlusCode(raw,reference){
+ const p=findPlusCode(raw),lat=Number(reference?.lat),lon=Number(reference?.lon);
+ if(!p?.short||!p.hasLocality||!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return null;
+ const missing=8-p.code.indexOf('+');
+ if(missing<2||missing>6||missing%2)return null;
+ const full=referencePrefix(lat,lon,missing)+p.code,point=decodeFullPlusCode(full);
+ if(!point)return null;
+ const cell=Math.pow(20,2-missing/2),half=cell/2;
+ let a=Number(point.lat),b=Number(point.lon);
+ if(lat+half<a&&a-cell>=-90)a-=cell;
+ else if(lat-half>a&&a+cell<=90)a+=cell;
+ if(lon+half<b&&b-cell>=-180)b-=cell;
+ else if(lon-half>b&&b+cell<=180)b+=cell;
+ return{lat:a.toFixed(6),lon:b.toFixed(6)};
+}
 function todayKey(){
  if(bridge()?.todayLocal)return bridge().todayLocal();
  const day=new Date();
@@ -133,7 +182,7 @@ function renderSection(){
  '<label class="field">Work date<input type="date" data-bl-reel-date value="'+esc(currentDay)+'"></label>'+
  '<div class="bl-daily-reel-grid">'+[0,1].map(i=>
   '<label class="field"><strong>'+(i?'Reel 2 · Second':'Reel 1 · Primary')+'</strong><select data-bl-reel-slot="'+i+'">'+reelOptions(reels,stored[i])+'</select></label>').join('')+'</div>'+
- selected.some(Boolean)?'<div class="bl-daily-picked">'+selected.map((r,i)=>'<div>'+(r?'<strong>'+esc(r.name)+'</strong><small>'+esc(r.size||'Size missing')+' · '+fmt(r.remaining)+' ft · '+esc(r.location==='truck'?'On truck':'At yard')+'</small>':'<strong>Reel '+(i+1)+' not chosen</strong><small>Choose a different saved reel</small>')+'</div>').join('')+'</div><p class="tiny muted">Selected reel totals: '+fmt(total)+' ft, split by the listed sizes. Check individual continuous lengths and reservations.</p>':'<div class="note spaced">No daily reels selected yet. Pipe checks still use your entire recorded on-truck reel inventory until you choose a daily loadout.</div>'+
+ (selected.some(Boolean)?'<div class="bl-daily-picked">'+selected.map((r,i)=>'<div>'+(r?'<strong>'+esc(r.name)+'</strong><small>'+esc(r.size||'Size missing')+' · '+fmt(r.remaining)+' ft · '+esc(r.location==='truck'?'On truck':'At yard')+'</small>':'<strong>Reel '+(i+1)+' not chosen</strong><small>Choose a different saved reel</small>')+'</div>').join('')+'</div><p class="tiny muted">Selected reel totals: '+fmt(total)+' ft, split by the listed sizes. Check individual continuous lengths and reservations.</p>':'<div class="note spaced">No daily reels selected yet. Pipe checks still use your entire recorded on-truck reel inventory until you choose a daily loadout.</div>')+
  problems.map(p=>'<p class="tiny muted">⚠ '+esc(p)+'</p>').join('')+
  '<div class="action-row"><button class="btn micro primary" data-bl-add-reel>+ Add new reel</button><button class="btn micro ghost" data-bl-clear-reels>Clear this date</button></div></section>';
 }
@@ -170,9 +219,9 @@ document.addEventListener('click',event=>{
  }
 });
 const css=document.createElement('style');
-css.textContent='.bl-daily-reel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:9px 0}.bl-daily-reel-grid label{min-width:0}.bl-daily-reel-grid select{width:100%;min-width:0}.bl-daily-picked{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.bl-daily-picked>div{padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--surface2)}.bl-daily-picked small{display:block;font-size:11px;color:var(--muted)}.bl-daily-card h3{margin:5px 0}@media(max-width:430px){.bl-daily-reel-grid,.bl-daily-picked{grid-template-columns:1fr}}';
+css.textContent='.bl-daily-card{display:grid;gap:12px}.bl-daily-card .between{gap:10px;align-items:center;flex-wrap:wrap}.bl-daily-card .field{margin:0}.bl-daily-reel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0}.bl-daily-reel-grid label{min-width:0}.bl-daily-reel-grid select{width:100%;min-width:0}.bl-daily-picked{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.bl-daily-picked>div{padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--surface2)}.bl-daily-picked small{display:block;font-size:11px;color:var(--muted)}.bl-daily-card h3{margin:3px 0 0}@media(max-width:430px){.bl-daily-reel-grid,.bl-daily-picked{grid-template-columns:1fr}}';
 document.head.appendChild(css);
-window.BoreLabLocations={parseCoords,findStreet,findPlusCode,locationCandidates,locationKind,isUsablePlusCode,isNonStreetLocation};
+window.BoreLabLocations={parseCoords,findStreet,findPlusCode,locationCandidates,locationKind,isUsablePlusCode,isNonStreetLocation,decodeFullPlusCode,plusCodeLocality,recoverShortPlusCode};
 window.BoreLabDailyReels={todayKey,selections,activeIds,renderSection};
 // Recover the saved planner or reels page after the module loads.
 if(document.querySelector('.bl-daily-card')===null&&document.querySelector('#main .page'))bridge()?.render?.();

@@ -2026,7 +2026,7 @@ ${section('Plan My Route')}<div class="card">
 </div>
   <div class="route-result-note" role="status">${!usable?`<span class="route-result-warning">${esc(message)}</span>`:routeMenuOpen?`<span>${esc(message)}</span>`:''}${allGeo?`<small>Approx. ${fmt(estimate,1)} mi round trip (straight-line)</small>`:''}</div>
   <div class="action-row"><button class="btn ghost" data-action="resolve-addresses">⌖ Locate Saved Addresses</button>${!homeReady?`<button class="btn micro ghost" data-action="edit-homebase">⌖ Set Shop GPS in Settings</button>`:''}</div>
-  ${window.BoreLabWorkday?.renderGpsPanel(plan)||''}${window.BoreLabWorkday?.renderRouteTools()||''}${routeMap(order)}<div class="section-title"><h2 style="font-size:15px">${usable?'Suggested Shot Order':'Shot Order — Needs Location'}</h2><span class="hint">${order.length} pending</span></div>${order.length?order.map((s,i)=>`<div class="route-item"><span class="bubble">${i+1}</span><div style="min-width:0;flex:1"><strong>${esc(s.name)}</strong><div><small>${esc(s.address||coordsText(s)||'Location needed')}</small></div></div><div class="right"><strong>${feet(s)} ft</strong><div><small>${pipeNeed(s)} ft incl. extra</small></div>${mapPoint(s)?`<button class="btn micro ghost" data-action="open-map-pin" data-id="${esc(s.id)}" style="margin-top:6px">Navigate</button>`:''}</div></div>`).join(''):`<p class="muted smalltext">All shots are complete, or no shots have been created.</p>`}
+  ${window.BoreLabWorkday?.renderGpsPanel(plan)||''}${window.BoreLabWorkday?.renderRouteTools()||''}${routeMap(order)}<div class="section-title"><h2 style="font-size:15px">${usable?'Suggested Shot Order':'Shot Order — GPS Needed for Optimization'}</h2><span class="hint">${order.length} pending</span></div>${order.length?order.map((s,i)=>`<div class="route-item"><span class="bubble">${i+1}</span><div style="min-width:0;flex:1"><strong>${esc(s.name)}</strong><div><small>${esc(s.address||coordsText(s)||'Location needed')}</small></div></div><div class="right"><strong>${feet(s)} ft</strong><div><small>${pipeNeed(s)} ft incl. extra</small></div>${mapPoint(s)?`<button class="btn micro ghost" data-action="open-map-pin" data-id="${esc(s.id)}" style="margin-top:6px">Navigate</button>`:''}</div></div>`).join(''):`<p class="muted smalltext">All shots are complete, or no shots have been created.</p>`}
 ${mapsLink(order)?`<div class="action-row"><button class="btn cyan full" data-action="open-full-route">↗ Google Maps: shop → shots → shop</button></div>`:''}</div>
 ${window.BoreLabWorkday?.renderFinishBy()||''}
 ${window.BoreLabDailyReels?.renderSection()||''}
@@ -2624,22 +2624,33 @@ function photoDetail(id){const p=photos.find(p=>p.id===id&&belongsToJob(p));if(!
 function getPosition(){return new Promise((resolve,reject)=>{if(!navigator.geolocation)return reject(new Error('GPS unavailable in this browser.'));navigator.geolocation.getCurrentPosition(pos=>resolve({lat:pos.coords.latitude,lon:pos.coords.longitude,accuracy:pos.coords.accuracy}),err=>reject(new Error(err.code===1?'Location permission denied.':'Unable to get GPS position.')),{enableHighAccuracy:true,timeout:13000,maximumAge:0})})}
 async function gpsFill(target){try{notify('Requesting current GPS position…');const pos=await getPosition();const lat=$(`#${target}Lat`),lon=$(`#${target}Lon`);if(!lat||!lon)return;lat.value=pos.lat.toFixed(6);lon.value=pos.lon.toFixed(6);notify(`GPS captured (accuracy ±${Math.round(pos.accuracy)} m)`)}catch(err){notify(err.message+' Enter coordinates manually if needed.')}}
 function lookupAddressCoordinates(address){
- const addr=String(address||'').trim();
+ const addr=String(address||'').trim(),loc=window.BoreLabLocations;
  if(!addr)return Promise.reject(Error('Enter an address.'));
- if(window.BoreLabLocations?.isNonStreetLocation(addr))return Promise.reject(Error('Plus Codes and GPS pins open directly in Google Maps. Save numeric GPS coordinates separately for local distance routing.'));
+ const direct=loc?.parseCoords(addr)||loc?.decodeFullPlusCode(addr);
+ if(direct)return Promise.resolve({lat:String(direct.lat),lon:String(direct.lon)});
+ const plus=loc?.findPlusCode(addr);
+ if(plus&&!loc?.isUsablePlusCode(addr))
+  return Promise.reject(Error('Add a nearby city or region to the short Plus Code.'));
+ const query=plus?loc.plusCodeLocality(addr):addr;
+ if(!query)return Promise.reject(Error('Enter an address or a Plus Code with its nearby town.'));
  const task=lookupQueue.then(async()=>{
    const wait=Math.max(0,geocodeWaitUntil-Date.now());
    if(wait)await new Promise(done=>setTimeout(done,wait));
    geocodeWaitUntil=Date.now()+1250;
    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),14000);
    try{
-     const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(addr)}`;
+     const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`;
      const res=await fetch(url,{headers:{Accept:'application/json'},signal:controller.signal});
      if(!res.ok)throw Error('Online lookup unavailable ('+res.status+').');
      const rows=await res.json();
-     if(!Array.isArray(rows)||!rows.length)throw Error('Address not found; check spelling or use GPS.');
+     if(!Array.isArray(rows)||!rows.length)throw Error('Location not found online. Open it in Maps to copy its latitude and longitude.');
      const p={lat:Number(rows[0].lat),lon:Number(rows[0].lon)};
      if(!coordsValid(p))throw Error('Geocoder returned invalid coordinates.');
+     if(plus){
+       const decoded=loc.recoverShortPlusCode(addr,p);
+       if(!decoded)throw Error('Could not resolve the short Plus Code. Copy the GPS coordinates from Maps.');
+       return decoded;
+     }
      return {lat:p.lat.toFixed(6),lon:p.lon.toFixed(6)};
    }catch(e){if(e.name==='AbortError')throw Error('Address lookup timed out.');throw e}
    finally{clearTimeout(timeout)}
@@ -2661,7 +2672,7 @@ async function resolveMissingAddresses(manual=true){
    else{const sh=state.shots.find(s=>s.id===id);if(sh){sh.lat=gps.lat;sh.lon=gps.lon}}
    fromGps++;changed=true;return;
   }
-  if(loc?.isNonStreetLocation(value)){
+  if(loc?.locationKind(value)==='plus'&&!loc?.isUsablePlusCode(value)){
    plus.push({type,id,address:value});return;
   }
   tasks.push({type,id,address:value});
@@ -2709,7 +2720,7 @@ function missingGpsPanel(){
  const missing=state.shots.filter(sh=>sh.status!=='complete'&&!coordsValid(sh));
  if(!missing.length)return'';
  return '<div class="card spaced"><div class="between"><h3>Shots That Need GPS</h3><span class="tiny muted">'+missing.length+' missing</span></div>'+
- '<p class="tiny muted">Street addresses can be looked up online. Plus Codes can open in Google Maps, but short Plus Codes need confirmed coordinates for local distance planning. Tap Edit GPS to enter them.</p>'+
+ '<p class="tiny muted">Full Plus Codes are located offline. Street addresses and short Plus Codes with a town need an online lookup; use Edit GPS if no pin is found. Tap Edit GPS to enter them.</p>'+
  missing.map(sh=>'<div class="between" style="padding:9px 0;border-top:1px solid var(--line)"><div style="min-width:0"><strong>'+esc(sh.name)+'</strong><small class="tiny muted" style="display:block;overflow-wrap:anywhere">'+esc(sh.address||'No address or Plus Code saved')+'</small></div>'+
  '<button class="btn micro ghost" data-action="edit-shot" data-id="'+esc(sh.id)+'">Edit GPS</button></div>').join('')+'</div>';
 }
@@ -2722,7 +2733,7 @@ async function geocode(target){
   else{const lat=document.querySelector('#shotLat'),lon=document.querySelector('#shotLon');if(lat&&lon){lat.value=direct.lat;lon.value=direct.lon;notify('GPS coordinates entered. Tap Save Shot to keep them.')}}
   return;
  }
- if(window.BoreLabLocations?.isNonStreetLocation(addr))return notify('Plus Code can open in Google Maps. For shot-distance routing, enter its GPS coordinates under Edit GPS.');
+ if(window.BoreLabLocations?.locationKind(addr)==='plus'&&!window.BoreLabLocations?.isUsablePlusCode(addr))return notify('Add the nearby town to this short Plus Code first.');
  notify('Looking up the street address…');
  try{
    const point=await lookupAddressCoordinates(addr);
@@ -2740,7 +2751,7 @@ async function geocode(target){
 }
 async function resolveShotAfterSave(id){
  const shot=state.shots.find(x=>x.id===id);
- if(!shot||!shot.address?.trim()||coordsValid(shot)||window.BoreLabLocations?.isNonStreetLocation(shot.address))return;
+ if(!shot||!shot.address?.trim()||coordsValid(shot))return;
  const address=shot.address.trim();
  try{
   const p=await lookupAddressCoordinates(address);
@@ -3081,7 +3092,7 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
  if(!validLocationInput(address))return notify('Short Plus Codes need a nearby place name.');
  let lat=String(values.lat||'').trim(),lon=String(values.lon||'').trim();
  if(old&&address!==old.address&&lat===String(old.lat??'')&&lon===String(old.lon??'')){lat='';lon=''}
- const addressGps=window.BoreLabLocations?.parseCoords(address);
+ const addressGps=window.BoreLabLocations?.parseCoords(address)||window.BoreLabLocations?.decodeFullPlusCode(address);
  if(addressGps&&lat===''&&lon===''){lat=addressGps.lat;lon=addressGps.lon;}
  if((lat!==''||lon!=='')&&!coordsValid({lat,lon}))return notify('Enter valid latitude and longitude, or leave both blank.');
  const num=(key,whole=false)=>{
@@ -3149,7 +3160,7 @@ for(const inputId of ['mudCameraFile','mudGalleryFile']){
 window.addEventListener('pagehide',flushPendingDraft);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){flushPendingDraft();persistGuidedDraft();}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape')borelabGoBack();if((e.key==='Enter'||e.key===' ')&&e.target.matches('.map-pin')){e.preventDefault();e.target.click()}});
-window.BoreLabAssistantBridge={state:()=>{syncActiveJob();return state},save,orderedShots,getPosition,hav,coordsValid,shop,pipeOnTruck,mudConfig,mudAvailable,mapsPinUrl,openMapUrl,switchActiveJob,shotDetail,setPage,uid,render,notify,todayLocal,reelForm,closeModal,clearGuidedDraft,showModal,photoChoose,photos:()=>photos,photoDB,refreshPhotos,activeJob};
+window.BoreLabAssistantBridge={state:()=>{syncActiveJob();return state},save,orderedShots,getPosition,hav,coordsValid,shop,pipeOnTruck,mudConfig,mudAvailable,mapsPinUrl,openMapUrl,switchActiveJob,shotDetail,setPage,uid,render,notify,todayLocal,reelForm,resolveShotAfterSave,closeModal,clearGuidedDraft,showModal,photoChoose,photos:()=>photos,photoDB,refreshPhotos,activeJob};
 async function init(){applyTheme();await refreshPhotos();render();refreshManualFiles();setTimeout(notifyServiceOnOpen,300);setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
 init();
 })();
