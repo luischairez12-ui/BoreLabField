@@ -33,11 +33,11 @@ class FakeFormData{
  constructor(form){this.form=form}
  get(name){return this.form.data[name]??''}
 }
-const module=new Function('window','document','FormData','confirm','requestAnimationFrame',js+';return window.BoreLabFieldPins;')(win,doc,FakeFormData,()=>true,()=>{});
-assert(module&&module.renderBoresTools&&module.pins);
-assert(module.renderBoresTools().includes('data-fp-day'),'Bores has calendar-based date search');
-assert(module.dateTerms(shot).includes('11/19/2026'),'bore timestamps indexed as US dates');
-assert.equal(module.displayDate(shot),'Nov 19, 2026');
+const fieldPinsModule=new Function('window','document','FormData','confirm','requestAnimationFrame',js+';return window.BoreLabFieldPins;')(win,doc,FakeFormData,()=>true,()=>{});
+assert(module&&fieldPinsModule.renderBoresTools&&fieldPinsModule.pins);
+assert(fieldPinsModule.renderBoresTools().includes('data-fp-day'),'Bores has calendar-based date search');
+assert(fieldPinsModule.dateTerms(shot).includes('11/19/2026'),'bore timestamps indexed as US dates');
+assert.equal(fieldPinsModule.displayDate(shot),'Nov 19, 2026');
 const form={
  dataset:{fpId:''},
  data:{kind:'coupling',name:'Coupling near driveway',occurredDay:'2026-11-19',lat:'26.7125',lon:'-81.3458',address:'South Glades',notes:'Two-inch coupling'},
@@ -50,14 +50,14 @@ assert.equal(current.fieldPins[0].recordType,'fieldPin');
 assert.equal(current.fieldPins[0].occurredDay,'2026-11-19');
 assert.equal(current.fieldPins[0].lat,'26.7125');
 assert(saves===1&&closes===1&&rerenders===1,'saving persists and refreshes');
-assert(module.dateTerms(current.fieldPins[0]).includes('11/19/2026'));
+assert(fieldPinsModule.dateTerms(current.fieldPins[0]).includes('11/19/2026'));
 const queryEvent=val=>listeners.input[0]({target:{matches:selector=>selector==='[data-fp-query]',value:val}});
 queryEvent('11/19/2026');
-assert.equal(module.matching().length,2,'search by date finds both bore and installed coupling');
+assert.equal(fieldPinsModule.matching().length,2,'search by date finds both bore and installed coupling');
 queryEvent('coupling');
-assert.equal(module.matching().length,1,'search by type/name finds installed coupling');
+assert.equal(fieldPinsModule.matching().length,1,'search by type/name finds installed coupling');
 queryEvent('unrelated');
-assert.equal(module.matching().length,0);
+assert.equal(fieldPinsModule.matching().length,0);
 queryEvent('');
 const map=new Function('window','document','requestAnimationFrame',mapSource+';return window.BoreLabJobMap;')(win,doc,undefined);
 assert.equal(map.model().geocoded.length,2,'field pins share same jobsite map as saved bores');
