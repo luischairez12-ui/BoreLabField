@@ -40,7 +40,7 @@
 .blmap-pin.is-progress .blmap-pin-icon{background:#f38320}
 .blmap-pin.is-planned .blmap-pin-icon{background:#87939e}
 .blmap-pin-icon{font-family:Arial,sans-serif}
-.blmap-pin-icon::first-letter{transform:rotate(45deg)}
+.blmap-pin-icon em{display:block;transform:rotate(45deg);font-style:normal}
 .blmap-pin-label{display:flex;flex-direction:column;min-width:0;gap:2px;background:#fffffff3;border:1px solid #ffffff;border-radius:9px;padding:6px 8px;box-shadow:0 2px 7px #00000024}
 .blmap-pin-label b{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px}
 .blmap-pin-label small{font-size:10px;color:#536371}
@@ -50,7 +50,7 @@
 .blmap-mapcontrols{position:absolute;right:10px;top:52px;z-index:6;display:grid;gap:5px}
 .blmap-mapcontrols button{display:grid;place-items:center;width:39px;height:39px;background:#fffffff2;border:1px solid #a9b6c1;border-radius:11px;color:#1e3442;box-shadow:0 3px 10px #00000019;font-size:20px;font-weight:900}
 .blmap-mapcontrols button:last-child{font-size:23px;color:#eb7921}
-.blmap-attribution{position:absolute;bottom:0;left:0;right:0;z-index:5;background:#ffffffdf;color:#3b596b;font-size:9px;padding:5px 9px;line-height:1.25;pointer-events:none;text-align:right}
+.blmap-attribution{position:static;background:transparent;color:var(--muted);font-size:9px;padding:0 3px;line-height:1.35;text-align:right;margin:0}
 .blmap-legend{display:flex;align-items:center;justify-content:center;gap:15px;flex-wrap:wrap}
 .blmap-legend span{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);font-weight:750}
 .blmap-legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%}

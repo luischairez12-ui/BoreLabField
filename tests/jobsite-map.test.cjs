@@ -14,6 +14,8 @@ assert(html.includes('data-page="jobmap"'));
 assert(native.includes('BoreLabField/0.18'),'tile requests identify the Android app');
 assert(!js.includes('referrerpolicy="no-referrer"'),'OSM tile requests must not strip referrer');
 assert(js.includes('© OpenStreetMap contributors'));
+assert(js.includes('button,.blmap-sheet'),'Shot sheet must not pan map');
+assert(css.includes('.blmap-attribution{position:static'),'Attribution remains visible outside panel');
 assert(js.includes('tile.openstreetmap.org/'));
 assert(js.includes('Map tiles are online-only'));
 assert(js.includes('not roads or travel directions'));

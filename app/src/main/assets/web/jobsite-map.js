@@ -117,8 +117,8 @@ function renderMap(){
  '<button data-blmap-zoom="-1" aria-label="Zoom out">−</button>'+
  '<button data-blmap-fit aria-label="Fit all jobsite pins">⌖</button></div>':'')+
  (selectedPanel(data))+
- '<div class="blmap-attribution">'+(mode==='street'?'© OpenStreetMap contributors · ':'')+
- (mode==='street'?'Street tiles online · ':'Site plot · ')+'Pins from saved GPS</div></div>'+
+ '</div><p class="blmap-attribution">'+(mode==='street'?'© OpenStreetMap contributors · ':'')+
+ (mode==='street'?'Street tiles online · ':'Site plot · ')+'Pins from saved GPS</p>'+
  legend+'<p class="blmap-route-info">'+(showPath?'Dotted lines show a suggested shot sequence, <strong>not roads or travel directions</strong>.':
  'Tap a GPS pin to inspect its shot.')+'</p></section>';
  const html='<div class="page blmap-page"><header class="blmap-header"><div>'+
@@ -157,8 +157,8 @@ function markerHTML(s,x,y,cluster=1){
  const selectedMarker=s.id===selected;
  return '<button type="button" class="blmap-pin is-'+status(s)+(selectedMarker?' selected':'')+(cluster>1?' is-cluster':'')+
  '" data-blmap-pin="'+esc(s.id)+'" style="left:'+Math.round(x)+'px;top:'+Math.round(y)+'px" aria-label="'+esc(s.name||'Bore')+
- ', '+fmt(s.feet)+' feet, '+statusText(status(s))+'"><span class="blmap-pin-icon">'+(cluster>1?cluster:status(s)==='complete'?'✓':status(s)==='progress'?'⌁':'⌖')+
- '</span><span class="blmap-pin-label"><b>'+esc(s.name||'Bore')+'</b><small>'+fmt(s.feet)+' ft'+(cluster>1?' · '+cluster+' shots':'')+'</small></span></button>';
+ ', '+fmt(s.feet)+' feet, '+statusText(status(s))+'"><span class="blmap-pin-icon"><em>'+(cluster>1?cluster:status(s)==='complete'?'✓':status(s)==='progress'?'⌁':'⌖')+
+ '</em></span><span class="blmap-pin-label"><b>'+esc(s.name||'Bore')+'</b><small>'+fmt(s.feet)+' ft'+(cluster>1?' · '+cluster+' shots':'')+'</small></span></button>';
 }
 function renderMarkers(groups,width,height){
  return groups.filter(g=>g.x>-90&&g.x<width+90&&g.y>-70&&g.y<height+70).map(g=>markerHTML(g.shots[0],g.x,g.y,g.shots.length)).join('');
@@ -262,7 +262,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('pointerdown',e=>{
  const el=e.target.closest?.('[data-blmap-viewport]');
  if(!el||!view?.center||api()?.currentPage?.()!=='jobmap')return;
- if(e.target.closest?.('button'))return;
+ if(e.target.closest?.('button,.blmap-sheet'))return;
  pointerData.set(e.pointerId,{x:e.clientX,y:e.clientY});
  if(pointerData.size===1)gesture={x:e.clientX,y:e.clientY,moved:false,panX:0,panY:0};
  else if(pointerData.size===2){
@@ -306,12 +306,12 @@ function endPointer(e){
 document.addEventListener('pointerup',endPointer);
 document.addEventListener('pointercancel',endPointer);
 document.addEventListener('wheel',e=>{
- if(!e.target.closest?.('[data-blmap-viewport]')||api()?.currentPage?.()!=='jobmap')return;
+ if(!e.target.closest?.('[data-blmap-viewport]')||e.target.closest?.('.blmap-sheet')||api()?.currentPage?.()!=='jobmap')return;
  e.preventDefault();zoom(e.deltaY<0?1:-1);
 },{passive:false});
 document.addEventListener('keydown',e=>{
  const inside=e.target.closest?.('[data-blmap-viewport]');
- if(!inside||api()?.currentPage?.()!=='jobmap')return;
+ if(!inside||e.target.closest?.('.blmap-sheet')||api()?.currentPage?.()!=='jobmap')return;
  if(e.key==='+'||e.key==='='){e.preventDefault();zoom(1)}
  if(e.key==='-'){e.preventDefault();zoom(-1)}
  if(e.key==='ArrowLeft'){e.preventDefault();pan(60,0)}
