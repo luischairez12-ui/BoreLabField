@@ -83,6 +83,8 @@ jobs:
         run: node tests/connected-ops-3.test.cjs
       - name: Test Crew Mode 1.0 local preview and personal time/photo safety
         run: node tests/crew-mode.test.cjs
+      - name: Test Supervisor Mode 1.0 portfolio reviews and saved data safety
+        run: node tests/supervisor-mode.test.cjs
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:

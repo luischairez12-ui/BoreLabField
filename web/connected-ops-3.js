@@ -57,7 +57,8 @@ function renderCrew(){
   '<button class="b3-primary" type="submit">✓ Save Assignment</button></form>':'';
  return '<div class="page b3-page">'+heading('FIELD / TEAM','Crew Management 2.0','Assignments, active shifts, and verified hours across jobs.')+
  stats([stat('Saved crew',String(people.length),'♙'),stat('On shift',String(active.length),'◷'),stat('Completed hours',fmt(jobs().reduce((n,j)=>n+(j.crew||[]).reduce((v,e)=>v+hour(e),0),0))+' hr','✓')])+
- '<div class="b3-actions"><button data-page="crewpreview" class="b3-primary">♙ Preview Crew Mode 1.0</button></div>'+
+ '<div class="b3-actions"><button data-page="crewpreview" class="b3-primary">♙ Preview Crew Mode 1.0</button>'+
+ '<button data-page="supervisorpreview">▦ Supervisor Overview</button></div>'+
  panel('Crew & Attendance',(cards||empty('No saved crew yet. Add names using Crew Hours.'))+
  '<div class="b3-actions"><button data-b3-roster>＋ Manage People</button>'+action('crew','◷ Timesheets / Check In')+'</div>')+
  (duplicate.length?panel('⚠ Time Review',duplicate.map(p=>'<p class="b3-warn">'+esc(p.name)+' has multiple open shifts. Verify timesheets before payroll.</p>').join('')):'')+
