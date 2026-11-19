@@ -8,7 +8,7 @@ assert(js,'Missing JS');new Function(js);
 
 assert(!android.includes('</nav>nav>'),'No visible stray nav> after the closing tag');
 assert.match(android,/<\/nav>\s*<\/div>/,'Navigation must close directly into its shell');
-assert.match(android,/BoreLab Field · v0\.19\.0 · Records stay on this device/,'Footer version updated');
+assert.match(android,/BoreLab Field · v0\.20\.0 · Records stay on this device/,'Footer version updated');
 assert(!android.includes('Android preview v0.9.4'),'Old footer version left in app');
 assert(android.includes('function uxRigArt()'),'Landscape detail should be drawn from bundled SVG');
 assert(android.includes('function uxIconSvg(id)'),'Unified offline SVG icon helper missing');

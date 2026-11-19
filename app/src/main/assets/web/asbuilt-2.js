@@ -14,8 +14,8 @@ const kinds={'tie-in':'Tie-in',coupling:'Coupling',box:'Box'};
 const st=()=>api()?.state?.()||{};
 const active=()=>st().activeJobId;
 let selected=today(),month=selected.slice(0,7),scope='job',viewMode='calendar',atlasDayMode='all',searchQuery='',typeFilter='all';
-const typeLabels={all:'All',shot:'Bores',pin:'Installations',photo:'Photos',crew:'Crew',pipe:'Pipe',mud:'Mud',journal:'Changes',closeout:'Closeouts'};
-const eventText=e=>{const r=e.record||{},d=new Date(e.day+'T12:00:00');return [e.title,e.jobName,e.extra,e.day,d.toLocaleDateString('en-US'),d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),r.name,r.address,r.notes,r.kind,r.station,r.material,r.size,r.dimensions,r.connectionType,r.fittingType,r.feet].filter(x=>x!=null).join(' ').toLowerCase()};
+const typeLabels={all:'All',shot:'Bores',pin:'Installations',photo:'Photos',crew:'Crew',pipe:'Pipe',mud:'Mud',journal:'Changes',note:'Notes',closeout:'Closeouts'};
+const eventText=e=>{const r=e.record||{},d=new Date(e.day+'T12:00:00');return [e.title,e.jobName,e.extra,e.day,d.toLocaleDateString('en-US'),d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),r.name,r.address,r.notes,r.text,r.kind,r.station,r.material,r.size,r.dimensions,r.connectionType,r.fittingType,r.feet].filter(x=>x!=null).join(' ').toLowerCase()};
 const matches=e=>(typeFilter==='all'||e.type===typeFilter)&&(!searchQuery||eventText(e).includes(searchQuery.trim().toLowerCase()));
 const matchingEvents=()=>allEvents().filter(matches);
 const atlasEvents=()=>matchingEvents().filter(e=>atlasDayMode!=='selected'||e.day===selected);
@@ -34,6 +34,7 @@ function allEvents(){
    if(!sh.startedAt&&!sh.completedAt&&(sh.createdAt||sh.updatedAt))push(job,'shot',sh,sh.createdAt||sh.updatedAt,sh.name||'Bore shot',sh.createdAt||sh.updatedAt,'Bore record');
   }
   for(const pin of job.fieldPins||[])push(job,'pin',pin,pin.occurredDay||pin.occurredAt||pin.createdAt,pin.name||kinds[pin.kind]||'Installation',pin.occurredAt||pin.createdAt,'Installed '+(kinds[pin.kind]||'field marker'));
+  for(const note of job.quickNotes||[]){if(note.at)push(job,'note',note,note.at,'Quick field note',note.at,String(note.text||'').slice(0,500));}
   for(const member of job.crew||[]){
    if(member.start)push(job,'crew',member,member.start,member.name||'Crew member',member.start,'Clocked in');
    if(member.end)push(job,'crew',member,member.end,member.name||'Crew member',member.end,'Clocked out');
@@ -88,7 +89,7 @@ function gpsQuality(record){
 }
 function detailsHTML(){
  const {events,photos,installed,completed,ft,coordsCount}=dayHistory();
- const glyph={pin:'📌',shot:'⌁',photo:'▣',crew:'♙',pipe:'◈',mud:'◉',journal:'✎',closeout:'✓'};
+ const glyph={pin:'📌',shot:'⌁',photo:'▣',crew:'♙',pipe:'◈',mud:'◉',journal:'✎',note:'✎',closeout:'✓'};
  const dayLabel=esc(niceDay(selected));
  let html='<section class="ab-day"><div class="between"><div><span class="eyebrow">DAILY FIELD HISTORY</span><h2>'+dayLabel+'</h2></div><span class="ab-count">'+events.length+' activities</span></div>'+
  '<div class="ab-summary"><span>⌁ '+completed.length+' finished · '+Number(ft.toFixed(1))+' ft</span><span>📌 '+installed.length+' installations</span><span>▣ '+photos.length+' photos</span><span>⌖ '+coordsCount+' GPS records</span></div>'+

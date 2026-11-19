@@ -23,7 +23,7 @@ assert(mod.includes('fieldRecovery'),'Recovery journal must persist in saved sta
 assert(address.includes('form[data-form="quick-bore"]'),'Working address-only scanner must support Quick Bore');
 assert(workday.includes("window.BoreLabFieldOps.beginCompletion(jobId,shotId)"),'Board must use confirmed completion');
 assert(html.includes("window.BoreLabFieldOps?.journal(type==='installed'"),'Manual reel changes need Undo');
-assert(html.includes('BoreLab Field · v0.19.0'));
+assert(html.includes('BoreLab Field · v0.20.0'));
 assert(!mod.includes('state=seed()'),'Do not reset existing saved field data');
 
 const shot={id:'s1',name:'Shot 01',feet:175,status:'progress',startedAt:'2026-11-18T08:00:00Z',

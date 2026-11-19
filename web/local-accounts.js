@@ -6,6 +6,10 @@
 (function(){
 'use strict';
 const KEY='borelab-local-accounts-v1',PREF='borelab-local-pin-policy-v1',ROLE_PAGES={crew:'crewpreview',supervisor:'supervisorpreview'};
+// TEMPORARY FIELD TEST SWITCH: do not delete or rewrite saved accounts/PIN verifiers.
+const PIN_TEST_BYPASS_DEFAULT=true,PIN_TEST_PREF='borelab-local-pin-test-mode-v1';
+const pinTestMode=()=>{try{const saved=localStorage.getItem(PIN_TEST_PREF);return saved===null?PIN_TEST_BYPASS_DEFAULT:saved==='1'}catch{return PIN_TEST_BYPASS_DEFAULT}};
+const virtualTester=()=>({id:'borelab-local-test',role:'owner',name:'Field Tester',memberId:''});
 const ENC=new TextEncoder();
 const $=s=>document.querySelector(s);
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -26,9 +30,9 @@ const safeLoad=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'null')}cat
 let config=safeLoad(),selectedId='',pin='',user=null,stage='unlock',busy=false,error='',recoveryMessage='',newRecovery='',idleAt=now(),timer=null,resetId='',isBooted=false;
 const configured=()=>Boolean(config&&config.version===1&&Array.isArray(config.users)&&config.users.some(x=>x.role==='owner'));
 const invalidConfig=()=>Boolean(config&&!configured());
-const isOwner=()=>user?.role==='owner';
-const isUnlocked=()=>!!user;
-const current=()=>user?{id:user.id,role:user.role,memberId:user.memberId||'',name:user.name}:null;
+const isOwner=()=>pinTestMode()||user?.role==='owner';
+const isUnlocked=()=>pinTestMode()||!!user;
+const current=()=>pinTestMode()?virtualTester():user?{id:user.id,role:user.role,memberId:user.memberId||'',name:user.name}:null;
 const isRole=r=>user?.role===r;
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(config));return true}catch(e){error='Unable to save local accounts. Check device storage.';return false}}
 function bytes(hexText){if(!/^[0-9a-f]+$/i.test(hexText)||hexText.length%2)throw Error('Invalid PIN verifier');return Uint8Array.from(hexText.match(/../g),p=>parseInt(p,16))}
@@ -64,6 +68,7 @@ function setSession(account){
  renderGate();
 }
 function lock(reason=''){
+ if(pinTestMode())return renderGate();
  if(!configured()||!user)return renderGate();
  user=null;pin='';error=reason||'';stage='unlock';busy=false;selectedId='';
  document.documentElement.dataset.localAuth='locked';document.documentElement.dataset.localRole='none';
@@ -123,12 +128,14 @@ async function unlockAccount(id,attempt){
  finally{busy=false;renderGate()}
 }
 function isAllowed(page){
+ if(pinTestMode())return true;
  if(!configured()||!user)return false;
  if(page==='localaccounts')return isOwner();
  if(user.role==='owner'||user.role==='foreman')return true;
  return ROLE_PAGES[user.role]===page;
 }
 function guardNavigation(page){
+ if(pinTestMode())return true;
  if(!configured())return false;
  if(!user){renderGate();return false}
  if(isAllowed(page))return true;
@@ -139,6 +146,7 @@ function guardNavigation(page){
  return false;
 }
 function guardJobSwitch(){
+ if(pinTestMode())return true;
  if(!configured()||!user)return false;
  return user.role==='owner'||user.role==='foreman';
 }
@@ -212,6 +220,11 @@ function gateLogo(){
  '<div><strong>BoreLab <em>Field</em></strong><small>HDD CREW OPERATIONS</small></div></div>';
 }
 function renderGate(){
+ if(pinTestMode()){
+  document.documentElement.dataset.localAuth='unlocked';document.documentElement.dataset.localRole='owner';document.documentElement.dataset.pinTesting='on';
+  const testRoot=$('#localAccountsGate');if(testRoot)testRoot.innerHTML='';return;
+ }
+ document.documentElement.dataset.pinTesting='off';
  const root=$('#localAccountsGate');if(!root)return;
  if(user){root.innerHTML='';document.documentElement.dataset.localAuth='unlocked';return}
  document.documentElement.dataset.localAuth='locked';document.documentElement.dataset.localRole='none';
@@ -243,6 +256,11 @@ function accountRow(a){
  (!isRoot?'<button data-la-toggle="'+escape(a.id)+'">'+(active?'Disable':'Enable')+'</button>':'')+'</div>';
 }
 function manageView(){
+ if(pinTestMode())return '<div class="page la-manage"><header class="la-manage-hero"><span>BORELAB FIELD / TEST MODE</span><h1>PIN Temporarily Disabled</h1><p>Fast local testing without entering your PIN every time.</p></header>'+ 
+ '<section class="la-manage-card"><h2>Testing Mode Is ON</h2><p>Your existing accounts, PIN verifiers, and recovery information have NOT been removed or changed.</p>'+ 
+ '<p class="la-muted">WARNING: Anyone with access to this device can open BoreLab and change saved field records until PIN protection is re-enabled. Do not use this mode on a shared or unsecured device.</p>'+ 
+ '<button type="button" class="la-primary" data-la-resume-pin>🔒 Re-enable PIN Protection</button>'+ 
+ '<p class="la-muted">When re-enabled, the app will restart and ask for your existing PIN (or owner setup if no account exists). Your work and photos stay saved.</p></section></div>';
  if(!isOwner())return '<div class="page"><h1>Owner access required</h1><p>Unlock with the Owner PIN to manage accounts.</p></div>';
  return '<div class="page la-manage"><header class="la-manage-hero"><span>BORELAB FIELD / OWNER SETTINGS</span>'+
  '<h1>Local PIN Accounts</h1><p>Control who opens Crew, Foreman and Supervisor Mode on this shared device.</p></header>'+
@@ -362,6 +380,10 @@ function change(e){
 function boot(){
  if(isBooted)return;
  isBooted=true;
+ if(pinTestMode()){
+  document.addEventListener('click',e=>{if(e.target.closest?.('[data-la-resume-pin]'))resumePinProtection()});
+  renderGate();return;
+ }
  if(!crypto?.subtle||!crypto?.getRandomValues){error='Cryptographic PIN verification is unavailable on this device.'}
  document.documentElement.dataset.localAuth='locked';
  document.documentElement.dataset.localRole='none';
@@ -385,10 +407,17 @@ function boot(){
  },15000);
  renderGate();
 }
+function resumePinProtection(){
+ if(!pinTestMode())return false;
+ if(!window.confirm?.('Re-enable PIN login now? You will need your existing PIN to enter BoreLab after restart. Your work and saved accounts will not be removed.'))return false;
+ try{localStorage.setItem(PIN_TEST_PREF,'0')}catch(e){window.BoreLabAssistantBridge?.notify?.('Could not update PIN mode: '+(e?.message||'Storage unavailable'));return false}
+ if(window.location?.reload)window.location.reload();else{user=null;renderGate()}
+ return true;
+}
 window.BoreLabLocalAccounts={
- boot,isConfigured:configured,isUnlocked,current,isOwner,role:()=>user?.role||'locked',
+ boot,isConfigured:configured,isUnlocked,current,isOwner,role:()=>pinTestMode()?'owner':user?.role||'locked',pinTestMode,resumePinProtection,
  memberId:()=>user?.memberId||'',isAllowed,guardNavigation,guardJobSwitch,renderGate,renderManage:manageView,
- lock,lockForBackground:()=>{if(user)lock()},firstSetup,unlockAccount,chooseAccount,selectAccount:chooseAccount,
+ lock,lockForBackground:()=>{if(user&&!pinTestMode())lock()},firstSetup,unlockAccount,chooseAccount,selectAccount:chooseAccount,
  hashSecret,verify,verifier,ownerRecovery,createAccount,resetPin,toggleAccount,
  _test:{state:()=>({config,selectedId,stage,locked:!user,role:user?.role||''}),forceConfig:x=>{config=x;user=null;stage='unlock';pin=''},setUser:x=>setSession(x),setPin:x=>{pin=x},getReview:()=>config}
 };

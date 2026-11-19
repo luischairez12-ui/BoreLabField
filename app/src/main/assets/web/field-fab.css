@@ -1,0 +1,42 @@
+/* BoreLab Field 0.20 — free-space layout + right-handed floating create menu.
+   Navigation remains in the right-side drawer; existing app screens remain intact. */
+html[data-theme="daylight"] .bottom-nav{display:none!important}
+html[data-theme="daylight"] .app-shell{padding-bottom:calc(18px + env(safe-area-inset-bottom))!important;min-height:100vh;min-height:100dvh}
+html[data-theme="daylight"] .page{padding-bottom:calc(32px + env(safe-area-inset-bottom))}
+html[data-theme="daylight"] .bh-home{padding-bottom:calc(34px + env(safe-area-inset-bottom))}
+.bf-fab-root{position:fixed;z-index:50;right:max(15px,calc((100vw - 1100px)/2 + 18px));bottom:calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:flex-end;gap:10px;pointer-events:none}
+.bf-fab-root[hidden],html[data-bf-fab="hidden"] .bf-fab-root{display:none!important}
+.bf-fab-trigger{pointer-events:auto;border:3px solid #fff;width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#ffad48,#e26d0c);color:#fff;box-shadow:0 5px 21px #bb601c66,0 2px 7px #2e3d4b20;touch-action:manipulation;transition:transform .17s ease,box-shadow .17s ease}
+.bf-fab-trigger svg{width:30px;height:30px;transition:transform .17s ease}
+html.bf-fab-open .bf-fab-trigger svg{transform:rotate(45deg)}
+.bf-fab-trigger:active{transform:scale(.95)}
+.bf-fab-trigger:focus-visible,.bf-fab-action:focus-visible{outline:3px solid #994b0a;outline-offset:3px}
+.bf-fab-actions{pointer-events:auto;display:grid;gap:7px;width:min(300px,calc(100vw - 40px));padding:12px;border-radius:18px;background:linear-gradient(160deg,#fff,#fff8f0);border:1px solid #efc99e;box-shadow:0 10px 35px #11273642,0 2px 9px #a35a1820;color:#1f303d}
+.bf-fab-actions[hidden]{display:none!important}
+.bf-fab-heading{display:flex;align-items:center;justify-content:space-between;padding:4px 3px 5px}
+.bf-fab-heading span{font-size:10px;color:#aa510a;font-weight:900;letter-spacing:1.5px}
+.bf-fab-heading small{font-size:10px;color:#7c8a95}
+.bf-fab-action{border:1px solid #e6e5e3;background:#fff;color:#1b2f3d;border-radius:13px;min-height:64px;padding:8px 12px;display:flex;gap:10px;align-items:center;text-align:left;box-shadow:0 2px 5px #1a31480b}
+.bf-fab-action:active{background:#fff0e2}
+.bf-fab-action>span:nth-child(2){flex:1;display:grid;gap:4px}
+.bf-fab-action strong{font-size:14px;line-height:1.1}
+.bf-fab-action small{font-size:10px;color:#74818a}
+.bf-fab-action>span:last-child{font-size:23px;color:#ce7e36}
+.bf-fab-icon{width:43px;height:43px;flex:none;display:grid;place-items:center;font-size:24px;font-weight:900;color:#c65b05;background:#fff0df;border-radius:12px}
+html.bf-drawer-open .bf-fab-root{opacity:0;pointer-events:none}
+html.bf-drawer-open .bf-fab-root button{pointer-events:none}
+body:has(.modal-backdrop) .bf-fab-root{opacity:0;pointer-events:none}
+body:has(.modal-backdrop) .bf-fab-root button{pointer-events:none}
+body:has(input:focus,textarea:focus,select:focus) .bf-fab-root{opacity:0;pointer-events:none}
+body:has(input:focus,textarea:focus,select:focus) .bf-fab-root button{pointer-events:none}
+html[data-crew-preview="on"] .bf-fab-root,html[data-supervisor-preview="on"] .bf-fab-root,html:not([data-local-auth="unlocked"]) .bf-fab-root{display:none!important}
+html[data-field-mode="on"] .bf-fab-trigger{width:68px;height:68px}
+html[data-field-mode="on"] .bf-fab-action{min-height:73px}
+.bf-pin-test-tag{display:none;padding:5px 6px;background:#fff0d3;color:#9e490c;border:1px solid #e8bd85;border-radius:8px;font-size:9px;font-weight:900;white-space:nowrap;line-height:1.1}
+html[data-pin-testing="on"] .bf-pin-test-tag{display:inline-flex}
+html[data-pin-testing="on"] .bf-pin-test-tag:before{content:"!";border-radius:50%;background:#df7c22;color:white;width:13px;height:13px;display:grid;place-items:center;margin-right:3px}
+.bf-test-notice{display:none;padding:8px 11px;margin:0 12px 7px;border:1px solid #e5bb82;border-left:4px solid #d77818;background:#fff5e8;color:#985215;font-size:11px;line-height:1.35;border-radius:9px}
+html[data-pin-testing="on"] .bf-test-notice{display:block}
+.bf-test-notice button{border:0;background:none;padding:0;color:#a74d0c;font-size:11px;font-weight:850;text-decoration:underline}
+@media(max-width:450px){.bf-pin-test-tag{font-size:8px;padding:4px}.bf-fab-root{bottom:calc(13px + env(safe-area-inset-bottom));right:11px}.bf-fab-trigger{height:58px;width:58px}.bf-fab-actions{width:min(280px,calc(100vw - 32px))}}
+@media(prefers-reduced-motion:reduce){.bf-fab-trigger,.bf-fab-trigger svg{transition:none}}

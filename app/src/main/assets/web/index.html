@@ -497,6 +497,7 @@ html[data-large-text="on"] .ux-tile small,html[data-large-text="on"] .ux-next p{
   <link rel="stylesheet" href="./supervisor-mode.css">
   <link rel="stylesheet" href="./local-accounts.css">
   <link rel="stylesheet" href="./field-navigation.css">
+  <link rel="stylesheet" href="./field-fab.css">
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
 <body>
@@ -504,8 +505,9 @@ html[data-large-text="on"] .ux-tile small,html[data-large-text="on"] .ux-next p{
     <header class="topbar">
       <button class="icon-btn small" id="topNavButton" data-action="open-tools" aria-label="All field tools">☰</button>
       <div class="brand"><div class="brand-mark">B<span>↗</span></div><div><strong>BoreLab <em>Field</em></strong><small>HDD CREW OPERATIONS</small></div></div>
-      <div class="ux-top-right"><button class="icon-btn small ux-search-header" data-action="open-search" aria-label="Search BoreLab" title="Search BoreLab">⌕</button><div class="top-date" id="topDate"></div><button type="button" class="icon-btn small" id="bfMenuButton" data-bf-drawer aria-haspopup="dialog" aria-controls="bfRightDrawer" aria-expanded="false" aria-label="Open right-side field menu" title="Field Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
+      <div class="ux-top-right"><span class="bf-pin-test-tag" aria-label="PIN temporarily disabled for testing">PIN OFF · TEST</span><button class="icon-btn small ux-search-header" data-action="open-search" aria-label="Search BoreLab" title="Search BoreLab">⌕</button><div class="top-date" id="topDate"></div><button type="button" class="icon-btn small" id="bfMenuButton" data-bf-drawer aria-haspopup="dialog" aria-controls="bfRightDrawer" aria-expanded="false" aria-label="Open right-side field menu" title="Field Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
     </header>
+    <div class="bf-test-notice">TEST MODE: PIN login is off. <button type="button" data-page="localaccounts">Re-enable in Local PIN Accounts</button></div>
     <main id="main" tabindex="-1"></main>
     <button type="button" class="bf-edge-tab" data-bf-drawer aria-label="Open right-side field menu" aria-controls="bfRightDrawer" aria-expanded="false"><span>‹</span></button>
     <nav class="bottom-nav" aria-label="Main navigation">
@@ -641,7 +643,7 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · v0.19.0 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · v0.20.0 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
@@ -687,7 +689,7 @@ function showNewJobForm(){
 function setPage(p,options={}){
  if(!BORELAB_PAGES.has(p))return;
  if(window.BoreLabLocalAccounts&&!window.BoreLabLocalAccounts.guardNavigation(p))return;
- window.BoreLabNavigation?.close?.();
+ window.BoreLabNavigation?.close?.();window.BoreLabFab?.close?.();
  if(!options.back&&p!==page){screenStack.push(page);screenStack=screenStack.slice(-30)}
  page=p;state.lastScreen=p;save();
  try{sessionStorage.setItem('borelab-screen-stack-v1',JSON.stringify(screenStack))}catch{}
@@ -696,6 +698,7 @@ function setPage(p,options={}){
  if(p==='planner'&&!attemptedAutoAddressLookup){attemptedAutoAddressLookup=true;resolveMissingAddresses(false)}
 }
 function borelabGoBack(){
+ if(window.BoreLabFab?.isOpen?.()){window.BoreLabFab.close();return true}
  if(window.BoreLabNavigation?.isOpen?.()){window.BoreLabNavigation.close();return true}
  if(window.BoreLabLocalAccounts?.isConfigured?.()&&
    ['crew','supervisor'].includes(window.BoreLabLocalAccounts?.role?.())){
@@ -950,7 +953,7 @@ function render(){
  const auth=window.BoreLabLocalAccounts;
  if(auth&&!auth.isUnlocked()){auth.renderGate();return}
  if(auth&&!auth.isAllowed(page)){page=auth.role()==='crew'?'crewpreview':auth.role()==='supervisor'?'supervisorpreview':'home'}
- window.BoreLabNavigation?.syncPage?.(page);
+ window.BoreLabNavigation?.syncPage?.(page);window.BoreLabFab?.sync?.();
  document.documentElement.dataset.crewPreview=page==='crewpreview'?'on':'off';document.documentElement.dataset.supervisorPreview=page==='supervisorpreview'?'on':'off';const navButton=$('#topNavButton');if(navButton){const home=page==='home';navButton.textContent=home?'☰':'‹';navButton.dataset.action=home?'open-tools':'nav-back';navButton.setAttribute('aria-label',home?'All field tools':'Back to previous screen');}const activeTab=['home','planner','crew','settings'].includes(page)?page:page==='jobs'?'home':'';document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===activeTab));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,job:renderJobWorkspace,jobs:renderJobs,dayassist:()=>window.BoreLabCloseoutPhotoV2?.renderEndDay()||renderDayAssistant(),dayassistlegacy:renderDayAssistant,phototimeline2:()=>window.BoreLabCloseoutPhotoV2?.renderPhotoTimeline()||renderPhotos(),shotboard:()=>window.BoreLabWorkday?.renderShotBoard()||'<div class="page">Shot Board unavailable</div>',search:renderSearch,command:()=>window.BoreLabCommand?.renderCommand()||'',fieldhistory:()=>window.BoreLabAsBuilt?.renderCalendar()||'<div class="page">Field History unavailable</div>',shotcards:()=>window.BoreLabCommand?.renderShotCards()||'',reelplan:()=>window.BoreLabCommand?.renderReelPlan()||'',photosmart:()=>window.BoreLabCommand?.renderPhotoOrganizer()||'',recovery:()=>window.BoreLabCommand?.renderRecovery()||'',scan3:()=>window.BoreLabCommand?.renderScannerHub()||'',jobmap:()=>window.BoreLabJobMap?.renderMap()||'<div class="page">Jobsite map not loaded.</div>',planner:renderPlanner,tools:renderTools,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,crewmanager2:()=>window.BoreLabConnectedOps3?.renderCrew()||renderCrew(),crewpreview:()=>window.BoreLabCrewMode?.renderCrew()||'<div class="page">Crew preview not loaded.</div>',supervisorpreview:()=>window.BoreLabSupervisorMode?.renderSupervisor()||'<div class="page">Supervisor preview not loaded.</div>',
  localaccounts:()=>window.BoreLabLocalAccounts?.renderManage()||'<div class="page">Account manager not loaded.</div>',fieldintelligence3:()=>window.BoreLabConnectedOps3?.renderIntelligence()||renderHome(),equipmentmanager2:()=>window.BoreLabConnectedOps3?.renderEquipment()||equipmentSettings(),tomorrowplanner:()=>window.BoreLabConnectedOps3?.renderTomorrow()||renderPlanner(),closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();enhanceNumericInputs($('#main'));if(page==='mud')restoreFormDraft($('#main form[data-form="mud-batch"]'));}
 function section(title,right=''){return `<div class="section-title"><h2><span class="accentbar"></span>${esc(title)}</h2>${right}</div>`}
@@ -3210,7 +3213,7 @@ for(const inputId of ['mudCameraFile','mudGalleryFile']){
 window.addEventListener('pagehide',flushPendingDraft);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){flushPendingDraft();persistGuidedDraft();}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape')borelabGoBack();if((e.key==='Enter'||e.key===' ')&&e.target.matches('.map-pin')){e.preventDefault();e.target.click()}});
-window.BoreLabAssistantBridge={state:()=>{syncActiveJob();return state},currentPage:()=>page,save,openRosterForm:manageRoster,openEquipmentForm:equipmentForm,oilStatus,jobRecordsForDay,jobDaySummary,jobDayIssues,exportDailyPdf:(day)=>exportRealPdf('',day),openCloseoutForDay:(day)=>{closeoutDay=day;setPage('closeout')},orderedShots,getPosition,hav,coordsValid,shop,pipeOnTruck,mudConfig,mudAvailable,mapsPinUrl,openMapUrl,switchActiveJob:(...args)=>window.BoreLabLocalAccounts?.guardJobSwitch?.()===false?false:switchActiveJob(...args),shotDetail,photoDetail,capturePinPhoto,setPage,uid,render,notify,todayLocal,reelForm,resolveMissingAddresses,resolveShotAfterSave,closeModal,clearGuidedDraft,showModal,photoChoose,photos:()=>photos,photoDB,refreshPhotos,activeJob,getPosition};
+window.BoreLabAssistantBridge={state:()=>{syncActiveJob();return state},currentPage:()=>page,save,openRosterForm:manageRoster,openEquipmentForm:equipmentForm,oilStatus,jobRecordsForDay,jobDaySummary,jobDayIssues,exportDailyPdf:(day)=>exportRealPdf('',day),openCloseoutForDay:(day)=>{closeoutDay=day;setPage('closeout')},orderedShots,getPosition,hav,coordsValid,shop,pipeOnTruck,mudConfig,mudAvailable,mapsPinUrl,openMapUrl,switchActiveJob:(...args)=>window.BoreLabLocalAccounts?.guardJobSwitch?.()===false?false:switchActiveJob(...args),shotDetail,photoDetail,capturePinPhoto,newBore:()=>state.uxMode==='advanced'?shotForm():beginGuidedBore(),setPage,uid,render,notify,todayLocal,reelForm,resolveMissingAddresses,resolveShotAfterSave,closeModal,clearGuidedDraft,showModal,photoChoose,photos:()=>photos,photoDB,refreshPhotos,activeJob,getPosition};
 async function init(){applyTheme();await refreshPhotos();render();refreshManualFiles();setTimeout(notifyServiceOnOpen,300);setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
 init();
 })();
@@ -3237,5 +3240,6 @@ init();
 <script src="./supervisor-mode.js"></script>
 <script src="./local-accounts.js"></script>
 <script src="./field-navigation.js"></script>
+<script src="./field-fab.js"></script>
 </body>
 </html>

@@ -1,10 +1,13 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),{webcrypto}=require('node:crypto');
-const js=fs.readFileSync('web/local-accounts.js','utf8');
+const originalJs=fs.readFileSync('web/local-accounts.js','utf8');
+const js=originalJs.replace('const PIN_TEST_BYPASS_DEFAULT=true','const PIN_TEST_BYPASS_DEFAULT=false');
+assert(originalJs.includes('const PIN_TEST_BYPASS_DEFAULT=true'),'Test-mode build must carry temporary bypass');
 const css=fs.readFileSync('web/local-accounts.css','utf8');
 const html=fs.readFileSync('web/index.html','utf8');
 assert.equal(html,fs.readFileSync('app/src/main/assets/web/index.html','utf8'));
-assert.equal(js,fs.readFileSync('app/src/main/assets/web/local-accounts.js','utf8'));
+assert.equal(originalJs,fs.readFileSync('app/src/main/assets/web/local-accounts.js','utf8'));
+assert(js.includes('PIN_TEST_BYPASS_DEFAULT=false'),'Protected-mode regression restores normal PIN behavior');
 assert.equal(css,fs.readFileSync('app/src/main/assets/web/local-accounts.css','utf8'));
 for(const token of [
  'data-local-auth="locked"','id="localAccountsGate"','local-accounts.css',
