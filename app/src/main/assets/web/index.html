@@ -586,7 +586,7 @@ function activeJobPhotos(){return photos.filter(p=>belongsToJob(p))}
 function jobDisplayName(job){return String(job?.jobName||'Unnamed job')}
 
 initializeJobs();
-let page=['home','job','jobs','dayassist','planner','pipe','mud','mudstock','manuals','photos','crew','closeout','history','settings','tools','search'].includes(state.lastScreen)?state.lastScreen:'home',modal='',photos=[],pendingPhotoShot='',pendingPhotoKind='camera',pendingPhotoStage='',pendingPhotoJobId='',geocodeWaitUntil=0,toastTimeout;
+let page=['home','job','jobs','dayassist','planner','pipe','mud','mudstock','manuals','photos','crew','closeout','history','settings','tools','search','command','shotcards','reelplan','photosmart','recovery','scan3'].includes(state.lastScreen)?state.lastScreen:'home',modal='',photos=[],pendingPhotoShot='',pendingPhotoKind='camera',pendingPhotoStage='',pendingPhotoJobId='',geocodeWaitUntil=0,toastTimeout;
 let resolvingAddresses=false,attemptedAutoAddressLookup=false,lookupQueue=Promise.resolve();
 let routeMenuOpen=false; // display-only state
 let closeoutDay='';
@@ -598,7 +598,7 @@ let screenStack=[];
 let universalQuery='';
 if(typeof state.jobAddress!=='string')state.jobAddress='';
 if(typeof state.jobNotes!=='string')state.jobNotes='';
-const BORELAB_PAGES=new Set(['home','job','jobs','dayassist','shotboard','planner','pipe','mud','mudstock','manuals','photos','crew','closeout','history','settings','tools','search']);
+const BORELAB_PAGES=new Set(['home','job','jobs','dayassist','shotboard','planner','pipe','mud','mudstock','manuals','photos','crew','closeout','history','settings','tools','search','command','shotcards','reelplan','photosmart','recovery','scan3']);
 try{const saved=JSON.parse(sessionStorage.getItem('borelab-screen-stack-v1')||'[]');if(Array.isArray(saved))screenStack=saved.filter(p=>BORELAB_PAGES.has(p)).slice(-30);}catch{}
 
 const openSettingsSections=new Set();
@@ -923,7 +923,7 @@ function openManualSource(machineId){
  else window.location.assign(machine.source);
 }
 
-function render(){const navButton=$('#topNavButton');if(navButton){const home=page==='home';navButton.textContent=home?'☰':'‹';navButton.dataset.action=home?'open-tools':'nav-back';navButton.setAttribute('aria-label',home?'All field tools':'Back to previous screen');}const activeTab=['home','planner','settings'].includes(page)?page:page==='jobs'?'home':'tools';document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===activeTab));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,job:renderJobWorkspace,jobs:renderJobs,dayassist:renderDayAssistant,shotboard:()=>window.BoreLabWorkday?.renderShotBoard()||'<div class="page">Shot Board unavailable</div>',search:renderSearch,planner:renderPlanner,tools:renderTools,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();enhanceNumericInputs($('#main'));if(page==='mud')restoreFormDraft($('#main form[data-form="mud-batch"]'));}
+function render(){const navButton=$('#topNavButton');if(navButton){const home=page==='home';navButton.textContent=home?'☰':'‹';navButton.dataset.action=home?'open-tools':'nav-back';navButton.setAttribute('aria-label',home?'All field tools':'Back to previous screen');}const activeTab=['home','planner','settings'].includes(page)?page:page==='jobs'?'home':'tools';document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===activeTab));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,job:renderJobWorkspace,jobs:renderJobs,dayassist:renderDayAssistant,shotboard:()=>window.BoreLabWorkday?.renderShotBoard()||'<div class="page">Shot Board unavailable</div>',search:renderSearch,command:()=>window.BoreLabCommand?.renderCommand()||'',shotcards:()=>window.BoreLabCommand?.renderShotCards()||'',reelplan:()=>window.BoreLabCommand?.renderReelPlan()||'',photosmart:()=>window.BoreLabCommand?.renderPhotoOrganizer()||'',recovery:()=>window.BoreLabCommand?.renderRecovery()||'',scan3:()=>window.BoreLabCommand?.renderScannerHub()||'',planner:renderPlanner,tools:renderTools,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();enhanceNumericInputs($('#main'));if(page==='mud')restoreFormDraft($('#main form[data-form="mud-batch"]'));}
 function section(title,right=''){return `<div class="section-title"><h2><span class="accentbar"></span>${esc(title)}</h2>${right}</div>`}
 function quick(label,icon,sub,action){return `<button class="quick" data-action="${action}"><div class="qicon">${icon}</div><strong>${esc(label)}</strong><small>${esc(sub)}</small></button>`}
 function shotRow(s){return `<div class="shot"><div class="shot-icon">⌁</div><div><h3>${esc(s.name)} <span class="status ${s.status==='complete'?'complete':s.status==='progress'?'progress':'planned'}">${s.status==='complete'?'Complete':s.status==='progress'?'Drilling':'Pending'}</span></h3><small>${feet(s)} ft bore${(window.BoreLabConduits?.normalized(s)||[]).length?' · '+esc(window.BoreLabConduits.summary(s)):s.pipeDiameter?' · '+esc(s.pipeDiameter):''} · ${pipeNeed(s)} ft baseline with allowance<br>${esc(s.address||coordsText(s)||'No location set')}</small></div><div class="shot-actions"><span class="foot">${feet(s)}′</span><button data-action="shot-quick" data-id="${esc(s.id)}" aria-label="Quick actions for ${esc(s.name)}" title="Quick actions">⋯</button><button data-action="shot-detail" data-id="${esc(s.id)}" aria-label="Open ${esc(s.name)}">›</button></div></div>`}
@@ -1571,7 +1571,7 @@ function renderTools(){
   <p class="muted smalltext">Every BoreLab feature, organized by task.</p></div></div>
   ${groups.map(group=>`<section class="ux-tools-section" aria-label="${esc(group)}">
   <h2>${esc(group)}</h2><div class="ux-tile-grid">${UX_ACTIONS.filter(t=>t.group===group).map(actionTile).join('')}</div></section>`).join('')}
-  <div class="note spaced">Tip: Set your six favorite tools in Settings. They appear on your home screen.</div>${footnote()}</div>`;
+  <section class="ux-tools-section"><h2>Field Command</h2><div class="ux-tile-grid"><button class="ux-tile" data-page="command">◷ Live Workday</button><button class="ux-tile" data-page="shotcards">◎ Smart Shot Cards</button><button class="ux-tile" data-page="scan3">▣ Paperwork Scanner 3.0</button><button class="ux-tile" data-page="reelplan">◈ Intelligent Reels</button><button class="ux-tile" data-page="photosmart">▣ Photo Organizer</button><button class="ux-tile" data-page="recovery">↶ Backup & Recovery</button></div></section><div class="note spaced">Tip: Set your six favorite tools in Settings. They appear on your home screen.</div>${footnote()}</div>`;
 }
 function nextHomeAction(){
  if(state.demo)return {title:'Get familiar',body:'Try a sample bore, or clear demo data when you are ready for a real job.',action:'guided-tour',button:'Show me'};
@@ -1598,6 +1598,7 @@ function renderHome(){
    <button class="ux-help-btn" data-action="guided-tour" aria-label="How to use BoreLab" title="How to use BoreLab">?</button>
   </div>
   ${oilWarnings()}
+  ${window.BoreLabCommand?.homeLinks?.()||''}
   <div class="ux-job-card">
    <button type="button" class="ux-job-hit" data-action="open-job" aria-label="Open active job workspace"></button>
    <div class="ux-job-title">
@@ -3174,5 +3175,6 @@ init();
 <script src="./workday.js"></script>
 <script src="./address-scan.js"></script>
 <script src="./field-ops.js"></script>
+<script src="./field-command.js"></script>
 </body>
 </html>

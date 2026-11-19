@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync('web/index.html','utf8'),android=fs.readFileSync('app/src/main/assets/web/index.html','utf8');
+const js=fs.readFileSync('web/field-command.js','utf8');
+assert.equal(html,android);assert.equal(js,fs.readFileSync('app/src/main/assets/web/field-command.js','utf8'));
+new Function(js);new Function(html.split('<script>')[1].split('</script>')[0]);
+for(const page of ['command','shotcards','reelplan','photosmart','recovery','scan3'])assert(html.includes(page),page);
+for(const token of ['renderShotCards','renderCommand','renderReelPlan','renderPhotoOrganizer','renderRecovery','renderScannerHub','data-blc-feet','data-blc-time','data-blc-tag','data-blc-refresh','api.open-meteo.com/v1/forecast'])assert(js.includes(token),token);
+assert(html.includes('<script src="./field-command.js"></script>'));
+console.log('BoreLab Field command center and weather module: PASS');

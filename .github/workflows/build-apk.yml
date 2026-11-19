@@ -69,6 +69,8 @@ jobs:
         run: node tests/address-only-scan.test.cjs
       - name: Test BoreLab v0.18 field operations, recovery and readiness
         run: node tests/field-ops-v018.test.cjs
+      - name: Test command center and live field cards
+        run: node tests/command-center.test.cjs
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
