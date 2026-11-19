@@ -57,6 +57,8 @@ jobs:
         run: node tests/location-daily-reels.test.cjs
       - name: Test paperwork OCR and GPS recovery
         run: node tests/paperwork-ocr-gps.test.cjs
+      - name: Test Plus Code GPS and daily reel layout regression
+        run: node tests/plus-code-reel-layout.test.cjs
       - name: Test shot-sheet import placement in Add Bore
         run: node tests/scan-placement.test.cjs
       - name: Test BoreLab v0.17 scanner, shot board and workday planning

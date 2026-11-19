@@ -15,7 +15,7 @@ for(const p of ['locations-reels.js','field-upgrades.js','shot-sheet.js','condui
 }
 assert(html.includes('<script src="./locations-reels.js"></script>'));
 assert(html.includes('window.BoreLabDailyReels?.renderSection()'));
-assert(html.includes('window.BoreLabLocations?.isNonStreetLocation'));
+assert(html.includes('window.BoreLabLocations?.decodeFullPlusCode'),'Full Plus Codes must resolve to GPS pins');
 assert(html.includes("if(!validLocationInput(address))"),'Manual shot entry must require locality for short Plus Codes');
 assert(html.includes('window.BoreLabLocations?.parseCoords(address)'),'Manual GPS coordinates should be saved as real shot GPS');
 assert(upgrade.includes('data-ba-location-choice'),'OCR review must offer a choice');
