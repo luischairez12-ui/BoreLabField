@@ -71,6 +71,8 @@ jobs:
         run: node tests/field-ops-v018.test.cjs
       - name: Test command center and live field cards
         run: node tests/command-center.test.cjs
+      - name: Test concept-inspired smart shot cards and reel manager
+        run: node tests/visual-polish-v2.test.cjs
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
