@@ -68,7 +68,7 @@ assert.equal(map.renderMarkers([{shots:[two],x:150,y:150}],300,350).includes('Sh
 assert(!map.renderMarkers([{shots:[complete],x:-1000,y:-1000}],300,350).includes('Already Finished'));
 let screen=map.renderMap();
 for(const token of ['Interactive Jobsite Map','South Glades','Streets','Site Plot','Satellite','Pending','Drilling',
- 'Complete','2 mapped / 3 total','1 unlocated shot','Locate Saved Pending Addresses','Street tiles online','© OpenStreetMap contributors']){
+ 'Complete','2 mapped / 3 total','1 unlocated record','Locate Saved Bore Addresses','Street tiles online','© OpenStreetMap contributors']){
  assert(screen.includes(token),'map screen missing '+token);
 }
 map.setMode('plot');
