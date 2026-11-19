@@ -211,7 +211,7 @@ function renderPhotoOrganizer(){
  return '<div class="page blc-page"><div class="blc-heading"><span class="eyebrow">BORELAB / MEDIA</span><h1>Smart Photo Organization</h1><p>Sort photos by job, shot and field category without altering originals.</p></div>'+
  '<div class="blc-grid">'+metric('Photos',String(all.length))+metric('Completed bores missing After',String(missing.length))+'</div>'+
  (missing.length?'<p class="blc-alert">⚠ After photo missing for '+esc(missing.slice(0,5).map(s=>s.name).join(', '))+'</p>':'')+
- '<div class="blc-buttons"><button class="blc-primary" data-action="choose-photo">▣ Camera</button><button data-action="choose-gallery">Add Gallery</button></div>'+
+ '<div class="blc-buttons"><button class="blc-primary" data-page="phototimeline2">▣ Open Smart Timeline 2.0</button><button data-action="choose-photo">Camera</button><button data-action="choose-gallery">Add Gallery</button></div>'+
  '<label class="field">Category<select data-blc-photofilter>'+categories.map(c=>'<option value="'+c+'"'+(c===photoFilter?' selected':'')+'>'+esc(c==='all'?'All photos':c)+'</option>').join('')+'</select></label>'+
  '<div class="blc-photos">'+visible.map(p=>'<article><img src="'+esc(p.dataUrl)+'" loading="lazy" alt="Jobsite photo"><strong>'+esc(shots().find(s=>s.id===p.shotId)?.name||'General photo')+'</strong>'+
  '<small>'+esc(new Date(p.addedAt).toLocaleDateString())+'</small><label class="field">Group<select data-blc-tag="'+esc(p.id)+'">'+categories.slice(1).map(c=>'<option value="'+c+'"'+(c===category(p)?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label></article>').join('')+'</div>'+

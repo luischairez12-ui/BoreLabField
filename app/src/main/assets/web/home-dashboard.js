@@ -163,7 +163,7 @@ function widgetBody(id,size){
  if(id==='photos'){
   const photos=bridge()?.photos?.()||[],mine=photos.filter(p=>!p.jobId||p.jobId===s.activeJobId);
   const missing=all.filter(x=>x.status==='complete'&&!mine.some(p=>p.shotId===x.id&&p.stage==='after'));
-  return widgetHead('photos','photosmart','Jobsite gallery')+
+  return widgetHead('photos','phototimeline2','Jobsite gallery')+
    '<div class="bh-two-metrics"><div><strong>'+mine.length+'</strong><small>Saved photos</small></div>'+
    '<div><strong>'+missing.length+'</strong><small>After missing</small></div></div>'+
    (missing.length?'<p class="bh-widget-warn">⚠ '+esc(missing[0].name)+' needs an After photo</p>':
@@ -174,9 +174,9 @@ function widgetBody(id,size){
    '<button class="bh-plain-action" data-page="scan3">▤ Open Scanner ›</button>';
  if(id==='quick')return widgetHead('quick',null,'One-tap tools')+
    '<div class="bh-quick-grid"><button data-action="new-shot">＋<small>Add Shot</small></button>'+
-   '<button data-page="photosmart">▣<small>Photos</small></button>'+
+   '<button data-page="phototimeline2">▣<small>Photos</small></button>'+
    '<button data-page="scan3">▤<small>Scan</small></button>'+
-   '<button data-action="open-closeout">✓<small>Close Day</small></button></div>';
+   '<button data-page="dayassist">✓<small>Close Day</small></button></div>';
  if(id==='notes')return widgetHead('notes','job','Saved job notes')+
    '<p class="bh-small">'+esc(s.jobNotes||'No job notes saved yet. Add access details and crew instructions in Job Details.')+'</p>';
  if(id==='map'){

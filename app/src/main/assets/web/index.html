@@ -488,6 +488,7 @@ html[data-large-text="on"] .ux-tile small,html[data-large-text="on"] .ux-next p{
   <link rel="stylesheet" href="./visual-polish.css">
   <link rel="stylesheet" href="./home-dashboard.css">
   <link rel="stylesheet" href="./jobsite-map.css">
+  <link rel="stylesheet" href="./closeout-photo-v2.css">
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
 <body>
@@ -601,7 +602,7 @@ let screenStack=[];
 let universalQuery='';
 if(typeof state.jobAddress!=='string')state.jobAddress='';
 if(typeof state.jobNotes!=='string')state.jobNotes='';
-const BORELAB_PAGES=new Set(['home','job','jobs','dayassist','shotboard','planner','pipe','mud','mudstock','manuals','photos','crew','closeout','history','settings','tools','search','command','shotcards','reelplan','photosmart','recovery','scan3','jobmap']);
+const BORELAB_PAGES=new Set(['home','job','jobs','dayassist','dayassistlegacy','phototimeline2','shotboard','planner','pipe','mud','mudstock','manuals','photos','crew','closeout','history','settings','tools','search','command','shotcards','reelplan','photosmart','recovery','scan3','jobmap','dayassistlegacy','phototimeline2']);
 try{const saved=JSON.parse(sessionStorage.getItem('borelab-screen-stack-v1')||'[]');if(Array.isArray(saved))screenStack=saved.filter(p=>BORELAB_PAGES.has(p)).slice(-30);}catch{}
 
 const openSettingsSections=new Set();
@@ -926,7 +927,7 @@ function openManualSource(machineId){
  else window.location.assign(machine.source);
 }
 
-function render(){const navButton=$('#topNavButton');if(navButton){const home=page==='home';navButton.textContent=home?'☰':'‹';navButton.dataset.action=home?'open-tools':'nav-back';navButton.setAttribute('aria-label',home?'All field tools':'Back to previous screen');}const activeTab=['home','planner','settings'].includes(page)?page:page==='jobs'?'home':'tools';document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===activeTab));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,job:renderJobWorkspace,jobs:renderJobs,dayassist:renderDayAssistant,shotboard:()=>window.BoreLabWorkday?.renderShotBoard()||'<div class="page">Shot Board unavailable</div>',search:renderSearch,command:()=>window.BoreLabCommand?.renderCommand()||'',shotcards:()=>window.BoreLabCommand?.renderShotCards()||'',reelplan:()=>window.BoreLabCommand?.renderReelPlan()||'',photosmart:()=>window.BoreLabCommand?.renderPhotoOrganizer()||'',recovery:()=>window.BoreLabCommand?.renderRecovery()||'',scan3:()=>window.BoreLabCommand?.renderScannerHub()||'',jobmap:()=>window.BoreLabJobMap?.renderMap()||'<div class="page">Jobsite map not loaded.</div>',planner:renderPlanner,tools:renderTools,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();enhanceNumericInputs($('#main'));if(page==='mud')restoreFormDraft($('#main form[data-form="mud-batch"]'));}
+function render(){const navButton=$('#topNavButton');if(navButton){const home=page==='home';navButton.textContent=home?'☰':'‹';navButton.dataset.action=home?'open-tools':'nav-back';navButton.setAttribute('aria-label',home?'All field tools':'Back to previous screen');}const activeTab=['home','planner','settings'].includes(page)?page:page==='jobs'?'home':'tools';document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===activeTab));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,job:renderJobWorkspace,jobs:renderJobs,dayassist:()=>window.BoreLabCloseoutPhotoV2?.renderEndDay()||renderDayAssistant(),dayassistlegacy:renderDayAssistant,phototimeline2:()=>window.BoreLabCloseoutPhotoV2?.renderPhotoTimeline()||renderPhotos(),shotboard:()=>window.BoreLabWorkday?.renderShotBoard()||'<div class="page">Shot Board unavailable</div>',search:renderSearch,command:()=>window.BoreLabCommand?.renderCommand()||'',shotcards:()=>window.BoreLabCommand?.renderShotCards()||'',reelplan:()=>window.BoreLabCommand?.renderReelPlan()||'',photosmart:()=>window.BoreLabCommand?.renderPhotoOrganizer()||'',recovery:()=>window.BoreLabCommand?.renderRecovery()||'',scan3:()=>window.BoreLabCommand?.renderScannerHub()||'',jobmap:()=>window.BoreLabJobMap?.renderMap()||'<div class="page">Jobsite map not loaded.</div>',planner:renderPlanner,tools:renderTools,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();enhanceNumericInputs($('#main'));if(page==='mud')restoreFormDraft($('#main form[data-form="mud-batch"]'));}
 function section(title,right=''){return `<div class="section-title"><h2><span class="accentbar"></span>${esc(title)}</h2>${right}</div>`}
 function quick(label,icon,sub,action){return `<button class="quick" data-action="${action}"><div class="qicon">${icon}</div><strong>${esc(label)}</strong><small>${esc(sub)}</small></button>`}
 function shotRow(s){return `<div class="shot"><div class="shot-icon">⌁</div><div><h3>${esc(s.name)} <span class="status ${s.status==='complete'?'complete':s.status==='progress'?'progress':'planned'}">${s.status==='complete'?'Complete':s.status==='progress'?'Drilling':'Pending'}</span></h3><small>${feet(s)} ft bore${(window.BoreLabConduits?.normalized(s)||[]).length?' · '+esc(window.BoreLabConduits.summary(s)):s.pipeDiameter?' · '+esc(s.pipeDiameter):''} · ${pipeNeed(s)} ft baseline with allowance<br>${esc(s.address||coordsText(s)||'No location set')}</small></div><div class="shot-actions"><span class="foot">${feet(s)}′</span><button data-action="shot-quick" data-id="${esc(s.id)}" aria-label="Quick actions for ${esc(s.name)}" title="Quick actions">⋯</button><button data-action="shot-detail" data-id="${esc(s.id)}" aria-label="Open ${esc(s.name)}">›</button></div></div>`}
@@ -972,7 +973,7 @@ function renderCloseout(){
  return `<div class="page">
  <div class="between"><div><span class="eyebrow">FIELD / END OF DAY</span><h1>Daily Closeout</h1></div><button class="btn micro ghost" data-page="history">History</button></div>
  <p class="muted smalltext spaced">Review <strong>${esc(state.jobName)}</strong> for this date. Saving never checks out crew or completes bores automatically.</p>
- <div class="action-row spaced"><button class="btn ghost" data-page="dayassist">Review All Jobs for Today</button>
+ <div class="action-row spaced"><button class="btn ghost" data-page="dayassistlegacy">Review All Jobs for Today</button>
   <button class="btn ghost" data-page="jobs">Switch Job</button></div>
  <div class="card spaced"><label class="field">Work date<input type="date" data-closeout-day value="${esc(date)}"></label>
  <div class="closeout-stats">
@@ -1574,7 +1575,7 @@ function renderTools(){
   <p class="muted smalltext">Every BoreLab feature, organized by task.</p></div></div>
   ${groups.map(group=>`<section class="ux-tools-section" aria-label="${esc(group)}">
   <h2>${esc(group)}</h2><div class="ux-tile-grid">${UX_ACTIONS.filter(t=>t.group===group).map(actionTile).join('')}</div></section>`).join('')}
-  <section class="ux-tools-section"><h2>Field Command</h2><div class="ux-tile-grid"><button class="ux-tile" data-page="command">◷ Live Workday</button><button class="ux-tile" data-page="shotcards">◎ Smart Shot Cards</button><button class="ux-tile" data-page="scan3">▣ Paperwork Scanner 3.0</button><button class="ux-tile" data-page="reelplan">◈ Intelligent Reels</button><button class="ux-tile" data-page="photosmart">▣ Photo Organizer</button><button class="ux-tile" data-page="recovery">↶ Backup & Recovery</button><button class="ux-tile" data-page="jobmap">⌖ Interactive Jobsite Map</button></div></section><div class="note spaced">Tip: Set your six favorite tools in Settings. They appear on your home screen.</div>${footnote()}</div>`;
+  <section class="ux-tools-section"><h2>Field Command</h2><div class="ux-tile-grid"><button class="ux-tile" data-page="command">◷ Live Workday</button><button class="ux-tile" data-page="shotcards">◎ Smart Shot Cards</button><button class="ux-tile" data-page="scan3">▣ Paperwork Scanner 3.0</button><button class="ux-tile" data-page="reelplan">◈ Intelligent Reels</button><button class="ux-tile" data-page="photosmart">▣ Photo Organizer</button><button class="ux-tile" data-page="recovery">↶ Backup & Recovery</button><button class="ux-tile" data-page="jobmap">⌖ Interactive Jobsite Map</button><button class="ux-tile" data-page="dayassist">✓ End-of-Day Assistant 2.0</button><button class="ux-tile" data-page="phototimeline2">▣ Smart Photo Timeline 2.0</button><button class="ux-tile" data-page="dayassistlegacy">▤ All-Jobs Daily Review</button></div></section><div class="note spaced">Tip: Set your six favorite tools in Settings. They appear on your home screen.</div>${footnote()}</div>`;
 }
 function nextHomeAction(){
  if(state.demo)return {title:'Get familiar',body:'Try a sample bore, or clear demo data when you are ready for a real job.',action:'guided-tour',button:'Show me'};
@@ -3166,7 +3167,7 @@ for(const inputId of ['mudCameraFile','mudGalleryFile']){
 window.addEventListener('pagehide',flushPendingDraft);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){flushPendingDraft();persistGuidedDraft();}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape')borelabGoBack();if((e.key==='Enter'||e.key===' ')&&e.target.matches('.map-pin')){e.preventDefault();e.target.click()}});
-window.BoreLabAssistantBridge={state:()=>{syncActiveJob();return state},currentPage:()=>page,save,orderedShots,getPosition,hav,coordsValid,shop,pipeOnTruck,mudConfig,mudAvailable,mapsPinUrl,openMapUrl,switchActiveJob,shotDetail,setPage,uid,render,notify,todayLocal,reelForm,resolveMissingAddresses,resolveShotAfterSave,closeModal,clearGuidedDraft,showModal,photoChoose,photos:()=>photos,photoDB,refreshPhotos,activeJob};
+window.BoreLabAssistantBridge={state:()=>{syncActiveJob();return state},currentPage:()=>page,save,jobRecordsForDay,jobDaySummary,jobDayIssues,exportDailyPdf:(day)=>exportRealPdf('',day),openCloseoutForDay:(day)=>{closeoutDay=day;setPage('closeout')},orderedShots,getPosition,hav,coordsValid,shop,pipeOnTruck,mudConfig,mudAvailable,mapsPinUrl,openMapUrl,switchActiveJob,shotDetail,setPage,uid,render,notify,todayLocal,reelForm,resolveMissingAddresses,resolveShotAfterSave,closeModal,clearGuidedDraft,showModal,photoChoose,photos:()=>photos,photoDB,refreshPhotos,activeJob};
 async function init(){applyTheme();await refreshPhotos();render();refreshManualFiles();setTimeout(notifyServiceOnOpen,300);setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
 init();
 })();
@@ -3184,5 +3185,6 @@ init();
 <script src="./visual-polish.js"></script>
 <script src="./home-dashboard.js"></script>
 <script src="./jobsite-map.js"></script>
+<script src="./closeout-photo-v2.js"></script>
 </body>
 </html>

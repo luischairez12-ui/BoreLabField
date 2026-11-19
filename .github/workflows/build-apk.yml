@@ -77,6 +77,8 @@ jobs:
         run: node tests/home-dashboard-v2.test.cjs
       - name: Test interactive jobsite map, pins, filters, safe routes and offline plot
         run: node tests/jobsite-map.test.cjs
+      - name: Test closeout assistant and photo timeline v2
+        run: node tests/closeout-photo-v2.test.cjs
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
