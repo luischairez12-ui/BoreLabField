@@ -127,3 +127,67 @@
 @media(max-width:320px){.bh-widget-grid{grid-template-columns:1fr}.bh-size-small{grid-column:span 1}.bh-editor-row{flex-wrap:wrap}}
 @media(min-width:720px){.bh-home{max-width:920px;margin:0 auto}.bh-widget-grid{gap:13px}.bh-hero{min-height:210px}.bh-hero h1{font-size:34px}.bh-size-large{min-height:250px}}
 @media(prefers-reduced-motion:reduce){.bh-home button{transition:none}}
+
+
+/* Dashboard 2.1: header safe zones, compact cards, and staged customization. */
+.bh-hero{min-height:231px;isolation:isolate}
+.bh-hero-main{display:flex;justify-content:space-between;align-items:flex-start;gap:9px;position:relative;z-index:3;margin-top:14px;padding-bottom:102px}
+.bh-hero-main>.bh-hero-copy{min-width:0;flex:1;overflow-wrap:anywhere;max-width:calc(100% - 106px)}
+.bh-hero-main .bh-hero-copy h1{font-size:clamp(21px,6.2vw,28px);line-height:1.1;margin:0 0 9px}
+.bh-hero-main .bh-hero-copy p{font-size:11px;line-height:1.45;max-width:100%;font-weight:800;position:relative;z-index:3}
+.bh-hero-weather{min-width:96px;width:106px;flex:none;align-self:flex-start;background:#fff6e8ec;border:1px solid #fff8;border-radius:14px;color:#684126;display:grid;gap:4px;text-align:center;align-content:center;padding:11px 7px;min-height:64px;box-shadow:0 3px 8px #94411814}
+.bh-hero-weather strong{font-size:16px;line-height:1.1;white-space:nowrap}
+.bh-hero-weather small{font-size:10px;line-height:1.2;color:#805b42;overflow-wrap:anywhere}
+.bh-hero-weather.is-unavailable strong{font-size:13px}
+.bh-hero-art{left:auto;right:1%;bottom:0;width:73%;height:86px;max-width:440px;opacity:.9;z-index:1;pointer-events:none}
+.bh-hero-art svg{display:block;width:100%;height:100%;object-fit:contain;object-position:bottom right}
+.bh-hero:after{z-index:0}
+.bh-hero:before{z-index:-1}
+.bh-size-compact{grid-column:span 2;min-height:82px;padding:11px}
+.bh-size-compact .bh-widget-content{gap:7px}
+.bh-size-compact .bh-widget-title strong{font-size:12px}
+.bh-size-compact .bh-widget-title small{font-size:9px}
+.bh-compact-bore{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.bh-compact-bore strong{font-size:16px;overflow-wrap:anywhere}
+.bh-compact-bore span{font-size:12px;color:var(--bh-muted);white-space:nowrap}
+.bh-compact-open{border:1px solid #e8a16c;background:#fff2e5;color:#bb5714;min-height:32px;border-radius:9px;font-size:11px;font-weight:850;align-self:flex-end;padding:7px 11px}
+.bh-home.bh-dense{gap:9px}
+.bh-dense .bh-widget-grid{gap:7px}
+.bh-dense .bh-widget{padding:9px;border-radius:14px;min-height:0;gap:6px}
+.bh-dense .bh-widget-content{gap:7px}
+.bh-dense .bh-size-large{min-height:155px}
+.bh-dense .bh-size-small{min-height:83px}
+.bh-dense .bh-hero{min-height:215px}
+.bh-dense .bh-hero-main{padding-bottom:90px}
+.bh-dense .bh-hero-art{height:76px}
+.bh-edit-preview-label{padding:9px 11px;background:#fff3e7;color:#9a521b;border-radius:10px;font-size:11px;font-weight:900;letter-spacing:.4px}
+.bh-editor-options{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.bh-editor-options label{display:flex;align-items:center;gap:6px;min-height:28px}
+.bh-editor-options button{grid-column:2;grid-row:1 / 3}
+.bh-editor-row select{max-width:90px;width:81px}
+.bh-widget{position:relative}
+.bh-drag-target{outline:3px dashed #f47a20!important;outline-offset:2px;box-shadow:0 0 0 5px #fbc89959!important}
+.bh-drag-target:after{content:'Drop here';position:absolute;inset:auto 5px 5px auto;z-index:3;background:#ea7523;color:white;border-radius:7px;padding:5px 8px;font-size:10px;font-weight:900;pointer-events:none}
+.bh-dragging{opacity:.6;transform:scale(.985);border-color:#f47a20!important}
+.bh-editor-footer button{min-height:44px}
+.bh-editor-footer .bh-editor-done{background:linear-gradient(115deg,#ff9231,#e86d17);color:white}
+@media(max-width:380px){
+ .bh-hero{min-height:232px}
+ .bh-hero-main{padding-bottom:102px;gap:7px}
+ .bh-hero-main>.bh-hero-copy{max-width:calc(100% - 91px)}
+ .bh-hero-weather{width:91px;min-width:91px;min-height:60px;padding:8px 5px}
+ .bh-hero-weather strong{font-size:14px}
+ .bh-hero-weather small{font-size:9px}
+ .bh-hero-main .bh-hero-copy h1{font-size:21px}
+ .bh-hero-art{height:84px;width:84%}
+ .bh-compact-bore{flex-wrap:wrap}
+ .bh-editor-options{display:flex;flex-wrap:wrap}
+ .bh-editor-row select{width:72px}
+}
+@media(min-width:720px){
+ .bh-hero{min-height:235px}
+ .bh-hero-main{padding-bottom:96px}
+ .bh-hero-art{height:103px;width:65%}
+ .bh-hero-main>.bh-hero-copy{max-width:calc(100% - 125px)}
+ .bh-hero-weather{width:122px}
+}

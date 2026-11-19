@@ -8,6 +8,7 @@ const value=x=>Number.isFinite(Number(x))?Math.max(0,Number(x)):0;
 const fmt=x=>value(x).toLocaleString(undefined,{maximumFractionDigits:1});
 const today=()=>bridge()?.todayLocal?.()||new Date().toISOString().slice(0,10);
 const sizes=['small','medium','large'];
+const widgetSizes=id=>id==='active'?['compact',...sizes]:sizes;
 const ids=['job','active','shots','weather','next','crew','reels','finish','photos','scanner','quick','notes','backup'];
 const names={job:'Current Job',active:'Active Bore',shots:'Today’s Shots',weather:'Jobsite Weather',next:'Next 3 Shots',crew:'Crew Status',reels:'Reels on Truck',finish:'Estimated Finish',photos:'Photo Reminders',scanner:'Paperwork Scanner',quick:'Quick Actions',notes:'Job Notes',backup:'Backup & Recovery'};
 const symbols={job:'⌖',active:'◎',shots:'▦',weather:'☁',next:'☷',crew:'♙',reels:'◈',finish:'◷',photos:'▣',scanner:'▤',quick:'＋',notes:'✎',backup:'↶'};
@@ -19,17 +20,17 @@ const defaults={
 };
 const initialShown={morning:['job','weather','shots','crew','next','reels','active','finish','quick','scanner'],workday:['active','shots','reels','weather','next','crew','finish','photos','quick','job'],supervisor:['job','shots','crew','next','photos','reels','finish','weather','active']};
 function defaultLayout(p){return defaults[p].map(([id,size])=>({id,size,visible:initialShown[p].includes(id)}))}
-function defaultConfig(){return{version:1,enabled:true,preset:'workday',auto:false,layouts:{morning:defaultLayout('morning'),workday:defaultLayout('workday'),supervisor:defaultLayout('supervisor')}}}
+function defaultConfig(){return{version:2,enabled:true,preset:'workday',auto:false,density:'comfortable',layouts:{morning:defaultLayout('morning'),workday:defaultLayout('workday'),supervisor:defaultLayout('supervisor')}}}
 function cleanConfig(raw){
  const out=defaultConfig();if(!raw||typeof raw!=='object')return out;
- out.enabled=raw.enabled!==false;out.auto=raw.auto===true;
+ out.enabled=raw.enabled!==false;out.auto=raw.auto===true;out.density=raw.density==='compact'?'compact':'comfortable';
  if(presetNames[raw.preset])out.preset=raw.preset;
  for(const p of Object.keys(presetNames)){
   const arr=raw.layouts?.[p];if(!Array.isArray(arr))continue;
   const known=[],seen=new Set();
   for(const entry of arr){
    if(!entry||!ids.includes(entry.id)||seen.has(entry.id))continue;
-   seen.add(entry.id);known.push({id:entry.id,size:sizes.includes(entry.size)?entry.size:'medium',visible:entry.visible!==false});
+   seen.add(entry.id);known.push({id:entry.id,size:widgetSizes(entry.id).includes(entry.size)?entry.size:'medium',visible:entry.visible!==false});
   }
   const baseline=defaultLayout(p);
   out.layouts[p]=known.concat(baseline.filter(x=>!seen.has(x.id)));
@@ -40,7 +41,12 @@ function cfg(){return cleanConfig(state().homeDashboard2)}
 function saveConfig(c){state().homeDashboard2=cleanConfig(c);bridge()?.save?.()}
 function isEnabled(){return cfg().enabled}
 function classicBanner(){return '<div class="bh-classic-return"><strong>Home Dashboard 2.0 is turned off.</strong><button data-bh-enable>Try New Dashboard ›</button></div>'}
-let editing=false;
+let editing=false,draft=null;
+function workingConfig(){return editing&&draft?cleanConfig(draft):cfg()}
+function stage(c){if(editing){draft=cleanConfig(c)}else saveConfig(c);render()}
+function beginEdit(){editing=true;draft=cfg();render()}
+function saveEdit(){if(draft)saveConfig(draft);draft=null;editing=false;render()}
+function cancelEdit(){draft=null;editing=false;render()}
 function preset(c){
  if(!c.auto)return c.preset;
  if((state().shots||[]).some(s=>s.status==='progress'))return'workday';
@@ -48,20 +54,20 @@ function preset(c){
 }
 function visible(c){const p=preset(c);return c.layouts[p].filter(x=>x.visible)}
 function updateWidget(id,patch){
- const c=cfg(),list=c.layouts[preset(c)],w=list.find(x=>x.id===id);
+ const c=workingConfig(),list=c.layouts[preset(c)],w=list.find(x=>x.id===id);
  if(!w)return;
- Object.assign(w,patch);saveConfig(c);render();
+ Object.assign(w,patch);stage(c);
 }
 function moveWidget(id,direction){
- const c=cfg(),list=c.layouts[preset(c)],from=list.findIndex(x=>x.id===id),to=from+direction;
+ const c=workingConfig(),list=c.layouts[preset(c)],from=list.findIndex(x=>x.id===id),to=from+direction;
  if(from<0||to<0||to>=list.length)return;
- const tmp=list[from];list[from]=list[to];list[to]=tmp;saveConfig(c);render();
+ const tmp=list[from];list[from]=list[to];list[to]=tmp;stage(c);
 }
 function rearrange(a,b){
  if(a===b||!ids.includes(a)||!ids.includes(b))return;
- const c=cfg(),list=c.layouts[preset(c)],from=list.findIndex(x=>x.id===a),to=list.findIndex(x=>x.id===b);
+ const c=workingConfig(),list=c.layouts[preset(c)],from=list.findIndex(x=>x.id===a),to=list.findIndex(x=>x.id===b);
  if(from<0||to<0)return;
- list.splice(to,0,list.splice(from,1)[0]);saveConfig(c);render();
+ list.splice(to,0,list.splice(from,1)[0]);stage(c);
 }
 function render(){bridge()?.render?.()}
 function activeBore(){const a=state().shots||[];return a.find(x=>x.status==='progress')||a.find(x=>x.status!=='complete')||null}
@@ -85,6 +91,11 @@ function widgetBody(id,size){
   if(!shot)return widgetHead('active','shotcards','Current bore')+'<div class="bh-blank">No active or pending bore yet.</div><button class="bh-plain-action" data-action="new-shot">+ Add First Bore</button>';
   const length=value(shot.feet),done=shot.status==='complete'?length:Math.min(length,value(shot.progressFeet)),pct=length?Math.round(done*100/length):0;
   const pipe=window.BoreLabConduits?.summary?.(shot)||shot.pipeDiameter||'Not set';
+  if(size==='compact')return widgetHead('active','shotcards',shot.status==='progress'?'● Drilling':'Pending bore')+
+   '<div class="bh-compact-bore"><strong>'+esc(shot.name||'Unnamed bore')+'</strong>'+
+   '<span>'+fmt(done)+' / '+fmt(length)+' ft · '+pct+'%</span></div>'+
+   '<div class="bh-progress" role="progressbar" aria-label="Manually logged drilling progress" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100"><span style="width:'+pct+'%"></span></div>'+
+   '<button class="bh-compact-open" data-bh-shot="'+esc(shot.id)+'">Open Shot ›</button>';
   return widgetHead('active','shotcards',shot.status==='progress'?'● Drilling':'Pending bore')+
    '<div class="bh-active-row"><div><h3>'+esc(shot.name||'Unnamed bore')+'</h3>'+
     '<p class="bh-small">'+esc(shot.address||'Address not entered')+'</p></div>'+
@@ -176,21 +187,37 @@ function widgetBody(id,size){
 function editorCard(c,p){
  const selected=c.layouts[p];
  return '<section class="bh-editor"><div class="bh-between"><div><strong>Customize '+presetNames[p]+'</strong>'+
- '<p>Show, resize, and reorder your widgets. Drag a grip, or use arrows.</p></div><button data-bh-editclose aria-label="Close editor">✕</button></div>'+
+ '<p>Preview your changes below. Save or discard when you’re happy with the layout.</p></div>'+
+ '<button data-bh-cancel aria-label="Discard changes and close editor">✕</button></div>'+
+ '<div class="bh-edit-preview-label">◉ LIVE PREVIEW · NOT SAVED</div>'+
  '<div class="bh-editor-options"><label><input type="checkbox" data-bh-auto '+(c.auto?'checked':'')+'> Auto-select Morning / Workday</label>'+
+ '<label><input type="checkbox" data-bh-density '+(c.density==='compact'?'checked':'')+'> Compact card spacing</label>'+
  '<button data-bh-reset>Reset This Preset</button></div>'+
  '<div class="bh-editor-rows">'+selected.map((w,i)=>
  '<div class="bh-editor-row"><span class="bh-editor-symbol">'+symbols[w.id]+'</span><label class="bh-editor-check">'+
  '<input type="checkbox" data-bh-visible="'+w.id+'" '+(w.visible?'checked':'')+'><strong>'+names[w.id]+'</strong></label>'+
- '<select aria-label="Size of '+names[w.id]+'" data-bh-size="'+w.id+'">'+sizes.map(sz=>
+ '<select aria-label="Size of '+names[w.id]+'" data-bh-size="'+w.id+'">'+widgetSizes(w.id).map(sz=>
  '<option value="'+sz+'" '+(sz===w.size?'selected':'')+'>'+sz[0].toUpperCase()+sz.slice(1)+'</option>').join('')+'</select>'+
  '<button data-bh-move="'+w.id+'" data-direction="-1" aria-label="Move '+names[w.id]+' up" '+(i===0?'disabled':'')+'>↑</button>'+
  '<button data-bh-move="'+w.id+'" data-direction="1" aria-label="Move '+names[w.id]+' down" '+(i===selected.length-1?'disabled':'')+'>↓</button></div>').join('')+'</div>'+
- '<div class="bh-editor-footer"><button class="bh-editor-done" data-bh-editclose>✓ Done Customizing</button>'+
- '<button data-bh-classic>Use Classic Home</button></div></section>';
+ '<div class="bh-editor-footer"><button class="bh-editor-done" data-bh-save>✓ Save Layout</button>'+
+ '<button data-bh-cancel>↶ Discard Changes</button></div></section>';
+}
+function heroWeather(){
+ const snapshot=window.BoreLabCommand?.weatherSnapshot?.(),where=snapshot?.target;
+ const key=where?Number(where.lat).toFixed(3)+','+Number(where.lon).toFixed(3):'';
+ const reading=snapshot?.data?.current;
+ const valid=Boolean(where&&snapshot?.key===key&&reading&&Number.isFinite(Number(reading.temperature_2m))&&snapshot.at);
+ if(!valid)return '<button class="bh-hero-weather is-unavailable" data-page="command" aria-label="Open jobsite weather">☁ <strong>Weather</strong><small>Set GPS / forecast</small></button>';
+ const cached=Date.now()-snapshot.at>45*60000;
+ const conditions=window.BoreLabCommand?.weatherLabel?.(reading.weather_code)||'Conditions';
+ return '<button class="bh-hero-weather" data-page="command" aria-label="'+(cached?'Cached':'Updated')+' weather: '+
+  esc(Math.round(Number(reading.temperature_2m))+' degrees, '+conditions)+'">'+
+  '<strong>☁ '+Math.round(Number(reading.temperature_2m))+'°F</strong><small>'+
+  (cached?'Cached · ':'')+esc(conditions)+'</small></button>';
 }
 function renderHome(){
- const c=cfg(),p=preset(c),current=visible(c),hour=new Date().getHours();
+ const c=workingConfig(),p=preset(c),current=visible(c),hour=new Date().getHours();
  const greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
  const rig='<svg viewBox="0 0 400 112" role="img" aria-label="Directional drilling rig silhouette" preserveAspectRatio="xMidYMax meet">'+
  '<path d="M0 98H400" stroke="#122333" stroke-width="2"/><path d="M8 95L56 95 65 82 140 82 155 95H192L209 86H252L267 95H379" fill="none" stroke="#101f2e" stroke-width="7"/>'+
@@ -201,11 +228,10 @@ function renderHome(){
  '<path d="M297 82V62L303 51 313 63V82M302 50V41" stroke="#142438" stroke-width="7" fill="none"/>'+
  '<path d="M280 97H365" stroke="#142438" stroke-width="5"/></svg>';
  const subtitle=esc(state().jobName||'Your HDD workday');
- const weather=widgetBody('weather','small');
  const hero='<div class="bh-hero"><div class="bh-hero-top"><span class="bh-hero-tag">BORELAB FIELD · HOME COMMAND</span>'+
   '<button data-bh-edit aria-label="Customize home dashboard">⚙ Customize</button></div>'+
-  '<div class="bh-hero-main"><div><h1>'+greeting+', crew.</h1><p>'+new Date().toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+
-  ' · '+subtitle+'</p></div></div><div class="bh-hero-art">'+rig+'</div></div>';
+  '<div class="bh-hero-main"><div class="bh-hero-copy"><h1>'+greeting+', crew.</h1><p>'+new Date().toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+
+  ' · '+subtitle+'</p></div>'+heroWeather()+'</div><div class="bh-hero-art">'+rig+'</div></div>';
  const profile='<div class="bh-profile"><div class="bh-profile-heading"><strong>My Dashboard</strong><small>'+current.length+' widgets</small></div>'+
  '<div class="bh-presets" role="group" aria-label="Dashboard layout presets">'+Object.keys(presetNames).map(key=>
  '<button data-bh-preset="'+key+'" aria-pressed="'+(p===key?'true':'false')+'" class="'+(p===key?'active':'')+'">'+
@@ -217,8 +243,8 @@ function renderHome(){
  '<div class="bh-widget-content">'+widgetBody(w.id,w.size)+'</div></article>').join('')+'</div>';
  // Asking for weather is allowed only at saved job/opted-in GPS; never trigger a location permission prompt.
  Promise.resolve().then(()=>window.BoreLabCommand?.loadWeather?.()).catch(()=>{});
- return '<div class="page bh-home">'+hero+profile+
- (editing?editorCard(c,p):'<div class="bh-custom-tip"><span>Long-press a card to rearrange.</span><button data-bh-edit>Customize Widgets ›</button></div>')+
+ return '<div class="page bh-home'+(c.density==='compact'?' bh-dense':'')+'">'+hero+profile+
+ (editing?editorCard(c,p):'<div class="bh-custom-tip"><span>Long-press a card to customize.</span><button data-bh-edit>Customize Widgets ›</button></div>')+
  widgets+
  '<div class="bh-footer"><button data-bh-edit>▦ Edit Dashboard</button><button data-bh-classic>Classic Home</button></div>'+
  '<p class="bh-disclaimer">Saved locally · Weather requires internet · Progress and forecasts are not drilling telemetry.</p></div>';
@@ -226,18 +252,21 @@ function renderHome(){
 function refreshWeather(){
  const widget=document.querySelector('.bh-widget[data-bh-widget="weather"] .bh-widget-content');
  if(widget&&isEnabled())widget.innerHTML=widgetBody('weather',widget.closest('.bh-widget')?.classList.contains('bh-size-small')?'small':'medium');
+ const chip=document.querySelector('.bh-hero-weather');
+ if(chip&&isEnabled())chip.outerHTML=heroWeather();
 }
 document.addEventListener('click',event=>{
- const el=event.target.closest('[data-bh-enable],[data-bh-classic],[data-bh-edit],[data-bh-editclose],[data-bh-preset],[data-bh-reset],[data-bh-move],[data-bh-hide],[data-bh-shot],[data-bh-weather-refresh]');
+ const el=event.target.closest('[data-bh-enable],[data-bh-classic],[data-bh-edit],[data-bh-save],[data-bh-cancel],[data-bh-preset],[data-bh-reset],[data-bh-move],[data-bh-hide],[data-bh-shot],[data-bh-weather-refresh]');
  if(!el||!bridge())return;
  if(el.hasAttribute('data-bh-enable')){const c=cfg();c.enabled=true;saveConfig(c);editing=false;render();return}
- if(el.hasAttribute('data-bh-classic')){const c=cfg();c.enabled=false;saveConfig(c);editing=false;render();return}
- if(el.hasAttribute('data-bh-edit')){editing=true;render();return}
- if(el.hasAttribute('data-bh-editclose')){editing=false;render();return}
- if(el.dataset.bhPreset){const c=cfg();c.preset=el.dataset.bhPreset;c.auto=false;saveConfig(c);render();return}
+ if(el.hasAttribute('data-bh-classic')){cancelEdit();const c=cfg();c.enabled=false;saveConfig(c);render();return}
+ if(el.hasAttribute('data-bh-edit')){beginEdit();return}
+ if(el.hasAttribute('data-bh-save')){saveEdit();return}
+ if(el.hasAttribute('data-bh-cancel')){cancelEdit();return}
+ if(el.dataset.bhPreset){const c=workingConfig();c.preset=el.dataset.bhPreset;c.auto=false;stage(c);return}
  if(el.hasAttribute('data-bh-reset')){
   if(!confirm('Reset this dashboard preset to the default widget layout?'))return;
-  const c=cfg();c.layouts[preset(c)]=defaultLayout(preset(c));saveConfig(c);render();return;
+  const c=workingConfig();c.layouts[preset(c)]=defaultLayout(preset(c));stage(c);return;
  }
  if(el.dataset.bhMove){moveWidget(el.dataset.bhMove,Number(el.dataset.direction));return}
  if(el.dataset.bhHide){updateWidget(el.dataset.bhHide,{visible:false});return}
@@ -247,9 +276,10 @@ document.addEventListener('click',event=>{
 document.addEventListener('change',event=>{
  const e=event.target;
  if(e.dataset.bhVisible){updateWidget(e.dataset.bhVisible,{visible:e.checked});return}
- if(e.dataset.bhSize){updateWidget(e.dataset.bhSize,{size:sizes.includes(e.value)?e.value:'medium'});return}
+ if(e.dataset.bhSize){updateWidget(e.dataset.bhSize,{size:widgetSizes(e.dataset.bhSize).includes(e.value)?e.value:'medium'});return}
+ if(e.hasAttribute('data-bh-density')){const c=workingConfig();c.density=e.checked?'compact':'comfortable';stage(c);return}
  if(e.hasAttribute('data-bh-auto')){
-  const c=cfg();c.auto=e.checked;saveConfig(c);render();return;
+  const c=workingConfig();c.auto=e.checked;stage(c);return;
  }
 });
 // Touch-first long-press drag handles and accessible arrow/button alternatives.
@@ -267,7 +297,7 @@ document.addEventListener('pointerdown',e=>{
   if(!gesture)return;
   gesture.ready=true;
   if(gesture.handle){gesture.dragging=true;card.classList.add('bh-dragging')}
-  else{editing=true;bridge()?.notify?.('Widget editing enabled. Hold a drag handle or use the move arrows.');render()}
+  else{beginEdit();bridge()?.notify?.('Widget editing: drag handles or use arrows, then Save Layout.');}
  },480);
 });
 document.addEventListener('pointermove',e=>{
@@ -299,7 +329,7 @@ document.addEventListener('keydown',e=>{
   e.preventDefault();moveWidget(handle.dataset.bhGrab,e.key==='ArrowUp'?-1:1);
  }
 });
-window.BoreLabHomeV2={renderHome,enabled:isEnabled,classicBanner,refreshWeather,defaultConfig,cleanConfig,moveWidget,rearrange,widgetIds:ids};
+window.BoreLabHomeV2={renderHome,enabled:isEnabled,classicBanner,refreshWeather,defaultConfig,cleanConfig,moveWidget,rearrange,widgetIds:ids,beginEdit,saveEdit,cancelEdit,workingConfig,heroWeather};
 if(bridge()){
  const c=cfg();
  if(!state().homeDashboard2)saveConfig(c);
