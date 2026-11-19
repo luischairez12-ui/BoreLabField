@@ -200,7 +200,7 @@ function renderHome(){
  '<circle cx="69" cy="89" r="14" fill="#152b3b"/><circle cx="155" cy="89" r="14" fill="#152b3b"/>'+
  '<path d="M297 82V62L303 51 313 63V82M302 50V41" stroke="#142438" stroke-width="7" fill="none"/>'+
  '<path d="M280 97H365" stroke="#142438" stroke-width="5"/></svg>';
- const subtitle=esc(st().jobName||'Your HDD workday');
+ const subtitle=esc(state().jobName||'Your HDD workday');
  const weather=widgetBody('weather','small');
  const hero='<div class="bh-hero"><div class="bh-hero-top"><span class="bh-hero-tag">BORELAB FIELD · HOME COMMAND</span>'+
   '<button data-bh-edit aria-label="Customize home dashboard">⚙ Customize</button></div>'+
