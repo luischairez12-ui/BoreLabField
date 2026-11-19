@@ -31,6 +31,6 @@ assert(scan.includes("if(btn.dataset.blsAction==='back')return closeScanner()"),
   'Cancel returns to Add Bore');
 assert(scan.includes("if(!root.querySelector('#bls-confirm')?.checked)"),
   'Import must require review');
-assert(html.includes('BoreLab Field · v0.18.0'));
+assert(html.includes('BoreLab Field · v0.19.0'));
 assert(html.includes('data-page="shotboard"'),'Today’s Shot Board should be available from Home');
 console.log('Scan placement regression checks passed.');
