@@ -60,7 +60,7 @@ const form=(type,values={},ids={})=>({
   return m?{value:values[m[1]]??''}:null;
  },
  querySelectorAll:selector=>{
-  const m=selector.match(/^\[data-b3-plan-([^]]+)\]:checked$/);
+  const m=selector.match(/^\[data-b3-plan-([a-z]+)\]:checked$/);
   return m?(ids[m[1]]||[]).map(value=>({value})):[];
  }
 });
