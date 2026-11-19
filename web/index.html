@@ -1734,14 +1734,15 @@ function quickBoreActions(id){
 function searchNormal(value){return String(value??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase()}
 function universalSearchGroups(query){
  const q=searchNormal(String(query||'').trim());if(!q)return [];
+ const pinsModule=typeof window!=='undefined'?window.BoreLabFieldPins:null;
  const match=(...parts)=>parts.some(part=>searchNormal(part).includes(q));
  const groups=[
   {name:'Active Job',items:match(state.jobName,state.jobAddress,state.jobNotes)?[
    {label:state.jobName,detail:state.jobAddress||'Active job workspace',action:'open-job',id:''}]:[]},
-  {name:'Bores',items:state.shots.filter(shot=>match(shot.name,shot.address,shot.notes,String(shot.feet),window.BoreLabFieldPins?.dateTerms(shot)||'')).slice(0,20)
+  {name:'Bores',items:state.shots.filter(shot=>match(shot.name,shot.address,shot.notes,String(shot.feet),pinsModule?.dateTerms(shot)||'')).slice(0,20)
     .map(shot=>({label:shot.name,detail:fmt(feet(shot),1)+' ft · '+(shot.status==='complete'?'Complete':shot.status==='progress'?'Drilling':'Pending'),action:'shot-detail',id:shot.id}))},
-  {name:'Field Pins',items:(window.BoreLabFieldPins?.pins()||[]).filter(p=>match(p.name,p.address,p.notes,window.BoreLabFieldPins?.kindLabel(p.kind),window.BoreLabFieldPins?.dateTerms(p))).slice(0,20)
-    .map(p=>({label:p.name,detail:(window.BoreLabFieldPins?.kindLabel(p.kind)||'Field Pin')+' · '+window.BoreLabFieldPins?.displayDate(p),action:'field-pin-open',id:p.id}))},
+  {name:'Field Pins',items:(pinsModule?.pins()||[]).filter(p=>match(p.name,p.address,p.notes,pinsModule?.kindLabel(p.kind),pinsModule?.dateTerms(p))).slice(0,20)
+    .map(p=>({label:p.name,detail:(pinsModule?.kindLabel(p.kind)||'Field Pin')+' · '+pinsModule?.displayDate(p),action:'field-pin-open',id:p.id}))},
   {name:'Equipment',items:state.equipment.filter(e=>match(e.name,e.type,e.serial,e.notes)).slice(0,20)
     .map(e=>({label:e.name,detail:e.type||'Equipment',action:'edit-equipment',id:e.id}))},
   {name:'Manual Library',items:MANUAL_MACHINES.filter(m=>match(m.make,m.model,m.id)).slice(0,20)
