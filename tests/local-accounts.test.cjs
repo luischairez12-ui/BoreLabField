@@ -9,9 +9,10 @@ assert.equal(css,fs.readFileSync('app/src/main/assets/web/local-accounts.css','u
 for(const token of [
  'data-local-auth="locked"','id="localAccountsGate"','local-accounts.css',
  '<script src="./local-accounts.js"></script>','localaccounts:()=>window.BoreLabLocalAccounts?.renderManage()',
- 'guardNavigation(p)','isUnlocked()','dataset.localRole','data-la-lock',
+ 'guardNavigation(p)','isUnlocked()','data-la-lock',
  'window.BoreLabLocalAccounts?.guardJobSwitch?.()===false',
  'localaccounts'])assert(html.includes(token),'missing integration: '+token);
+assert(js.includes('dataset.localRole'),'Account module sets the selected role');
 assert(css.includes('html:not([data-local-auth="unlocked"]) .app-shell'));
 assert(css.includes('html[data-local-role="crew"] .topbar #topNavButton'));
 assert(css.includes('.la-account.selected')&&css.includes('.la-pin-keypad'));
