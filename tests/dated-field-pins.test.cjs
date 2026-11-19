@@ -64,6 +64,7 @@ assert.equal(map.model().geocoded.length,2,'field pins share same jobsite map as
 assert.equal(map.model().records.length,2);
 assert(map.markerHTML(current.fieldPins[0],130,140).includes('is-coupling'),'pin has distinctive map class');
 assert(map.markerHTML(current.fieldPins[0],130,140).includes('Nov 19, 2026'),'pin displays date label');
+map.renderMap(); // Initialize the current-job map before selecting a marker.
 map.setSelected('pin-1');
 const screen=map.renderMap();
 assert(screen.includes('Coupling near driveway')&&screen.includes('Edit Pin'));
