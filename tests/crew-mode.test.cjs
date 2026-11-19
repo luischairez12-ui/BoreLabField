@@ -51,6 +51,7 @@ assert.equal(state.crew[0].jobId,'j1');
 assert.equal(otherJob.crew.length,1);
 mode.clockIn();assert.equal(state.crew.length,1,'duplicate clock-in blocked');
 screen=mode.renderCrew();assert(screen.includes('Confirm Clock Out')&&screen.includes('value="30"'));
+state.crew[0].start=new Date(Date.now()-2*3600000).toISOString();
 const lunch={querySelector:()=>({value:'30'})};
 allow=false;mode.clockOut(lunch);assert.equal(state.crew[0].end,'');
 allow=true;mode.clockOut(lunch);
