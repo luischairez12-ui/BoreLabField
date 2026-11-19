@@ -13,7 +13,7 @@ const unproj=(x,y,z)=>{const n=256*2**z;return{lat:Math.atan(Math.sinh(Math.PI*(
 const fit=(p,w=350,h=420)=>{if(!p.length)return null;const a=p.map(x=>proj(x.lat,x.lon,0));const minX=Math.min(...a.map(x=>x.x)),maxX=Math.max(...a.map(x=>x.x)),minY=Math.min(...a.map(x=>x.y)),maxY=Math.max(...a.map(x=>x.y)),dx=Math.max(.00001,maxX-minX),dy=Math.max(.00001,maxY-minY),z=p.length===1?17:zoomClamp(Math.floor(Math.log2(Math.min(Math.max(100,w-100)/dx,Math.max(120,h-145)/dy))));return{zoom:z,center:unproj((minX+maxX)*2**z/2,(minY+maxY)*2**z/2,z)}};
 let view=null,viewSignature='',mode='street',selectedKey='',clusterKeys=[],gesture=null,down=null,clickQuiet=0,pendingFocus=null;
 function points(){
- const events=ab()?.atlasEvents?.()||[],indexed=new Map();
+ const events=(ab()?.getView?.()==='replay'?window.BoreLabInsights?.visibleReplayEvents?.():ab()?.atlasEvents?.())||[],indexed=new Map();
  for(const e of events){
   const r=e.record; if(!valid(r))continue;
   const id=key(e.jobId,e.type,r.id);
@@ -51,6 +51,10 @@ function points(){
    if(!event)continue;
    for(const [field,label] of [['asbuiltStart','Entry point'],['asbuiltEnd','Exit point']]){
     const r=shot[field];if(!valid(r))continue;
+     if(ab()?.getView?.()==='replay'){
+      if(!r.recordedAt||ab()?.dayOf?.(r.recordedAt)!==ab()?.getDay?.())continue;
+      const recorded=new Date(r.recordedAt);if(!Number.isFinite(+recorded)||recorded.getHours()*60+recorded.getMinutes()>(window.BoreLabInsights?.getMinute?.()??-1))continue;
+     }
     const id=key(job.id,field,shot.id);if(existing.has(id))continue;
     indexed.set(id,{key:id,jobId:job.id,jobName:job.jobName||'Job',type:field,record:r,shot,
      title:(shot.name||'Bore')+' · '+label,dates:[ab().dayOf(r.recordedAt||shot.completedAt||shot.startedAt)].filter(Boolean),
@@ -60,11 +64,11 @@ function points(){
  }
  return [...indexed.values()];
 }
-function signature(all){return (ab()?.getAtlasDayMode?.()||'all')+':'+(ab()?.getDay?.()||'')+':'+ab()?.getScope?.()+':'+points().length+':'+(api()?.state?.()?.activeJobId||'')+':'+(ab()?.getSearch?.()||'')}
+function signature(all){if(ab()?.getView?.()==='replay')return 'replay:'+(ab()?.getDay?.()||'')+':'+ab()?.getScope?.()+':'+(ab()?.getType?.()||'all')+':'+(ab()?.getSearch?.()||'')+':'+(api()?.state?.()?.activeJobId||'');return (ab()?.getAtlasDayMode?.()||'all')+':'+(ab()?.getDay?.()||'')+':'+ab()?.getScope?.()+':'+points().length+':'+(api()?.state?.()?.activeJobId||'')+':'+(ab()?.getSearch?.()||'')}
 function ensure(all=points()){
  const sig=signature(all);
  if(sig!==viewSignature||!view){
-  viewSignature=sig;view=fit(all.map(point),document.querySelector('[data-atlas-view]')?.clientWidth||350,430)||{zoom:15,center:null};
+  viewSignature=sig;const boundPoints=ab()?.getView?.()==='replay'?(window.BoreLabInsights?.replayMapPoints?.()||all):all;view=fit(boundPoints.map(point),document.querySelector('[data-atlas-view]')?.clientWidth||350,430)||{zoom:15,center:null};
  }
  if(pendingFocus){
   const focused=all.find(p=>p.key===pendingFocus);if(focused){selectedKey=focused.key;view={zoom:17,center:point(focused)};pendingFocus=null}
@@ -100,7 +104,7 @@ function draw(){
  const el=document.querySelector('[data-atlas-view]'),scene=el?.querySelector('[data-atlas-scene]');
  if(!el||!scene)return;
  const all=points();ensure(all);
- if(!all.length||!view.center){scene.innerHTML='';return}
+ if(!view.center){scene.innerHTML='';return}
  const w=el.clientWidth||350,h=el.clientHeight||430,c=proj(view.center.lat,view.center.lon,view.zoom),grouped=groups(all,w,h,c);
  const marks=grouped.map(g=>{
   const first=g.items[0],n=g.items.length,many=n>1,selected=g.items.some(x=>x.key===selectedKey);

@@ -40,3 +40,22 @@ html[data-pin-testing="on"] .bf-test-notice{display:block}
 .bf-test-notice button{border:0;background:none;padding:0;color:#a74d0c;font-size:11px;font-weight:850;text-decoration:underline}
 @media(max-width:450px){.bf-pin-test-tag{font-size:8px;padding:4px}.bf-fab-root{bottom:calc(13px + env(safe-area-inset-bottom));right:11px}.bf-fab-trigger{height:58px;width:58px}.bf-fab-actions{width:min(280px,calc(100vw - 32px))}}
 @media(prefers-reduced-motion:reduce){.bf-fab-trigger,.bf-fab-trigger svg{transition:none}}
+
+/* v0.21: Android WebView's default touch highlight painted an unwanted blue square over the +.
+   Disable native tap flash for this component, but keep intentional keyboard focus indicators. */
+.bf-fab-root,.bf-fab-root button,.bf-fab-root svg,.bf-fab-root span{
+ -webkit-tap-highlight-color:transparent!important;
+ -webkit-touch-callout:none;
+}
+.bf-fab-trigger{
+ -webkit-appearance:none;
+ appearance:none;
+ background-clip:padding-box;
+ outline:none;
+ user-select:none;
+ -webkit-user-select:none;
+ touch-action:manipulation;
+}
+.bf-fab-trigger:focus:not(:focus-visible),.bf-fab-action:focus:not(:focus-visible){outline:none;box-shadow:0 5px 21px #bb601c66,0 2px 7px #2e3d4b20}
+.bf-fab-trigger:focus-visible,.bf-fab-action:focus-visible{outline:3px solid #994b0a;outline-offset:3px}
+.bf-fab-trigger::selection,.bf-fab-trigger svg::selection{background:transparent}

@@ -1,0 +1,78 @@
+/* BoreLab 0.21 — Replay & Insights. Unified daylight BoreLab white/orange design. */
+.bi-replay,.bi-insights{display:grid;gap:12px;color:var(--text,#1a303f)}
+.bi-head,.bi-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.bi-head h2{font-size:clamp(19px,5vw,25px);margin:4px 0 0;letter-spacing:-.6px;color:#1e303b}
+.bi-pill{border:1px solid #edc7a7;border-radius:99px;padding:5px 9px;background:#fff2e6;color:#a2500f;font-size:10px;font-weight:850;white-space:nowrap}
+.bi-replay-clock{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e7d9ca;border-left:4px solid #df761c;border-radius:14px;padding:12px;gap:10px}
+.bi-replay-clock strong{font-size:13px}
+.bi-replay-clock output{font-size:20px;font-variant-numeric:tabular-nums;font-weight:900;color:#bc5808}
+.bi-replay-buttons{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bi-replay-buttons button{min-width:92px;min-height:43px;border-radius:12px;font-size:13px;font-weight:850}
+.bi-replay-buttons button:first-child{background:linear-gradient(120deg,#f9942f,#d96b08);color:#fff;border:1px solid #d47015}
+.bi-replay-buttons button:nth-child(2){background:#fff;color:#9e4f0e;border:1px solid #e4ba99}
+.bi-replay-buttons span{font-size:11px;color:#7b6552;margin-left:auto}
+.bi-slider-label{font-weight:800;font-size:12px;margin:0}
+input[data-bi-time]{width:100%;height:34px;accent-color:#df771a;touch-action:pan-x}
+.bi-slider-ends{display:flex;justify-content:space-between;color:#766b60;font-size:10px;margin-top:-12px}
+.bi-map{min-width:0}
+.bi-map .atlas-frame{min-height:330px;max-height:430px}
+.bi-replay-summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.bi-replay-summary span{border:1px solid #f0cfb0;background:#fff7ee;border-radius:10px;padding:9px 10px;font-size:11px;color:#854f23;font-weight:750}
+.bi-replay-list{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.bi-replay-list li{display:flex;align-items:center;gap:10px;border:1px solid #dfe6eb;border-radius:13px;background:#fff;padding:11px 10px;min-height:60px}
+.bi-replay-list time{white-space:nowrap;min-width:62px;font-size:11px;font-weight:900;color:#a64f0c}
+.bi-event-icon{width:31px;height:31px;flex:none;border-radius:9px;display:grid;place-items:center;background:#fff1e2;color:#be5c0d;font-size:18px}
+.bi-replay-list li>div{min-width:0;display:grid;gap:4px}
+.bi-replay-list strong{font-size:12px;overflow-wrap:anywhere}
+.bi-replay-list small{font-size:10px;color:#687884;line-height:1.4}
+.bi-untimed{border:1px dashed #e5c39f;border-radius:13px;background:#fff9f3;padding:12px;display:grid;gap:7px}
+.bi-untimed summary{font-size:12px;font-weight:850;color:#a65d22;cursor:pointer}
+.bi-untimed p{margin:7px 0;display:grid;gap:3px;font-size:12px}
+.bi-untimed p strong{font-size:12px}
+.bi-untimed small{font-size:10px;color:#687884}
+.bi-empty{margin:0;padding:14px 12px;border-radius:12px;border:1px dashed #e3caaa;background:#fff8f0;color:#8d6442;font-size:12px;line-height:1.5}
+.bi-month-switch{display:flex;align-items:center;justify-content:space-between;padding:8px;background:#fff;border:1px solid #e8d4c2;border-radius:14px}
+.bi-month-switch button{border:1px solid #e5c4a2;background:#fff7ee;border-radius:10px;color:#b65c10;min-height:41px;min-width:44px;font-size:22px}
+.bi-month-switch strong{font-size:15px;text-align:center}
+.bi-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.bi-cards>div{min-width:0;display:grid;align-content:space-between;gap:8px;padding:14px;background:#fff;border:1px solid #e1e6eb;border-radius:14px;box-shadow:0 2px 9px #162d3a0c}
+.bi-cards small{font-size:10px;color:#64737e;font-weight:750}
+.bi-cards strong{font-size:clamp(19px,5vw,24px);font-weight:900;color:#a94e0a;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.bi-panel{display:grid;gap:11px;background:#fff;border:1px solid #e1e6eb;border-radius:16px;padding:13px}
+.bi-panel h3{font-size:15px;margin:0;letter-spacing:-.25px}
+.bi-day-chart{display:flex;gap:7px;overflow-x:auto;scroll-snap-type:x proximity;min-height:145px;padding:5px 1px}
+.bi-day-chart button{display:grid;grid-template-rows:25px 90px 20px;gap:3px;justify-items:center;flex:none;min-width:32px;border:0;background:transparent;padding:0;color:#97602d;scroll-snap-align:center}
+.bi-day-chart button>span{font-size:9px;font-weight:850;white-space:nowrap}
+.bi-day-chart button>i{height:90px;width:26px;background:#fff3e8;border:1px solid #f0d2b0;border-radius:7px;display:flex;align-items:end;overflow:hidden;justify-content:center}
+.bi-day-chart button>i>em{display:block;width:100%;border-radius:5px 5px 0 0;background:linear-gradient(0deg,#d46607,#ffa64b);min-height:3px}
+.bi-day-chart button>small{font-size:10px;font-weight:850}
+.bi-day-chart button:focus-visible{outline:3px solid #c36621;outline-offset:3px}
+.bi-compare-controls{display:grid;grid-template-columns:1fr 1fr;gap:9px;align-items:end}
+.bi-compare-controls>strong{font-size:13px;color:#904a0e;padding:9px 5px;min-width:0}
+.bi-compare-controls label{font-size:10px;color:#6a7681;font-weight:800;display:grid;gap:4px;min-width:0}
+.bi-compare-controls input{width:100%;min-width:0;padding:9px 6px;font-size:12px;border-radius:9px;border:1px solid #dcc9b9;background:#fff}
+.bi-compare-grid{display:grid;gap:0;border:1px solid #e5e9ec;border-radius:11px;overflow:hidden}
+.bi-compare-grid>div{display:grid;grid-template-columns:minmax(0,1.5fr) repeat(2,minmax(0,1fr));align-items:center;gap:4px;padding:10px 8px;font-size:11px}
+.bi-compare-grid>div:not(:first-child){border-top:1px solid #e5e9ec}
+.bi-compare-grid>div:nth-child(even){background:#fff9f4}
+.bi-compare-grid>div span{font-weight:750;min-width:0}
+.bi-compare-grid>div strong,.bi-compare-grid>div b{text-align:right;color:#904710;font-variant-numeric:tabular-nums}
+.bi-compare-head{background:#fff0de;color:#7d4c26}
+.bi-compare-head b{font-size:10px}
+.bi-evidence-days{display:grid;gap:7px}
+.bi-evidence-days button{display:flex;align-items:center;gap:10px;justify-content:space-between;text-align:left;border:1px solid #e9d5c0;background:#fff9f3;border-radius:11px;padding:11px}
+.bi-evidence-days button>span{display:grid;gap:3px;min-width:0}
+.bi-evidence-days strong{font-size:12px}
+.bi-evidence-days small{font-size:10px;color:#7a8290}
+.bi-evidence-days b{font-size:11px;color:#ad510c;white-space:nowrap}
+.bi-inline-evidence{display:grid;gap:8px;margin:12px 0 4px;padding:12px;border:1px solid #eccca9;border-radius:13px;background:#fffaf5}
+.bi-inline-evidence p{font-size:11px;margin:0;color:#76563d}
+.bi-inline-evidence .bi-panel-head{font-size:13px}
+.bi-missing-toggle{display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:8px 10px;border:1px solid #ebcba7;background:#fff8ee;color:#9b5017;font-size:12px;font-weight:850;border-radius:10px;margin:7px 0}
+.bi-missing-toggle input{accent-color:#d87418;width:18px;height:18px;flex:none}
+.bi-missing-count{font-size:10px;color:#a95417;font-weight:850}
+.ab-view-toggle{overflow-x:auto;scrollbar-width:none;justify-content:flex-start!important;flex-wrap:nowrap}
+.ab-view-toggle button{flex:0 0 auto;min-width:max-content}
+.ab-day .ab-event-list{min-width:0}
+@media(max-width:380px){.bi-cards{gap:7px}.bi-cards>div{padding:11px}.bi-replay-buttons button{min-width:80px}.bi-replay-buttons span{width:100%;margin:0}.bi-compare-grid>div{padding:8px 5px;font-size:10px}}
+@media(prefers-reduced-motion:reduce){.bi-day-chart{scroll-behavior:auto}}
