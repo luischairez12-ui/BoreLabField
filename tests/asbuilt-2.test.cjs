@@ -13,7 +13,7 @@ for(const name of ['asbuilt-2.js','asbuilt-2.css','jobsite-map.js','field-pins.j
 }
 new Function(source);new Function(map);new Function(pins);
 assert(html.includes('fieldhistory:()=>window.BoreLabAsBuilt?.renderCalendar()'),'Calendar page route is registered');
-assert(html.includes('photoDetail,capturePinPhoto,setPage'),'Native camera photo flow is exposed');
+assert(html.includes('photoDetail,capturePinPhoto,newBore:')&&html.includes('setPage,uid,render'),'Native camera and new bore workflows are exposed');
 assert(html.includes('fieldPinId:linkPin'),'Photos are physically linked to installation IDs');
 assert(map.includes('actualEndpointPath(data,geom)'),'Map can render confirmed entry and exit points');
 assert(map.includes('clusterList(group)'),'Nearby pins have selection list');
