@@ -2626,7 +2626,7 @@ async function gpsFill(target){try{notify('Requesting current GPS position…');
 function lookupAddressCoordinates(address){
  const addr=String(address||'').trim(),loc=window.BoreLabLocations;
  if(!addr)return Promise.reject(Error('Enter an address.'));
- const direct=loc?.parseCoords(addr)||loc?.decodeFullPlusCode(addr);
+ const direct=loc?.parseCoords(addr)||loc?.decodeFullPlusCode?.(addr);
  if(direct)return Promise.resolve({lat:String(direct.lat),lon:String(direct.lon)});
  const plus=loc?.findPlusCode(addr);
  if(plus&&!loc?.isUsablePlusCode(addr))
@@ -3092,7 +3092,7 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
  if(!validLocationInput(address))return notify('Short Plus Codes need a nearby place name.');
  let lat=String(values.lat||'').trim(),lon=String(values.lon||'').trim();
  if(old&&address!==old.address&&lat===String(old.lat??'')&&lon===String(old.lon??'')){lat='';lon=''}
- const addressGps=window.BoreLabLocations?.parseCoords(address)||window.BoreLabLocations?.decodeFullPlusCode(address);
+ const addressGps=window.BoreLabLocations?.parseCoords(address)||window.BoreLabLocations?.decodeFullPlusCode?.(address);
  if(addressGps&&lat===''&&lon===''){lat=addressGps.lat;lon=addressGps.lon;}
  if((lat!==''||lon!=='')&&!coordsValid({lat,lon}))return notify('Enter valid latitude and longitude, or leave both blank.');
  const num=(key,whole=false)=>{

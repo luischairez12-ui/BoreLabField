@@ -69,7 +69,7 @@ function createQuickBore(form){
  if(!Number.isInteger(quantity)||quantity<1||quantity>50)return b.notify('Conduit quantity must be between 1 and 50.');
  if(address&&window.BoreLabLocations?.locationKind(address)==='plus'&&!window.BoreLabLocations?.isUsablePlusCode(address))
   return b.notify('Short Plus Code needs a nearby town or region.');
- const gps=window.BoreLabLocations?.parseCoords(address)||window.BoreLabLocations?.decodeFullPlusCode(address);
+ const gps=window.BoreLabLocations?.parseCoords(address)||window.BoreLabLocations?.decodeFullPlusCode?.(address);
  const shot={id:b.uid(),jobId:state.activeJobId,name:name.slice(0,70),feet,
   conduits:size?[{size:size.slice(0,40),quantity,perRunFeet:''}]:[],pipeDiameter:size.slice(0,40),
   address:address.slice(0,250),lat:gps?.lat||'',lon:gps?.lon||'',notes:'',status:'planned',
