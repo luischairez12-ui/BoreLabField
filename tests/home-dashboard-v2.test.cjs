@@ -40,7 +40,7 @@ assert(!workday.includes('NaN'));
 const widgets=app.widgetIds;
 assert(widgets.includes('backup')&&widgets.includes('scanner')&&widgets.length>=10);
 assert.equal(app.cleanConfig({preset:'bogus',layouts:{workday:[{id:'evil'},{id:'active',size:'giant'},{id:'active',size:'large'}]}}).layouts.workday.length,widgets.length);
-const click=el=>listeners.click.forEach(fn=>fn({target:{closest:()=>el}}));
+const click=el=>{if(!el.hasAttribute)el.hasAttribute=()=>false;listeners.click.forEach(fn=>fn({target:{closest:()=>el}}));};
 click({dataset:{bhPreset:'supervisor'}});
 assert.equal(base.homeDashboard2.preset,'supervisor');
 assert(app.renderHome().includes('Supervisor Overview'));
