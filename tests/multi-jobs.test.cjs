@@ -8,7 +8,10 @@ const js=html.split('<script>')[1]?.split('</script>')[0];
 assert(js);new Function(js);
 assert(js.includes("const KEY='borelab-field-v0.1'"),'Old app records must keep storage key');
 assert(js.includes('initializeJobs();'),'Legacy install must be migrated into a first job');
-assert(js.includes("jobs:renderJobs")&&js.includes("dayassist:renderDayAssistant"));
+assert(js.includes("jobs:renderJobs") && (js.includes("dayassist:renderDayAssistant") ||
+ (js.includes("dayassistlegacy:renderDayAssistant") &&
+  js.includes("dayassist:()=>window.BoreLabCloseoutPhotoV2?.renderEndDay()"))),
+ 'Keep legacy combined all-jobs review and the upgraded default assistant');
 assert(js.includes("case 'switch-job':switchActiveJob(id);break;"));
 assert(js.includes("case 'save-multi-closeout':saveMultiDayCloseout(false);break;"));
 assert(js.includes("case 'export-multi-closeout':saveMultiDayCloseout(true);break;"));
