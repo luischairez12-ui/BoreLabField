@@ -1,0 +1,308 @@
+/* BoreLab Field: Customizable Home Dashboard 2.0 */
+(function(){
+'use strict';
+const bridge=()=>window.BoreLabAssistantBridge;
+const state=()=>bridge()?.state()||{};
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const value=x=>Number.isFinite(Number(x))?Math.max(0,Number(x)):0;
+const fmt=x=>value(x).toLocaleString(undefined,{maximumFractionDigits:1});
+const today=()=>bridge()?.todayLocal?.()||new Date().toISOString().slice(0,10);
+const sizes=['small','medium','large'];
+const ids=['job','active','shots','weather','next','crew','reels','finish','photos','scanner','quick','notes','backup'];
+const names={job:'Current Job',active:'Active Bore',shots:'Today’s Shots',weather:'Jobsite Weather',next:'Next 3 Shots',crew:'Crew Status',reels:'Reels on Truck',finish:'Estimated Finish',photos:'Photo Reminders',scanner:'Paperwork Scanner',quick:'Quick Actions',notes:'Job Notes',backup:'Backup & Recovery'};
+const symbols={job:'⌖',active:'◎',shots:'▦',weather:'☁',next:'☷',crew:'♙',reels:'◈',finish:'◷',photos:'▣',scanner:'▤',quick:'＋',notes:'✎',backup:'↶'};
+const presetNames={morning:'Morning Briefing',workday:'Active Workday',supervisor:'Supervisor Overview'};
+const defaults={
+ morning:[['job','medium'],['weather','medium'],['shots','small'],['crew','small'],['next','medium'],['reels','medium'],['active','large'],['finish','small'],['photos','small'],['quick','medium'],['scanner','small'],['notes','small'],['backup','small']],
+ workday:[['active','large'],['shots','small'],['reels','small'],['weather','medium'],['next','medium'],['crew','small'],['finish','small'],['photos','medium'],['quick','medium'],['job','medium'],['scanner','small'],['notes','small'],['backup','small']],
+ supervisor:[['job','medium'],['shots','medium'],['crew','medium'],['next','medium'],['photos','medium'],['reels','medium'],['finish','small'],['weather','small'],['active','large'],['quick','medium'],['notes','small'],['scanner','small'],['backup','small']]
+};
+const initialShown={morning:['job','weather','shots','crew','next','reels','active','finish','quick','scanner'],workday:['active','shots','reels','weather','next','crew','finish','photos','quick','job'],supervisor:['job','shots','crew','next','photos','reels','finish','weather','active']};
+function defaultLayout(p){return defaults[p].map(([id,size])=>({id,size,visible:initialShown[p].includes(id)}))}
+function defaultConfig(){return{version:1,enabled:true,preset:'workday',auto:false,layouts:{morning:defaultLayout('morning'),workday:defaultLayout('workday'),supervisor:defaultLayout('supervisor')}}}
+function cleanConfig(raw){
+ const out=defaultConfig();if(!raw||typeof raw!=='object')return out;
+ out.enabled=raw.enabled!==false;out.auto=raw.auto===true;
+ if(presetNames[raw.preset])out.preset=raw.preset;
+ for(const p of Object.keys(presetNames)){
+  const arr=raw.layouts?.[p];if(!Array.isArray(arr))continue;
+  const known=[],seen=new Set();
+  for(const entry of arr){
+   if(!entry||!ids.includes(entry.id)||seen.has(entry.id))continue;
+   seen.add(entry.id);known.push({id:entry.id,size:sizes.includes(entry.size)?entry.size:'medium',visible:entry.visible!==false});
+  }
+  const baseline=defaultLayout(p);
+  out.layouts[p]=known.concat(baseline.filter(x=>!seen.has(x.id)));
+ }
+ return out;
+}
+function cfg(){return cleanConfig(state().homeDashboard2)}
+function saveConfig(c){state().homeDashboard2=cleanConfig(c);bridge()?.save?.()}
+function isEnabled(){return cfg().enabled}
+function classicBanner(){return '<div class="bh-classic-return"><strong>Home Dashboard 2.0 is turned off.</strong><button data-bh-enable>Try New Dashboard ›</button></div>'}
+let editing=false;
+function preset(c){
+ if(!c.auto)return c.preset;
+ if((state().shots||[]).some(s=>s.status==='progress'))return'workday';
+ return new Date().getHours()<10?'morning':'workday';
+}
+function visible(c){const p=preset(c);return c.layouts[p].filter(x=>x.visible)}
+function updateWidget(id,patch){
+ const c=cfg(),list=c.layouts[preset(c)],w=list.find(x=>x.id===id);
+ if(!w)return;
+ Object.assign(w,patch);saveConfig(c);render();
+}
+function moveWidget(id,direction){
+ const c=cfg(),list=c.layouts[preset(c)],from=list.findIndex(x=>x.id===id),to=from+direction;
+ if(from<0||to<0||to>=list.length)return;
+ const tmp=list[from];list[from]=list[to];list[to]=tmp;saveConfig(c);render();
+}
+function rearrange(a,b){
+ if(a===b||!ids.includes(a)||!ids.includes(b))return;
+ const c=cfg(),list=c.layouts[preset(c)],from=list.findIndex(x=>x.id===a),to=list.findIndex(x=>x.id===b);
+ if(from<0||to<0)return;
+ list.splice(to,0,list.splice(from,1)[0]);saveConfig(c);render();
+}
+function render(){bridge()?.render?.()}
+function activeBore(){const a=state().shots||[];return a.find(x=>x.status==='progress')||a.find(x=>x.status!=='complete')||null}
+function crew(){return(state().crew||[]).filter(x=>x.start&&!x.end)}
+function countPhotos(shotId){return (bridge()?.photos?.()||[]).filter(p=>(!p.jobId||p.jobId===state().activeJobId)&&(!shotId||p.shotId===shotId)).length}
+function widgetHead(id,link,sub){
+ return '<div class="bh-widget-title"><span class="bh-widget-icon">'+symbols[id]+'</span><div><strong>'+names[id]+'</strong>'+
+ (sub?'<small>'+esc(sub)+'</small>':'')+'</div>'+
+ (link?'<button class="bh-widget-more" data-page="'+link+'" aria-label="Open '+names[id]+'">›</button>':'')+'</div>';
+}
+function widgetBody(id,size){
+ const s=state(),all=s.shots||[],unfinished=all.filter(x=>x.status!=='complete'),shot=activeBore();
+ if(id==='job'){
+  const finished=all.filter(x=>x.status==='complete').length,done=all.filter(x=>x.status==='complete').reduce((sum,x)=>sum+value(x.feet),0);
+  return widgetHead('job','job','Active project')+
+   '<div class="bh-job-name">'+esc(s.jobName||'My HDD Job')+'</div><p class="bh-small">'+esc(s.jobAddress||'Add a job address in Job Details')+'</p>'+
+   '<div class="bh-widget-foot"><span>'+finished+' of '+all.length+' completed</span><b>'+fmt(done)+' ft done</b></div>'+
+   (size!=='small'?'<button class="bh-plain-action" data-page="jobs">Switch / View Jobs ›</button>':'');
+ }
+ if(id==='active'){
+  if(!shot)return widgetHead('active','shotcards','Current bore')+'<div class="bh-blank">No active or pending bore yet.</div><button class="bh-plain-action" data-action="new-shot">+ Add First Bore</button>';
+  const length=value(shot.feet),done=shot.status==='complete'?length:Math.min(length,value(shot.progressFeet)),pct=length?Math.round(done*100/length):0;
+  const pipe=window.BoreLabConduits?.summary?.(shot)||shot.pipeDiameter||'Not set';
+  return widgetHead('active','shotcards',shot.status==='progress'?'● Drilling':'Pending bore')+
+   '<div class="bh-active-row"><div><h3>'+esc(shot.name||'Unnamed bore')+'</h3>'+
+    '<p class="bh-small">'+esc(shot.address||'Address not entered')+'</p></div>'+
+    '<span class="bh-active-status '+(shot.status==='progress'?'is-drilling':'')+'">'+(shot.status==='progress'?'Drilling':'Pending')+'</span></div>'+
+   '<div class="bh-between"><strong>'+fmt(done)+' / '+fmt(length)+' ft</strong><b>'+pct+'%</b></div>'+
+   '<div class="bh-progress"><span style="width:'+pct+'%"></span></div>'+
+   (size!=='small'?'<div class="bh-active-metrics">'+
+     '<div><small>Pipe</small><strong>'+esc(pipe)+'</strong></div>'+
+     '<div><small>Rods</small><strong>'+esc(shot.rodCount??'—')+'</strong></div>'+
+     '<div><small>Photos</small><strong>'+countPhotos(shot.id)+'</strong></div></div>':'')+
+   '<div class="bh-active-buttons"><button data-bh-shot="'+esc(shot.id)+'">Open Shot</button>'+
+    '<button data-page="shotcards">Log Progress</button></div>';
+ }
+ if(id==='shots'){
+  const done=all.filter(x=>x.status==='complete').length;
+  return widgetHead('shots','shotboard','Bore status')+
+   '<div class="bh-two-metrics"><div><strong>'+all.length+'</strong><small>Total bores</small></div>'+
+    '<div><strong>'+done+'</strong><small>Completed</small></div></div>'+
+   '<p class="bh-small">'+unfinished.length+' remaining · '+all.filter(x=>x.status==='progress').length+' drilling</p>';
+ }
+ if(id==='weather'){
+  const info=window.BoreLabCommand?.weatherSnapshot?.();
+  const target=info?.target,point=target?Number(target.lat).toFixed(3)+','+Number(target.lon).toFixed(3):'';
+  const cache=info?.data&&info.key===point,stale=Date.now()-Number(info?.at||0)>45*60000;
+  const w=cache?info.data.current:{},p=cache?info.data.hourly?.precipitation_probability:[];
+  const temp=Number.isFinite(Number(w?.temperature_2m))?Math.round(Number(w.temperature_2m))+'°F':'—';
+  const wind=Number.isFinite(Number(w?.wind_speed_10m))?Math.round(Number(w.wind_speed_10m))+' mph':'—';
+  const rain=Array.isArray(p)&&p.length&&Number.isFinite(Number(p[0]))?Math.round(Number(p[0]))+'%':'—';
+  return widgetHead('weather','command',target?target.label:'Set a jobsite pin')+
+   '<div class="bh-weather-main"><strong>'+temp+'</strong><span>'+esc(cache?window.BoreLabCommand?.weatherLabel?.(w.weather_code)||'Weather conditions':'Forecast unavailable')+'</span></div>'+
+   '<div class="bh-weather-details"><span>☂ Rain <b>'+rain+'</b></span><span>≋ Wind <b>'+wind+'</b></span></div>'+
+   '<div class="bh-widget-foot"><small>'+(cache?(stale?'Cached forecast · not live':'Updated '+new Date(info.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})):
+   'Needs internet and saved GPS')+'</small><button data-bh-weather-refresh>↻</button></div>';
+ }
+ if(id==='next'){
+  const order=(bridge()?.orderedShots?.()?.order||unfinished).filter(x=>x.status!=='complete').slice(0,size==='small'?2:3);
+  return widgetHead('next','planner','Suggested shot order')+
+   (order.length?order.map((x,i)=>'<button class="bh-item" data-bh-shot="'+esc(x.id)+'"><span class="bh-index">'+(i+1)+'</span>'+
+    '<strong>'+esc(x.name)+'</strong><small>'+fmt(x.feet)+' ft</small></button>').join(''):'<p class="bh-blank">No pending shots.</p>');
+ }
+ if(id==='crew'){
+  const people=crew();
+  return widgetHead('crew','crew','Currently clocked in')+
+   '<div class="bh-big-number">'+people.length+' <small>on shift</small></div>'+
+   (people.length?people.slice(0,size==='small'?1:3).map(c=>'<div class="bh-crew-line"><span class="bh-crew-dot">●</span><strong>'+esc(c.name||'Crew member')+'</strong>'+
+    '<small data-live-elapsed="'+esc(c.start)+'">On shift</small></div>').join(''):'<p class="bh-small">Crew is not clocked in.</p>')+
+   (size==='large'?'<button class="bh-plain-action" data-page="crew">Crew Timesheets ›</button>':'');
+ }
+ if(id==='reels'){
+  const all=(s.reels||[]).filter(r=>!r.archived&&r.location==='truck'),savedIds=window.BoreLabDailyReels?.activeIds?.(s,today())||[];
+  const chosen=savedIds.length?all.filter(r=>savedIds.includes(r.id)):all;
+  const total=chosen.reduce((sum,r)=>sum+value(r.remaining),0);
+  return widgetHead('reels','reelplan',savedIds.length?'Daily loadout':'On-truck inventory')+
+   '<div class="bh-big-number">'+fmt(total)+' <small>ft recorded</small></div>'+
+   (chosen.length?chosen.slice(0,size==='small'?1:2).map(r=>'<div class="bh-reel-line"><strong>'+esc(r.name||'Reel')+'</strong>'+
+    '<small>'+esc(r.size||'Size not entered')+' · '+fmt(r.remaining)+' ft</small></div>').join(''):
+    '<p class="bh-small">No reels marked on truck.</p>');
+ }
+ if(id==='finish'){
+  const estimate=window.BoreLabCommand?.estimate?.(),target=s.finishBySettings?.target||'16:00';
+  return widgetHead('finish','command','Based on planned footage')+
+   '<div class="bh-big-number">'+esc(estimate?.finish||'—')+'</div>'+
+   '<p class="bh-small">Target leave: '+esc(target)+' · '+(estimate?'Estimate at '+fmt(estimate.pace)+' ft/hr':'No pending bores')+'</p>';
+ }
+ if(id==='photos'){
+  const photos=bridge()?.photos?.()||[],mine=photos.filter(p=>!p.jobId||p.jobId===s.activeJobId);
+  const missing=all.filter(x=>x.status==='complete'&&!mine.some(p=>p.shotId===x.id&&p.stage==='after'));
+  return widgetHead('photos','photosmart','Jobsite gallery')+
+   '<div class="bh-two-metrics"><div><strong>'+mine.length+'</strong><small>Saved photos</small></div>'+
+   '<div><strong>'+missing.length+'</strong><small>After missing</small></div></div>'+
+   (missing.length?'<p class="bh-widget-warn">⚠ '+esc(missing[0].name)+' needs an After photo</p>':
+   '<p class="bh-small">Review photos before closeout.</p>');
+ }
+ if(id==='scanner')return widgetHead('scanner','scan3','Paperwork → shots')+
+   '<p class="bh-small">Scan and review addresses, bore footage, and conduit details before importing.</p>'+
+   '<button class="bh-plain-action" data-page="scan3">▤ Open Scanner ›</button>';
+ if(id==='quick')return widgetHead('quick',null,'One-tap tools')+
+   '<div class="bh-quick-grid"><button data-action="new-shot">＋<small>Add Shot</small></button>'+
+   '<button data-page="photosmart">▣<small>Photos</small></button>'+
+   '<button data-page="scan3">▤<small>Scan</small></button>'+
+   '<button data-action="open-closeout">✓<small>Close Day</small></button></div>';
+ if(id==='notes')return widgetHead('notes','job','Saved job notes')+
+   '<p class="bh-small">'+esc(s.jobNotes||'No job notes saved yet. Add access details and crew instructions in Job Details.')+'</p>';
+ if(id==='backup')return widgetHead('backup','recovery','Protect local records')+
+   '<p class="bh-small">Export job data and photos to a safe backup file.</p>'+
+   '<button class="bh-plain-action" data-page="recovery">Backup & Recovery ›</button>';
+ return '';
+}
+function editorCard(c,p){
+ const selected=c.layouts[p];
+ return '<section class="bh-editor"><div class="bh-between"><div><strong>Customize '+presetNames[p]+'</strong>'+
+ '<p>Show, resize, and reorder your widgets. Drag a grip, or use arrows.</p></div><button data-bh-editclose aria-label="Close editor">✕</button></div>'+
+ '<div class="bh-editor-options"><label><input type="checkbox" data-bh-auto '+(c.auto?'checked':'')+'> Auto-select Morning / Workday</label>'+
+ '<button data-bh-reset>Reset This Preset</button></div>'+
+ '<div class="bh-editor-rows">'+selected.map((w,i)=>
+ '<div class="bh-editor-row"><span class="bh-editor-symbol">'+symbols[w.id]+'</span><label class="bh-editor-check">'+
+ '<input type="checkbox" data-bh-visible="'+w.id+'" '+(w.visible?'checked':'')+'><strong>'+names[w.id]+'</strong></label>'+
+ '<select aria-label="Size of '+names[w.id]+'" data-bh-size="'+w.id+'">'+sizes.map(sz=>
+ '<option value="'+sz+'" '+(sz===w.size?'selected':'')+'>'+sz[0].toUpperCase()+sz.slice(1)+'</option>').join('')+'</select>'+
+ '<button data-bh-move="'+w.id+'" data-direction="-1" aria-label="Move '+names[w.id]+' up" '+(i===0?'disabled':'')+'>↑</button>'+
+ '<button data-bh-move="'+w.id+'" data-direction="1" aria-label="Move '+names[w.id]+' down" '+(i===selected.length-1?'disabled':'')+'>↓</button></div>').join('')+'</div>'+
+ '<div class="bh-editor-footer"><button class="bh-editor-done" data-bh-editclose>✓ Done Customizing</button>'+
+ '<button data-bh-classic>Use Classic Home</button></div></section>';
+}
+function renderHome(){
+ const c=cfg(),p=preset(c),current=visible(c),hour=new Date().getHours();
+ const greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+ const rig='<svg viewBox="0 0 400 112" role="img" aria-label="Directional drilling rig silhouette" preserveAspectRatio="xMidYMax meet">'+
+ '<path d="M0 98H400" stroke="#122333" stroke-width="2"/><path d="M8 95L56 95 65 82 140 82 155 95H192L209 86H252L267 95H379" fill="none" stroke="#101f2e" stroke-width="7"/>'+
+ '<path d="M52 80L63 55 150 55 178 81M72 55L78 29 120 29 130 55" stroke="#142232" stroke-width="10" fill="none"/>'+
+ '<path d="M90 28L153 21 275 38" fill="none" stroke="#16283a" stroke-width="8"/><path d="M242 33L359 3" stroke="#142438" stroke-width="5"/>'+
+ '<rect x="80" y="56" width="70" height="22" rx="5" fill="#142438"/>'+
+ '<circle cx="69" cy="89" r="14" fill="#152b3b"/><circle cx="155" cy="89" r="14" fill="#152b3b"/>'+
+ '<path d="M297 82V62L303 51 313 63V82M302 50V41" stroke="#142438" stroke-width="7" fill="none"/>'+
+ '<path d="M280 97H365" stroke="#142438" stroke-width="5"/></svg>';
+ const subtitle=esc(st().jobName||'Your HDD workday');
+ const weather=widgetBody('weather','small');
+ const hero='<div class="bh-hero"><div class="bh-hero-top"><span class="bh-hero-tag">BORELAB FIELD · HOME COMMAND</span>'+
+  '<button data-bh-edit aria-label="Customize home dashboard">⚙ Customize</button></div>'+
+  '<div class="bh-hero-main"><div><h1>'+greeting+', crew.</h1><p>'+new Date().toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})+
+  ' · '+subtitle+'</p></div></div><div class="bh-hero-art">'+rig+'</div></div>';
+ const profile='<div class="bh-profile"><div class="bh-profile-heading"><strong>My Dashboard</strong><small>'+current.length+' widgets</small></div>'+
+ '<div class="bh-presets" role="group" aria-label="Dashboard layout presets">'+Object.keys(presetNames).map(key=>
+ '<button data-bh-preset="'+key+'" aria-pressed="'+(p===key?'true':'false')+'" class="'+(p===key?'active':'')+'">'+
+ (key==='morning'?'☀':key==='workday'?'◉':'▦')+' '+presetNames[key]+'</button>').join('')+'</div></div>';
+ const widgets='<div class="bh-widget-grid" aria-label="Custom home widgets">'+current.map(w=>
+ '<article class="bh-widget bh-size-'+w.size+'" data-bh-widget="'+w.id+'">'+
+ (editing?'<div class="bh-widget-controls"><span data-bh-grab="'+w.id+'" role="button" tabindex="0" aria-label="Drag '+names[w.id]+' to rearrange">⠿ Hold & Drag</span>'+
+ '<button data-bh-hide="'+w.id+'" aria-label="Hide '+names[w.id]+'">✕</button></div>':'')+
+ '<div class="bh-widget-content">'+widgetBody(w.id,w.size)+'</div></article>').join('')+'</div>';
+ // Asking for weather is allowed only at saved job/opted-in GPS; never trigger a location permission prompt.
+ Promise.resolve().then(()=>window.BoreLabCommand?.loadWeather?.()).catch(()=>{});
+ return '<div class="page bh-home">'+hero+profile+
+ (editing?editorCard(c,p):'<div class="bh-custom-tip"><span>Long-press a card to rearrange.</span><button data-bh-edit>Customize Widgets ›</button></div>')+
+ widgets+
+ '<div class="bh-footer"><button data-bh-edit>▦ Edit Dashboard</button><button data-bh-classic>Classic Home</button></div>'+
+ '<p class="bh-disclaimer">Saved locally · Weather requires internet · Progress and forecasts are not drilling telemetry.</p></div>';
+}
+function refreshWeather(){
+ const widget=document.querySelector('.bh-widget[data-bh-widget="weather"] .bh-widget-content');
+ if(widget&&isEnabled())widget.innerHTML=widgetBody('weather',widget.closest('.bh-widget')?.classList.contains('bh-size-small')?'small':'medium');
+}
+document.addEventListener('click',event=>{
+ const el=event.target.closest('[data-bh-enable],[data-bh-classic],[data-bh-edit],[data-bh-editclose],[data-bh-preset],[data-bh-reset],[data-bh-move],[data-bh-hide],[data-bh-shot],[data-bh-weather-refresh]');
+ if(!el||!bridge())return;
+ if(el.hasAttribute('data-bh-enable')){const c=cfg();c.enabled=true;saveConfig(c);editing=false;render();return}
+ if(el.hasAttribute('data-bh-classic')){const c=cfg();c.enabled=false;saveConfig(c);editing=false;render();return}
+ if(el.hasAttribute('data-bh-edit')){editing=true;render();return}
+ if(el.hasAttribute('data-bh-editclose')){editing=false;render();return}
+ if(el.dataset.bhPreset){const c=cfg();c.preset=el.dataset.bhPreset;c.auto=false;saveConfig(c);render();return}
+ if(el.hasAttribute('data-bh-reset')){
+  if(!confirm('Reset this dashboard preset to the default widget layout?'))return;
+  const c=cfg();c.layouts[preset(c)]=defaultLayout(preset(c));saveConfig(c);render();return;
+ }
+ if(el.dataset.bhMove){moveWidget(el.dataset.bhMove,Number(el.dataset.direction));return}
+ if(el.dataset.bhHide){updateWidget(el.dataset.bhHide,{visible:false});return}
+ if(el.dataset.bhShot){bridge().shotDetail(el.dataset.bhShot);return}
+ if(el.hasAttribute('data-bh-weather-refresh')){window.BoreLabCommand?.loadWeather?.(true);return}
+});
+document.addEventListener('change',event=>{
+ const e=event.target;
+ if(e.dataset.bhVisible){updateWidget(e.dataset.bhVisible,{visible:e.checked});return}
+ if(e.dataset.bhSize){updateWidget(e.dataset.bhSize,{size:sizes.includes(e.value)?e.value:'medium'});return}
+ if(e.hasAttribute('data-bh-auto')){
+  const c=cfg();c.auto=e.checked;saveConfig(c);render();return;
+ }
+});
+// Touch-first long-press drag handles and accessible arrow/button alternatives.
+let gesture=null,hold=null;
+const stopHold=()=>{if(hold!==null){clearTimeout(hold);hold=null}};
+document.addEventListener('pointerdown',e=>{
+ const card=e.target.closest?.('.bh-widget');
+ if(!card||!isEnabled())return;
+ const id=card.dataset.bhWidget;
+ const handle=e.target.closest?.('[data-bh-grab]');
+ if(!editing&&e.target.closest?.('button,input,select,a'))return;
+ if(editing&&!handle)return;
+ stopHold();gesture={id,x:e.clientX,y:e.clientY,ready:false,dragging:false,pointer:e.pointerId,handle:!!handle};
+ hold=setTimeout(()=>{
+  if(!gesture)return;
+  gesture.ready=true;
+  if(gesture.handle){gesture.dragging=true;card.classList.add('bh-dragging')}
+  else{editing=true;bridge()?.notify?.('Widget editing enabled. Hold a drag handle or use the move arrows.');render()}
+ },480);
+});
+document.addEventListener('pointermove',e=>{
+ if(!gesture||e.pointerId!==gesture.pointer)return;
+ if(!gesture.ready){
+  if(Math.hypot(e.clientX-gesture.x,e.clientY-gesture.y)>12){stopHold();gesture=null}
+  return;
+ }
+ if(!gesture.dragging)return;
+ e.preventDefault();
+ const target=document.elementFromPoint?.(e.clientX,e.clientY)?.closest?.('.bh-widget');
+ document.querySelectorAll('.bh-drag-target').forEach(el=>el.classList.remove('bh-drag-target'));
+ if(target&&target.dataset.bhWidget!==gesture.id)target.classList.add('bh-drag-target');
+},{passive:false});
+document.addEventListener('pointerup',e=>{
+ if(!gesture||e.pointerId!==gesture.pointer)return;
+ const g=gesture;stopHold();gesture=null;
+ if(!g.dragging)return;
+ const target=document.elementFromPoint?.(e.clientX,e.clientY)?.closest?.('.bh-widget');
+ document.querySelectorAll('.bh-drag-target,.bh-dragging').forEach(el=>el.classList.remove('bh-drag-target','bh-dragging'));
+ if(target&&target.dataset.bhWidget!==g.id)rearrange(g.id,target.dataset.bhWidget);
+});
+document.addEventListener('pointercancel',()=>{stopHold();gesture=null;document.querySelectorAll('.bh-drag-target,.bh-dragging').forEach(el=>el.classList.remove('bh-drag-target','bh-dragging'))});
+document.addEventListener('keydown',e=>{
+ if(!editing)return;
+ const handle=e.target.closest?.('[data-bh-grab]');
+ if(!handle)return;
+ if(e.key==='ArrowUp'||e.key==='ArrowDown'){
+  e.preventDefault();moveWidget(handle.dataset.bhGrab,e.key==='ArrowUp'?-1:1);
+ }
+});
+window.BoreLabHomeV2={renderHome,enabled:isEnabled,classicBanner,refreshWeather,defaultConfig,cleanConfig,moveWidget,rearrange,widgetIds:ids};
+if(bridge()){
+ const c=cfg();
+ if(!state().homeDashboard2)saveConfig(c);
+ if(bridge().currentPage?.()==='home')bridge().render?.();
+}
+})();

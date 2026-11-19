@@ -486,6 +486,7 @@ html[data-large-text="on"] .ux-tile small,html[data-large-text="on"] .ux-next p{
 @media(max-width:430px){.ux-shot-scan-option .between{align-items:stretch;flex-direction:column}.ux-shot-scan-option button{align-self:flex-start}}
 </style>
   <link rel="stylesheet" href="./visual-polish.css">
+  <link rel="stylesheet" href="./home-dashboard.css">
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
 <body>
@@ -1586,12 +1587,14 @@ function nextHomeAction(){
 }
 
 function renderHome(){
+ if(typeof window!=='undefined'&&window.BoreLabHomeV2?.enabled?.())return window.BoreLabHomeV2.renderHome();
  const pct=totalFeet()?Math.round(doneFeet()/totalFeet()*100):0;
  const hour=new Date().getHours(),greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
  const action=nextHomeAction();
  const shots=state.shots.slice(0,state.uxMode==='advanced'?25:5);
  const complete=state.shots.filter(x=>x.status==='complete').length;
  return `<div class="page ux-home">
+  ${typeof window!=='undefined'?window.BoreLabHomeV2?.classicBanner?.()||'':''}
   <div class="ux-welcome">
    <div class="ux-banner-copy"><span class="eyebrow">HDD FIELD DASHBOARD</span>
     <h1>${greeting}!</h1><p>Ready for today's work.</p></div>
@@ -3162,7 +3165,7 @@ for(const inputId of ['mudCameraFile','mudGalleryFile']){
 window.addEventListener('pagehide',flushPendingDraft);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){flushPendingDraft();persistGuidedDraft();}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape')borelabGoBack();if((e.key==='Enter'||e.key===' ')&&e.target.matches('.map-pin')){e.preventDefault();e.target.click()}});
-window.BoreLabAssistantBridge={state:()=>{syncActiveJob();return state},save,orderedShots,getPosition,hav,coordsValid,shop,pipeOnTruck,mudConfig,mudAvailable,mapsPinUrl,openMapUrl,switchActiveJob,shotDetail,setPage,uid,render,notify,todayLocal,reelForm,resolveShotAfterSave,closeModal,clearGuidedDraft,showModal,photoChoose,photos:()=>photos,photoDB,refreshPhotos,activeJob};
+window.BoreLabAssistantBridge={state:()=>{syncActiveJob();return state},currentPage:()=>page,save,orderedShots,getPosition,hav,coordsValid,shop,pipeOnTruck,mudConfig,mudAvailable,mapsPinUrl,openMapUrl,switchActiveJob,shotDetail,setPage,uid,render,notify,todayLocal,reelForm,resolveShotAfterSave,closeModal,clearGuidedDraft,showModal,photoChoose,photos:()=>photos,photoDB,refreshPhotos,activeJob};
 async function init(){applyTheme();await refreshPhotos();render();refreshManualFiles();setTimeout(notifyServiceOnOpen,300);setInterval(refreshLiveCrewClocks,1000);if(!window.BoreLabNative&&'serviceWorker'in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){navigator.serviceWorker.register('./sw.js').catch(()=>{})}}
 init();
 })();
@@ -3178,5 +3181,6 @@ init();
 <script src="./field-ops.js"></script>
 <script src="./field-command.js"></script>
 <script src="./visual-polish.js"></script>
+<script src="./home-dashboard.js"></script>
 </body>
 </html>
