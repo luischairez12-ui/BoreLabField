@@ -1598,7 +1598,7 @@ function renderHome(){
    <button class="ux-help-btn" data-action="guided-tour" aria-label="How to use BoreLab" title="How to use BoreLab">?</button>
   </div>
   ${oilWarnings()}
-  ${window.BoreLabCommand?.homeLinks?.()||''}
+  ${typeof window!=='undefined'?window.BoreLabCommand?.homeLinks?.()||'':''}
   <div class="ux-job-card">
    <button type="button" class="ux-job-hit" data-action="open-job" aria-label="Open active job workspace"></button>
    <div class="ux-job-title">
