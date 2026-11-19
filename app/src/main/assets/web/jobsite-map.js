@@ -123,29 +123,30 @@ function selectedPanel(data){
  '<button data-blmap-navigate="'+esc(s.id)+'">⌖ Navigate</button><button data-blmap-photo="'+esc(s.id)+'">▣ Add Photo</button></div></section>';
 }
 function unlocatedSection(data){
- if(!data.unknown.length)return '<div class="blmap-locations-ok">✓ All bores in this job have saved GPS pins.</div>';
- return '<details class="blmap-unlocated"><summary><span>⚠ <strong>'+data.unknown.length+' unlocated shot'+(data.unknown.length===1?'':'s')+'</strong></span>'+
- '<small>Saved addresses or missing coordinates</small></summary>'+
- '<div class="blmap-unlocated-body"><p>These shots are not plotted. BoreLab won’t guess where they belong. Confirm GPS before distance planning.</p>'+
- data.unknown.map(s=>'<button data-blmap-unlocated="'+esc(s.id)+'"><span><strong>'+esc(s.name||'Unnamed bore')+'</strong>'+
- '<small>'+esc(s.address||'No address entered')+'</small></span><b>Open ›</b></button>').join('')+
- '<button class="blmap-locate" data-blmap-locate>⌖ Locate Saved Pending Addresses</button></div></details>';
+ if(!data.unknown.length)return '<div class="blmap-locations-ok">✓ All saved bores and field markers have GPS pins.</div>';
+ return '<details class="blmap-unlocated"><summary><span>⚠ <strong>'+data.unknown.length+' unlocated record'+(data.unknown.length===1?'':'s')+'</strong></span>'+
+ '<small>Saved addresses or missing GPS coordinates</small></summary>'+
+ '<div class="blmap-unlocated-body"><p>Only confirmed GPS coordinates are pinned. Add GPS to missing field markers before using this map in the field.</p>'+
+ data.unknown.map(s=>'<button '+(isPin(s)?'data-blmap-unlocated-pin':'data-blmap-unlocated')+'="'+esc(s.id)+'"><span><strong>'+esc(s.name||'Unnamed record')+'</strong>'+
+ '<small>'+esc(isPin(s)?pinLabel(s):'Bore shot')+' · '+esc(s.address||'No address entered')+'</small></span><b>Edit ›</b></button>').join('')+
+ '<button class="blmap-locate" data-blmap-locate>⌖ Locate Saved Bore Addresses</button></div></details>';
 }
 function renderMap(){
  const data=model();ensureView(data);
  const legend='<div class="blmap-legend"><span><i class="blmap-legend-dot drilling"></i>Drilling</span>'+
- '<span><i class="blmap-legend-dot complete"></i>Complete</span><span><i class="blmap-legend-dot pending"></i>Pending</span></div>';
+ '<span><i class="blmap-legend-dot complete"></i>Complete</span><span><i class="blmap-legend-dot pending"></i>Pending</span>'+ 
+  '<span><i class="blmap-legend-dot tie-in"></i>Tie-in</span><span><i class="blmap-legend-dot coupling"></i>Coupling</span><span><i class="blmap-legend-dot box"></i>Box</span></div>';
  const mapAvail=data.geocoded.length>0;
  const box='<section class="blmap-mapbox"><div class="blmap-maphead"><strong>Jobsite Locations</strong>'+
- '<span>'+data.geocoded.length+' mapped / '+data.shots.length+' total</span></div>'+
+ '<span>'+data.geocoded.length+' mapped / '+data.records.length+' total</span></div>'+
  '<div class="blmap-toolbar"><div class="blmap-layer-tabs" role="group" aria-label="Map layers">'+
  '<button data-blmap-mode="street" class="'+(mode==='street'?'active':'')+'" aria-pressed="'+(mode==='street')+'">Streets</button>'+
  '<button data-blmap-mode="plot" class="'+(mode==='plot'?'active':'')+'" aria-pressed="'+(mode==='plot')+'">Site Plot</button>'+
  '<button data-blmap-satellite '+(!mapAvail?'disabled':'')+'>Satellite ↗</button></div>'+
  '<button data-blmap-route aria-pressed="'+showPath+'" class="blmap-route-toggle'+(showPath?' active':'')+'">'+(showPath?'✓ ':'')+'Order</button></div>'+
  '<div class="blmap-viewport'+(mode==='plot'?' blmap-plot':'')+'" data-blmap-viewport tabindex="0" role="group" aria-label="Jobsite map, drag to pan and use zoom controls">'+
- '<div class="blmap-placeholder">'+(mapAvail?'GPS shot locations · '+(mode==='street'?'street tiles require internet':'offline site plot'):
- 'No GPS pins saved for this job')+'</div>'+
+ '<div class="blmap-placeholder">'+(mapAvail?'Bore and installation GPS · '+(mode==='street'?'street tiles require internet':'offline site plot'):
+ 'No confirmed GPS pins for this job')+'</div>'+
  '<div class="blmap-scene" data-blmap-scene></div>'+
  (mapAvail?'<div class="blmap-mapcontrols"><button data-blmap-zoom="1" aria-label="Zoom in">+</button>'+
  '<button data-blmap-zoom="-1" aria-label="Zoom out">−</button>'+
@@ -154,16 +155,17 @@ function renderMap(){
  '</div><p class="blmap-attribution">'+(mode==='street'?'© OpenStreetMap contributors · ':'')+
  (mode==='street'?'Street tiles online · ':'Site plot · ')+'Pins from saved GPS</p>'+
  legend+'<p class="blmap-route-info">'+(showPath?'Dotted lines show a suggested shot sequence, <strong>not roads or travel directions</strong>.':
- 'Tap a GPS pin to inspect its shot.')+'</p></section>';
+ 'Tap a GPS pin to see the type and recorded date.')+'</p></section>';
  const html='<div class="page blmap-page"><header class="blmap-header"><div>'+
  '<span class="eyebrow">BORELAB FIELD / GPS PLANNING</span><h1>Interactive Jobsite Map</h1>'+
  '<p>'+esc(data.jobName)+'</p></div>'+weatherChip()+'</header>'+
  '<div class="blmap-actions"><button data-page="jobs">▦ Change Job</button><button data-page="planner">⌁ Shot Planner</button></div>'+
- '<div class="blmap-filters" role="group" aria-label="Filter map shot status">'+statusTabs(data)+'</div>'+
+ '<div class="blmap-filters" role="group" aria-label="Filter bore shot status">'+statusTabs(data)+'</div>'+ 
+  '<div class="blmap-type-filters" role="group" aria-label="Filter pin type">'+typeTabs(data)+'</div>'+
  box+unlocatedSection(data)+
  '<div class="blmap-bottom"><button data-page="shotcards">◎ Smart Shot Cards</button>'+
- '<button data-action="new-shot" class="blmap-orange">＋ Add Bore</button></div>'+
- '<p class="blmap-disclaimer">Map tiles are online-only. Bore pins, saved records and the site plot remain usable offline. Check the actual jobsite before digging.</p></div>';
+ '<button data-action="new-shot" class="blmap-orange">＋ Add Bore</button><button data-blmap-new-pin>📌 Add Field Pin</button></div>'+
+ '<p class="blmap-disclaimer">Map tiles are online-only. Bore and installed-location pins, dated records and the site plot remain usable offline. Check the actual jobsite before digging.</p></div>';
  if(typeof requestAnimationFrame==='function')requestAnimationFrame(draw);
  return html;
 }
@@ -188,11 +190,13 @@ function visibleModels(data){
  return{groups,width,height,center};
 }
 function markerHTML(s,x,y,cluster=1){
- const selectedMarker=s.id===selected;
- return '<button type="button" class="blmap-pin is-'+status(s)+(selectedMarker?' selected':'')+(cluster>1?' is-cluster':'')+
- '" data-blmap-pin="'+esc(s.id)+'" style="left:'+Math.round(x)+'px;top:'+Math.round(y)+'px" aria-label="'+esc(s.name||'Bore')+
- ', '+fmt(s.feet)+' feet, '+statusText(status(s))+'"><span class="blmap-pin-icon"><em>'+(cluster>1?cluster:status(s)==='complete'?'✓':status(s)==='progress'?'⌁':'⌖')+
- '</em></span><span class="blmap-pin-label"><b>'+esc(s.name||'Bore')+'</b><small>'+fmt(s.feet)+' ft'+(cluster>1?' · '+cluster+' shots':'')+'</small></span></button>';
+ const selectedMarker=s.id===selected,field=isPin(s),kind=field?s.kind:status(s);
+ const name=String(s.name||(field?pinLabel(s):'Bore'));
+ const detail=field?pinLabel(s)+' · '+recordDate(s):fmt(s.feet)+' ft';
+ return '<button type="button" class="blmap-pin is-'+esc(kind)+(selectedMarker?' selected':'')+(cluster>1?' is-cluster':'')+
+ '" data-blmap-pin="'+esc(s.id)+'" style="left:'+Math.round(x)+'px;top:'+Math.round(y)+'px" aria-label="'+esc(name)+
+ ', '+esc(detail)+'"><span class="blmap-pin-icon"><em>'+(cluster>1?cluster:field?(kind==='tie-in'?'T':kind==='coupling'?'C':'B'):status(s)==='complete'?'✓':status(s)==='progress'?'⌁':'⌖')+
+ '</em></span><span class="blmap-pin-label"><b>'+esc(name)+'</b><small>'+esc(detail)+(cluster>1?' · '+cluster+' records':'')+'</small></span></button>';
 }
 function renderMarkers(groups,width,height){
  return groups.filter(g=>g.x>-90&&g.x<width+90&&g.y>-70&&g.y<height+70).map(g=>markerHTML(g.shots[0],g.x,g.y,g.shots.length)).join('');
@@ -234,7 +238,7 @@ function draw(){
  routePath(data,geom)+'<div class="blmap-pins">'+renderMarkers(geom.groups,geom.width,geom.height)+'</div>';
 }
 function choose(id){
- const item=activeShots().find(x=>x.id===id);if(!item)return;
+ const item=activeRecords().find(x=>x.id===id);if(!item)return;
  selected=selected===id?null:id;
  api()?.render?.();
 }
@@ -268,9 +272,10 @@ function satellite(){
  api()?.openMapUrl?.(url);
 }
 document.addEventListener('click',e=>{
- const btn=e.target.closest?.('[data-blmap-filter],[data-blmap-mode],[data-blmap-route],[data-blmap-fit],[data-blmap-zoom],[data-blmap-pin],[data-blmap-open],[data-blmap-navigate],[data-blmap-photo],[data-blmap-close],[data-blmap-locate],[data-blmap-unlocated],[data-blmap-satellite]');
+ const btn=e.target.closest?.('[data-blmap-filter],[data-blmap-type],[data-blmap-mode],[data-blmap-route],[data-blmap-fit],[data-blmap-zoom],[data-blmap-pin],[data-blmap-open],[data-blmap-navigate],[data-blmap-photo],[data-blmap-close],[data-blmap-locate],[data-blmap-unlocated],[data-blmap-unlocated-pin],[data-blmap-satellite],[data-blmap-edit-pin],[data-blmap-new-pin]');
  if(!btn||!api()||api().currentPage?.()!=='jobmap')return;
  if(btn.dataset.blmapFilter){filter=btn.dataset.blmapFilter;selected=null;saveSettings();api().render();return}
+  if(btn.dataset.blmapType){typeFilter=btn.dataset.blmapType;selected=null;saveSettings();api().render();return}
  if(btn.dataset.blmapMode){mode=btn.dataset.blmapMode;saveSettings();api().render();return}
  if(btn.hasAttribute('data-blmap-route')){showPath=!showPath;saveSettings();api().render();return}
  if(btn.hasAttribute('data-blmap-fit')){reset();return}
@@ -287,9 +292,12 @@ document.addEventListener('click',e=>{
  }
  if(btn.hasAttribute('data-blmap-close')){selected=null;api().render();return}
  if(btn.dataset.blmapOpen){api().shotDetail?.(btn.dataset.blmapOpen);return}
- if(btn.dataset.blmapNavigate){navigate(activeShots().find(x=>x.id===btn.dataset.blmapNavigate));return}
+ if(btn.dataset.blmapNavigate){navigate(activeRecords().find(x=>x.id===btn.dataset.blmapNavigate));return}
  if(btn.dataset.blmapPhoto){api().photoChoose?.('camera',btn.dataset.blmapPhoto);return}
  if(btn.dataset.blmapUnlocated){api().shotDetail?.(btn.dataset.blmapUnlocated);return}
+  if(btn.dataset.blmapUnlocatedPin){window.BoreLabFieldPins?.editPin?.(btn.dataset.blmapUnlocatedPin);return}
+  if(btn.dataset.blmapEditPin){window.BoreLabFieldPins?.editPin?.(btn.dataset.blmapEditPin);return}
+  if(btn.hasAttribute('data-blmap-new-pin')){window.BoreLabFieldPins?.editPin?.();return}
  if(btn.hasAttribute('data-blmap-locate')){Promise.resolve(api().resolveMissingAddresses?.(true)).then(()=>api().render()).catch(e=>api().notify?.(String(e.message||e)));return}
  if(btn.hasAttribute('data-blmap-satellite')){satellite();return}
 });
@@ -362,5 +370,5 @@ document.addEventListener('error',e=>{
 },true);
 window.addEventListener?.('resize',()=>{if(api()?.currentPage?.()==='jobmap')draw()});
 window.BoreLabJobMap={renderMap,project,unproject,fit,markerHTML,renderMarkers,model,draw,reset,
- getView:()=>({...view}),setFilter:x=>{filter=x;},setMode:x=>{mode=x;},setSelected:id=>{selected=id}};
+ getView:()=>({...view}),setFilter:x=>{filter=x;},setTypeFilter:x=>{typeFilter=x;},setMode:x=>{mode=x;},setSelected:id=>{selected=id}};
 })();
