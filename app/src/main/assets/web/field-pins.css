@@ -1,0 +1,30 @@
+/* BoreLab Field — dated Bores search / installed-location marker chips */
+.fp-bores-tools{display:grid;gap:10px}
+.fp-bores-tools h3{margin:4px 0 0;font-size:17px}
+.fp-bores-tools .field{min-width:0}
+.fp-search-row{display:flex;align-items:end;gap:9px}
+.fp-search-row .field{flex:1}
+.fp-search-row button{margin-bottom:1px;min-height:42px}
+.fp-results{display:grid;gap:7px;max-height:360px;overflow:auto;overscroll-behavior:contain}
+.fp-results p{margin:5px 0}
+.fp-result{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--surface2);color:var(--text);display:flex;align-items:center;gap:10px;text-align:left;width:100%}
+.fp-result>span:nth-child(2){display:grid;gap:3px;flex:1;min-width:0}
+.fp-result strong{font-size:12px;overflow-wrap:anywhere}
+.fp-result small{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.fp-result-icon{border-radius:9px;display:grid;place-items:center;width:34px;height:34px;flex:none;background:#eef3fa;color:#375f84;font-size:17px}
+.fp-result-icon.fp-tie-in{background:#e5efff}
+.fp-result-icon.fp-coupling{background:#dcfaf7}
+.fp-result-icon.fp-box{background:#f3e7ff}
+.fp-add-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.fp-add-row button{font-size:11px;min-width:0;padding:9px 4px;min-height:44px}
+.blmap-type-filters{display:flex;gap:6px;overflow-x:auto;padding:0 0 6px}
+.blmap-type-filters button{border-radius:9px;border:1px solid var(--map-line);background:var(--map-card);color:var(--map-ink);padding:9px 11px;min-height:35px;white-space:nowrap;font-size:10px;font-weight:850}
+.blmap-type-filters button.active{background:#23374a;color:white;border-color:#23374a}
+.blmap-pin.is-tie-in .blmap-pin-icon{background:#3578ca}
+.blmap-pin.is-coupling .blmap-pin-icon{background:#039f93}
+.blmap-pin.is-box .blmap-pin-icon{background:#9659b5}
+.blmap-legend-dot.tie-in{background:#3578ca}
+.blmap-legend-dot.coupling{background:#039f93}
+.blmap-legend-dot.box{background:#9659b5}
+.blmap-pin.is-tie-in .blmap-pin-label,.blmap-pin.is-coupling .blmap-pin-label,.blmap-pin.is-box .blmap-pin-label{max-width:130px}
+@media(max-width:380px){.fp-add-row button{font-size:10px}.blmap-type-filters button{padding:9px 8px}}
