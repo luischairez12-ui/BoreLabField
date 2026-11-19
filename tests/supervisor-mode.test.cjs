@@ -97,7 +97,7 @@ for(const x of ['Crew Oversight','Currently Clocked In','Miguel','South Glades',
 assert(view.includes('16 hr')||view.includes('16.0 hr'),'Two 8-hour closed shifts total 16 hours');
 click({smTab:'equipment'});
 view=app.renderSupervisor();
-assert(view.includes('Fleet & Equipment')&&view.includes('JT20 Drill')&&view.includes('Leaking line')&&view.includes('Downtime'));
+assert(view.includes('Fleet &amp; Equipment')&&view.includes('JT20 Drill')&&view.includes('Leaking line')&&view.includes('Downtime'));
 click({smTab:'reports'});
 view=app.renderSupervisor();
 assert(view.includes('Daily Report Review')&&view.includes('South Glades')&&view.includes('North Glades'));
