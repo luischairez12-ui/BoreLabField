@@ -12,10 +12,15 @@ const status=s=>s.status==='complete'?'complete':s.status==='progress'?'progress
 const statusText=s=>s==='complete'?'Complete':s==='progress'?'Drilling':'Pending';
 const shades={planned:'pending',progress:'drilling',complete:'complete'};
 const activeShots=()=>st().shots||[];
-const placed=()=>activeShots().filter(s=>api()?.coordsValid?.(s));
-const missing=()=>activeShots().filter(s=>!api()?.coordsValid?.(s));
+const activePins=()=>window.BoreLabFieldPins?.pins?.()||[];
+const activeRecords=()=>[...activeShots(),...activePins()];
+const isPin=s=>s?.recordType==='fieldPin';
+const pinLabel=s=>window.BoreLabFieldPins?.kindLabel?.(s?.kind)||'Field marker';
+const recordDate=s=>window.BoreLabFieldPins?.displayDate?.(s)||'Date not recorded';
+const placed=()=>activeRecords().filter(s=>api()?.coordsValid?.(s));
+const missing=()=>activeRecords().filter(s=>!api()?.coordsValid?.(s));
 const point=s=>({lat:Number(s.lat),lon:Number(s.lon)});
-let currentJob=null,selected=null,filter='all',mode='street',showPath=true,view=null;
+let currentJob=null,selected=null,filter='all',typeFilter='all',mode='street',showPath=true,view=null;
 let pointerData=new Map(),gesture=null,suppressClick=0;
 let attemptedTiles=false,tilesFailed=false,drawRequest=false;
 function project(lat,lon,z){
@@ -38,11 +43,17 @@ function fit(points,w=340,h=430){
  return {zoom:z,center:unproject((minX+maxX)*2**z/2,(minY+maxY)*2**z/2,z)};
 }
 function model(){
- const shots=activeShots(),geocoded=placed(),unknown=missing();
- const shown=geocoded.filter(s=>filter==='all'||status(s)===filter);
+ const shots=activeShots(),pins=activePins(),records=[...shots,...pins],geocoded=placed(),unknown=missing();
+ const shown=geocoded.filter(s=>{
+  if(typeFilter==='bores')return !isPin(s)&&(filter==='all'||status(s)===filter);
+  if(typeFilter!=='all')return isPin(s)&&s.kind===typeFilter;
+  return isPin(s)||filter==='all'||status(s)===filter;
+ });
  const groups={all:shots.length,planned:0,progress:0,complete:0};
  shots.forEach(s=>groups[status(s)]++);
- return {shots,geocoded,unknown,shown,groups,jobId:st().activeJobId||'job',jobName:st().jobName||'Current job'};
+ const types={all:records.length,bores:shots.length,'tie-in':0,coupling:0,box:0};
+ pins.forEach(p=>{if(Object.prototype.hasOwnProperty.call(types,p.kind))types[p.kind]++});
+ return {shots,pins,records,geocoded,unknown,shown,groups,types,jobId:st().activeJobId||'job',jobName:st().jobName||'Current job'};
 }
 function ensureView(data=model()){
  if(currentJob===data.jobId&&view){
@@ -56,15 +67,21 @@ function ensureView(data=model()){
  mode=pref?.mode==='plot'?'plot':'street';
  showPath=pref?.showPath!==false;
  filter=['all','planned','progress','complete'].includes(pref?.filter)?pref.filter:'all';
+  typeFilter=['all','bores','tie-in','coupling','box'].includes(pref?.typeFilter)?pref.typeFilter:'all';
 }
 function saveSettings(){
- st().jobsiteMapPreferences={mode,showPath,filter};
+ st().jobsiteMapPreferences={mode,showPath,filter,typeFilter};
  api()?.save?.();
 }
 function statusTabs(data){
  return [['all','All'],['planned','Pending'],['progress','Drilling'],['complete','Complete']].map(([key,label])=>
  '<button type="button" data-blmap-filter="'+key+'" aria-pressed="'+(filter===key?'true':'false')+'" class="'+(filter===key?'active':'')+'">'+
  label+' <span>'+data.groups[key]+'</span></button>').join('');
+}
+function typeTabs(data){
+ return [['all','All Pins'],['bores','Bores'],['tie-in','Tie-ins'],['coupling','Couplings'],['box','Boxes']].map(([key,label])=>
+ '<button type="button" data-blmap-type="'+key+'" aria-pressed="'+(typeFilter===key?'true':'false')+'" class="'+(typeFilter===key?'active':'')+'">'+
+ label+' <span>'+data.types[key]+'</span></button>').join('');
 }
 function weatherChip(){
  const snap=window.BoreLabCommand?.weatherSnapshot?.(),t=snap?.target,now=snap?.data?.current;
@@ -73,15 +90,29 @@ function weatherChip(){
  '<span class="blmap-weather">☁ '+Math.round(Number(now.temperature_2m))+'°F</span>':'';
 }
 function selectedPanel(data){
- const s=data.shots.find(x=>x.id===selected);
+ const s=data.records.find(x=>x.id===selected);
  if(!s)return '';
+ if(isPin(s)){
+  return '<section class="blmap-sheet" aria-label="Selected field pin details"><div class="blmap-sheet-handle"></div>'+
+  '<div class="blmap-sheet-top"><span class="blmap-sheet-emblem">📌</span><div><strong>'+esc(s.name||pinLabel(s))+'</strong>'+
+  '<small>'+esc(pinLabel(s))+' · '+esc(recordDate(s))+'</small></div>'+
+  '<button data-blmap-close aria-label="Close selected pin">✕</button></div>'+
+  '<div class="blmap-shot-details"><div><small>Type</small><strong>'+esc(pinLabel(s))+'</strong></div>'+
+  '<div><small>Installed / recorded</small><strong>'+esc(recordDate(s))+'</strong></div>'+
+  '<div><small>Location</small><strong>GPS saved</strong></div></div>'+
+  (s.address?'<p class="smalltext">'+esc(s.address)+'</p>':'')+
+  (s.notes?'<p class="smalltext">'+esc(s.notes)+'</p>':'')+
+  '<div class="blmap-sheet-actions"><button class="blmap-orange" data-blmap-edit-pin="'+esc(s.id)+'">✎ Edit Pin</button>'+
+  '<button data-blmap-navigate="'+esc(s.id)+'">⌖ Navigate</button>'+
+  '<button data-blmap-close>✕ Close</button></div></section>';
+ }
  const p=(api()?.photos?.()||[]).filter(p=>p.shotId===s.id&&(!p.jobId||p.jobId===st().activeJobId));
  const len=Number(s.feet)||0,done=s.status==='complete'?len:Math.min(len,Math.max(0,Number(s.progressFeet)||0));
  const pct=len?Math.round(done/len*100):0;
  const detail=window.BoreLabConduits?.summary?.(s)||s.pipeDiameter||'No conduit saved';
  return '<section class="blmap-sheet" aria-label="Selected bore details"><div class="blmap-sheet-handle"></div>'+
  '<div class="blmap-sheet-top"><span class="blmap-sheet-emblem">⌁</span><div><strong>'+esc(s.name||'Unnamed bore')+'</strong>'+
- '<small>'+esc(s.address||'GPS location saved')+'</small></div><span class="blmap-status is-'+status(s)+'">'+statusText(status(s))+'</span>'+
+ '<small>Bore shot · '+esc(recordDate(s))+' · '+esc(s.address||'GPS location saved')+'</small></div><span class="blmap-status is-'+status(s)+'">'+statusText(status(s))+'</span>'+
  '<button data-blmap-close aria-label="Close selected shot">✕</button></div>'+
  '<div class="blmap-sheet-progress"><div class="blmap-between"><strong>'+fmt(done)+' / '+fmt(len)+' ft</strong><b>'+pct+'%</b></div>'+
  '<div class="blmap-meter"><span style="width:'+pct+'%"></span></div></div>'+
