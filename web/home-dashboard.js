@@ -244,7 +244,9 @@ function renderHome(){
  '<div class="bh-widget-content">'+widgetBody(w.id,w.size)+'</div></article>').join('')+'</div>';
  // Asking for weather is allowed only at saved job/opted-in GPS; never trigger a location permission prompt.
  Promise.resolve().then(()=>window.BoreLabCommand?.loadWeather?.()).catch(()=>{});
- return '<div class="page bh-home'+(c.density==='compact'?' bh-dense':'')+'">'+hero+profile+
+ const currentJob='<button class="bf-home-jobline" data-page="job" aria-label="Open current job"><span class="bf-home-pin" aria-hidden="true">⌖</span><span><small>ACTIVE JOB</small><strong>'+esc(state().jobName||'Current job')+'</strong></span><span class="bf-job-arrow" aria-hidden="true">›</span></button>';
+ const fast='<div class="bf-home-fast" aria-label="Quick access"><button data-page="fieldhistory">▦ Atlas & Calendar</button><button data-bf-menu-action="quick">▣ Quick Photo & Pin</button></div>';
+ return '<div class="page bh-home'+(c.density==='compact'?' bh-dense':'')+'">'+hero+currentJob+fast+profile+
  (editing?editorCard(c,p):'<div class="bh-custom-tip"><span>Long-press a card to customize.</span><button data-bh-edit>Customize Widgets ›</button></div>')+
  widgets+
  '<div class="bh-footer"><button data-bh-edit>▦ Edit Dashboard</button><button data-bh-classic>Classic Home</button></div>'+
