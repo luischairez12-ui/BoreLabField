@@ -79,6 +79,8 @@ jobs:
         run: node tests/jobsite-map.test.cjs
       - name: Test closeout assistant and photo timeline v2
         run: node tests/closeout-photo-v2.test.cjs
+      - name: Test connected operations 3.0 crew intelligence equipment and planner
+        run: node tests/connected-ops-3.test.cjs
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
