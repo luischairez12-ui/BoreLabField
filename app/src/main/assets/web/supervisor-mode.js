@@ -17,6 +17,7 @@ const crewRoster=()=>state().roster||[];
 const assignments=()=>state().crewAssignmentsV2||[];
 const savedReviews=()=>state().supervisorReviewsV1&&typeof state().supervisorReviewsV1==='object'?state().supervisorReviewsV1:{};
 const availableTabs=['overview','jobs','crew','reports','equipment'];
+const supervisorPin=()=>window.BoreLabLocalAccounts?.role?.()==='supervisor';
 let tab='overview',jobFilter='active',selectedJob='',reportDate='',reportFilter='all',teamDate='';
 const day=()=>reportDate||today();
 function hour(e){
@@ -73,7 +74,7 @@ function metric(label,value,ico,sub=''){
 function header(){
  const p=portfolio(),date=day(),d=new Date(date+'T12:00:00'),fmtDate=Number.isFinite(+d)?d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}):date;
  return '<header class="sm-hero"><div class="sm-hero-top"><span>BORELAB FIELD · SUPERVISOR COMMAND</span>'+
- '<button data-sm-exit>Exit Preview ↗</button></div><div class="sm-hero-body"><div><h1>Field operations,<br>at a glance.</h1>'+
+ '<button data-sm-exit>'+(supervisorPin()?'🔒 Switch User':'Exit Preview ↗')+'</button></div><div class="sm-hero-body"><div><h1>Field operations,<br>at a glance.</h1>'+
  '<p>'+fmtDate+' · '+p.jobs.length+' active job'+(p.jobs.length===1?'':'s')+'</p></div>'+
  '<span class="sm-hero-art" aria-hidden="true">⌁</span></div>'+
  '<div class="sm-hero-chips"><span>◉ '+p.percent+'% bores complete</span><span>◷ '+p.openCrew.length+' open shifts</span></div></header>';
@@ -87,10 +88,17 @@ function nav(){
 function subheading(title,caption='',right=''){
  return '<div class="sm-section-head"><div><h2>'+esc(title)+'</h2>'+(caption?'<p>'+esc(caption)+'</p>':'')+'</div>'+right+'</div>';
 }
-function jump(page,text){return '<button type="button" data-page="'+page+'" class="sm-link">'+text+'</button>'}
+function jump(page,text){
+ if(supervisorPin()){
+  const mapped={jobs:'jobs',crewmanager2:'crew',dayassistlegacy:'reports',history:'reports',equipmentmanager2:'equipment'}[page];
+  return mapped?'<button type="button" data-sm-tab="'+mapped+'" class="sm-link">'+text+'</button>':
+   '<button class="sm-link" data-sm-lockhint>Available to foremen ›</button>';
+ }
+ return '<button type="button" data-page="'+page+'" class="sm-link">'+text+'</button>';
+}
 function pageFooter(){
- return '<footer class="sm-foot"><button data-sm-exit>↖ Return to Foreman Mode</button>'+
- '<p>This is a shared-device local preview. Review markers are not approvals or signatures. Real multi-user access requires accounts, server permissions and sync.</p></footer>';
+ return '<footer class="sm-foot"><button data-sm-exit>'+(supervisorPin()?'🔒 Lock & Switch User':'↖ Return to Foreman Mode')+'</button>'+
+ '<p>'+(supervisorPin()?'This is a shared-device PIN session, not secure cloud authorization. Review markers are never approvals or signatures.':'This is a shared-device local preview. Review markers are not approvals or signatures. Real multi-user access requires accounts, server permissions and sync.')+'</p></footer>';
 }
 function alertList(limit=5){
  const data=portfolio(),alerts=[];
@@ -117,7 +125,7 @@ function jobCard(j,compact=false){
  (compact?'':'<div class="sm-job-day"><small>'+fmt(r.crewHours,1)+' completed crew-hr today · '+r.photos+' photos logged</small>'+
  (warnings?'<span class="sm-warning-count">⚠ '+warnings+' warning'+(warnings===1?'':'s')+'</span>':'')+'</div>')+
  '<div class="sm-card-actions"><button data-sm-inspect="'+esc(j.id)+'">View Job Details ›</button>'+
- '<button data-sm-open-job="'+esc(j.id)+'">Open in Foreman</button></div></article>';
+ (supervisorPin()?'':'<button data-sm-open-job="'+esc(j.id)+'">Open in Foreman</button>')+'</div></article>';
 }
 function overview(){
  const p=portfolio();
@@ -136,7 +144,7 @@ function overview(){
  '<div class="sm-shortcuts"><button data-sm-tab="crew"><span>♙</span><strong>Crew Status</strong><small>Attendance across jobs</small></button>'+
  '<button data-sm-tab="reports"><span>▤</span><strong>Daily Reports</strong><small>Review work by date</small></button>'+
  '<button data-sm-tab="equipment"><span>◈</span><strong>Equipment</strong><small>Downtime and repairs</small></button>'+
- '<button data-page="dayassistlegacy"><span>✓</span><strong>All-Job Closeout</strong><small>Combined daily review</small></button></div></section></section>';
+ '<button '+(supervisorPin()?'data-sm-tab="reports"':'data-page="dayassistlegacy"')+'><span>✓</span><strong>All-Job Closeout</strong><small>Combined daily review</small></button></div></section></section>';
 }
 function jobsView(){
  const options=[['active','Active'],['attention','Need Review'],['archived','Archived'],['all','All']];
@@ -162,7 +170,7 @@ function inspect(){
  '<p class="sm-muted">Today: '+daySummary.shots+' shots updated · '+fmt(daySummary.crewHours,1)+' completed crew-hours · '+daySummary.photos+' photos</p>'+
  (warnings.length?'<div class="sm-inspect-warnings">'+warnings.map(x=>'<p>⚠ '+esc(x)+'</p>').join('')+'</div>':
  '<p class="sm-good">No automatic daily warnings flagged.</p>')+
- '<div class="sm-bottom-actions"><button data-sm-open-job="'+esc(j.id)+'" class="sm-primary">Open Job Workspace</button>'+
+ '<div class="sm-bottom-actions">'+(supervisorPin()?'':'<button data-sm-open-job="'+esc(j.id)+'" class="sm-primary">Open Job Workspace</button>')+
  '<button data-sm-report-job="'+esc(j.id)+'">Daily Report ›</button></div></section>';
 }
 function crewView(){
@@ -249,7 +257,7 @@ function renderSupervisor(){
  const page=tab==='jobs'?jobsView():tab==='crew'?crewView():tab==='reports'?reportsView():tab==='equipment'?equipmentView():overview();
  return '<div class="page sm-page">'+header()+
  '<div class="sm-heading"><div><strong>'+({overview:'Supervisor Dashboard',jobs:'All Jobs',crew:'Crew Oversight',reports:'Daily Reports',equipment:'Fleet Overview'}[tab])+
- '</strong><small>'+esc(today())+'</small></div><span class="sm-local">Local Preview</span></div>'+
+ '</strong><small>'+esc(today())+'</small></div><span class="sm-local">'+(supervisorPin()?'PIN Account':'Local Preview')+'</span></div>'+
  (selectedJob?inspect():'')+page+pageFooter()+nav()+'</div>';
 }
 function changeTab(next){if(!availableTabs.includes(next))return;tab=next;selectedJob='';bridge()?.render?.()}
@@ -272,13 +280,17 @@ function handleReview(id){
  bridge()?.notify?.(mark?'Local review reopened.':'Local review marker saved; existing records are unchanged.');
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest?.('[data-sm-exit],[data-sm-tab],[data-sm-inspect],[data-sm-close-inspect],[data-sm-open-job],[data-sm-job-filter],[data-sm-report-filter],[data-sm-report-job],[data-sm-review]');
+ const t=e.target.closest?.('[data-sm-exit],[data-sm-tab],[data-sm-inspect],[data-sm-close-inspect],[data-sm-open-job],[data-sm-job-filter],[data-sm-report-filter],[data-sm-report-job],[data-sm-review],[data-sm-lockhint]');
  if(!t||bridge()?.currentPage?.()!=='supervisorpreview')return;
  if(t.hasAttribute('data-sm-exit')){tab='overview';selectedJob='';bridge()?.setPage?.('home');return}
  if(t.dataset.smTab){changeTab(t.dataset.smTab);return}
  if(t.dataset.smInspect){selectedJob=t.dataset.smInspect;bridge()?.render?.();return}
  if(t.hasAttribute('data-sm-close-inspect')){selectedJob='';bridge()?.render?.();return}
- if(t.dataset.smOpenJob){bridge()?.switchActiveJob?.(t.dataset.smOpenJob);return}
+ if(t.dataset.smOpenJob){
+  if(supervisorPin()){selectedJob=t.dataset.smOpenJob;bridge()?.render?.();return}
+  bridge()?.switchActiveJob?.(t.dataset.smOpenJob);return
+ }
+ if(t.hasAttribute('data-sm-lockhint')){bridge()?.notify?.('Sign in with a Foreman or Owner PIN for management tools.');return}
  if(t.dataset.smJobFilter){jobFilter=t.dataset.smJobFilter;selectedJob='';bridge()?.render?.();return}
  if(t.dataset.smReportFilter){reportFilter=t.dataset.smReportFilter;bridge()?.render?.();return}
  if(t.dataset.smReportJob){selectedJob=t.dataset.smReportJob;tab='reports';bridge()?.render?.();return}

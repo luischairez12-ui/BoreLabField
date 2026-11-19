@@ -13,7 +13,11 @@ const roster=()=>Array.isArray(st().roster)?st().roster:[];
 const jobs=()=>Array.isArray(st().jobs)?st().jobs:[];
 const assignments=()=>Array.isArray(st().crewAssignmentsV2)?st().crewAssignmentsV2:[];
 const photos=()=>bridge()?.photos?.()||[];
-const person=()=>roster().find(x=>x.id===st().crewPreviewMemberId)||roster()[0]||null;
+const pinRole=()=>window.BoreLabLocalAccounts?.role?.()==='crew';
+const person=()=>{
+ if(pinRole())return roster().find(x=>x.id===window.BoreLabLocalAccounts.memberId())||null;
+ return roster().find(x=>x.id===st().crewPreviewMemberId)||roster()[0]||null;
+};
 const matches=(entry,p)=>Boolean(p&&(entry.memberId?entry.memberId===p.id:String(entry.name||'').trim().toLowerCase()===String(p.name||'').trim().toLowerCase()));
 const entries=p=>!p?[]:jobs().flatMap(j=>(j.crew||[]).filter(e=>matches(e,p)).map(e=>({...e,fromJobId:j.id,fromJobName:j.jobName}))).sort((a,b)=>String(b.start||'').localeCompare(String(a.start||'')));
 const chosenAssignment=(p,d=today())=>p?assignments().find(a=>a.personId===p.id&&a.date===d&&jobs().some(j=>j.id===a.jobId&&!j.archived)):null;
@@ -36,10 +40,12 @@ function pageTop(p,j){
  const hour=new Date().getHours(),greet=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
  const options=roster().map(x=>'<option value="'+esc(x.id)+'"'+(x.id===p?.id?' selected':'')+'>'+esc(x.name)+'</option>').join('');
  return '<div class="cm-hero"><div class="cm-hero-heading"><span>BORELAB FIELD · CREW MODE</span>'+
- '<button data-cm-exit>Exit Preview ↗</button></div><div class="cm-hero-main"><div><h1>'+greet+', '+esc(name)+'!</h1>'+
+ '<button data-cm-exit>'+(pinRole()?'🔒 Switch User':'Exit Preview ↗')+'</button></div><div class="cm-hero-main"><div><h1>'+greet+', '+esc(name)+'!</h1>'+
  '<p>Your workday at a glance</p></div><span class="cm-helmet" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M11 39c1-14 9-23 21-23s20 9 21 23M29 16V9h6v7M9 39h46v8H9zM17 47h30M21 53h22" /><path d="M22 21v18M42 21v18"/></svg></span></div>'+
- '<div class="cm-identity"><label>Viewing local crew profile <select data-cm-person aria-label="Select local crew preview profile">'+options+'</select></label>'+
- '<small>Shared-device test preview · no secure login yet</small></div></div>';
+ '<div class="cm-identity">'+(pinRole()?
+ '<span class="cm-identity-pinned">Signed in as '+esc(p.name)+' · Crew</span>':
+ '<label>Viewing local crew profile <select data-cm-person aria-label="Select local crew preview profile">'+options+'</select></label>')+
+ '<small>'+(pinRole()?'Local PIN session · shared-device only':'Shared-device test preview · no secure login yet')+'</small></div></div>';
 }
 function jobCard(p,j){
  const a=chosenAssignment(p),todayShots=(j?.shots||[]).filter(s=>s.status!=='complete');
@@ -78,7 +84,7 @@ function attendanceCard(p,j){
  '<button type="submit" class="cm-cta">✓ Confirm Clock Out</button></form>':
  '<button data-cm-checkin class="cm-cta">◷ Confirm Clock In</button>'):
  '<button type="button" class="cm-cta" disabled>Time Clock Unavailable</button>')+
- '<p class="cm-micro">Local test mode: no login verification or remote payroll approval.</p></section>';
+ '<p class="cm-micro">'+(pinRole()?'Local PIN mode: no server-side payroll permissions or syncing.':'Local test mode: no login verification or remote payroll approval.')+'</p></section>';
 }
 function hourList(p,full=false){
  const arr=entries(p),n=full?20:3;
@@ -159,12 +165,13 @@ function renderCrew(){
  jobCard(p,j)+homeGrid(p,j)+attendanceCard(p,j)+hoursCard(p);
  return '<div class="page cm-page">'+pageTop(p,j)+
  '<div class="cm-mode-heading"><div><strong>'+({home:'My Workday',hours:'My Hours',photos:'Jobsite Photos',assignments:'My Assignments'}[tab])+
- '</strong><small>'+esc(today())+'</small></div><span class="cm-local">Local Preview</span></div>'+
- content+'<div class="cm-footer"><button data-cm-exit>↖ Return to Foreman Mode</button>'+
- '<p>No accounts, sync, or server permissions yet. Don’t use local profiles as secure employee access.</p></div>'+
+ '</strong><small>'+esc(today())+'</small></div><span class="cm-local">'+(pinRole()?'PIN Account':'Local Preview')+'</span></div>'+
+ content+'<div class="cm-footer"><button data-cm-exit>'+(pinRole()?'🔒 Lock & Switch User':'↖ Return to Foreman Mode')+'</button>'+
+ '<p>'+(pinRole()?'Local PIN accounts do not encrypt field records or sync phones.':'No accounts, sync, or server permissions yet. Don’t use local profiles as secure employee access.')+'</p></div>'+
  crewNav()+'</div>';
 }
 function selectPerson(id){
+ if(pinRole())return;
  if(!roster().some(p=>p.id===id))return;
  st().crewPreviewMemberId=id;save();tab='home';photoEditor=false;render();
 }

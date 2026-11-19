@@ -85,6 +85,8 @@ jobs:
         run: node tests/crew-mode.test.cjs
       - name: Test Supervisor Mode 1.0 portfolio reviews and saved data safety
         run: node tests/supervisor-mode.test.cjs
+      - name: Test local PIN accounts and role-based UI navigation safeguards
+        run: node tests/local-accounts.test.cjs
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:

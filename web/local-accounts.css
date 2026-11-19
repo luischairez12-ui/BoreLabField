@@ -1,0 +1,91 @@
+/* BoreLab Field · Local PIN Accounts 1.0 / shared-device lock */
+html:not([data-local-auth="unlocked"]) .app-shell,
+html:not([data-local-auth="unlocked"]) #modalRoot,
+html:not([data-local-auth="unlocked"]) #toast{display:none!important}
+html[data-local-auth="unlocked"] #localAccountsGate{display:none!important}
+html[data-local-role="crew"] .topbar #topNavButton,
+html[data-local-role="crew"] .topbar .ux-search-header,
+html[data-local-role="supervisor"] .topbar #topNavButton,
+html[data-local-role="supervisor"] .topbar .ux-search-header{visibility:hidden!important;pointer-events:none!important}
+#localAccountsGate{min-height:100dvh;background:linear-gradient(175deg,#ffffff 0,#f6f8fa 49%,#f9efdf 100%);color:#1e3340;box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.la-screen{min-height:100dvh;display:grid;align-content:center;justify-items:center;gap:22px;padding:23px 15px 44px;box-sizing:border-box;max-width:610px;margin:0 auto}
+.la-brand{display:flex;justify-content:center;align-items:center;gap:11px;min-height:50px}
+.la-mark{color:#dc7919;font-size:44px;font-weight:1000;font-style:italic;transform:skewX(-8deg);line-height:1}
+.la-mark span{font-size:16px;font-style:normal;vertical-align:top}
+.la-brand>div{display:grid;gap:3px}
+.la-brand strong{font-size:23px;font-style:italic;letter-spacing:-.6px}
+.la-brand em{color:#dc7919;font-style:italic}
+.la-brand small{font-size:9px;letter-spacing:2.1px;font-weight:900;color:#5c6a75}
+.la-card{width:100%;box-sizing:border-box;border:1px solid #d7e0e7;border-radius:24px;box-shadow:0 11px 34px #1c304118;background:#fff;padding:23px;display:grid;gap:13px;justify-items:stretch}
+.la-eyebrow{font-weight:950;font-size:10px;letter-spacing:1.35px;color:#ae5e25}
+.la-card h1{font-size:clamp(23px,6vw,31px);font-weight:950;line-height:1.12;letter-spacing:-.5px;color:#1b2d3d;margin:0}
+.la-card h2{font-size:16px;color:#263641;font-weight:900;margin:0}
+.la-subtitle{font-size:12px;line-height:1.5;color:#62717d;margin:0}
+.la-account-list{display:grid;gap:9px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.la-account{display:flex;align-items:center;gap:8px;min-width:0;border:1px solid #d2dce4;background:#f8fafb;border-radius:14px;color:#283b49;text-align:left;min-height:65px;padding:10px}
+.la-account.selected{border-color:#e98027;background:#fff0e0;box-shadow:0 0 0 1px #efac73}
+.la-avatar{display:grid;place-items:center;flex:none;width:34px;height:34px;background:#ffead2;border-radius:11px;color:#d67121;font-size:19px;font-weight:950}
+.la-account>span:nth-child(2){min-width:0;display:grid;gap:4px;flex:1}
+.la-account strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.la-account small{font-size:10px;color:#6d7780}
+.la-selected{color:#db761e;font-size:15px;font-weight:950}
+.la-unlock-section{display:grid;gap:11px;border-top:1px solid #e7ecef;padding-top:15px;justify-items:stretch}
+.la-unlock-section h2{font-weight:900;text-align:center}
+.la-unlock-section .la-subtitle{text-align:center}
+.la-pin-dots{display:flex;gap:9px;justify-content:center;padding:5px 0}
+.la-pin-dots>span{width:34px;height:39px;display:grid;place-items:center;border:1px solid #d7e0e7;border-radius:11px;background:#f4f6f8;color:#cbd4da;font-size:18px;font-weight:900}
+.la-pin-dots>span.filled{border-color:#f0a06a;background:#fff1e3;color:#e4771e}
+.la-pin-keypad{width:min(100%,290px);margin:2px auto 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.la-pin-keypad button{height:53px;border:1px solid #dce4e9;background:#f8f9fb;color:#273743;border-radius:14px;font-weight:900;font-size:20px}
+.la-pin-keypad button:active,.la-pin-keypad button:focus-visible{background:#ffe8d3;border-color:#ef902e}
+.la-primary{border:0;background:linear-gradient(120deg,#ff9332,#e87219);border-radius:12px;color:#fff;font-weight:900;padding:13px;min-height:45px;font-size:13px;box-shadow:0 3px 9px #ed7b2536}
+.la-primary:disabled{opacity:.55}
+.la-text-button,.la-back{background:transparent;border:0;color:#b35f1d;text-align:center;font-size:11px;font-weight:850;padding:9px}
+.la-back{text-align:left;justify-self:start;padding:5px 0}
+.la-disclaimer{font-size:10px;line-height:1.5;color:#76818b;margin:0;text-align:center}
+.la-error{font-size:11px;color:#a43e31;background:#ffedea;border-radius:9px;padding:10px;line-height:1.45;margin:0;text-align:center}
+.la-warning{font-size:11px;color:#9c5b25;background:#fff1df;padding:11px;border-radius:10px;line-height:1.45;margin:0}
+.la-recovery-code{display:block;text-align:center;border-radius:13px;border:1px solid #edb78e;background:#fff5e7;padding:16px 11px;color:#8a4c1c;font-size:clamp(14px,3.7vw,18px);font-weight:950;letter-spacing:.6px;overflow-wrap:anywhere;user-select:all}
+.la-form{display:grid;gap:13px;min-width:0}
+.la-form label{display:grid;gap:6px;font-size:11px;font-weight:850;color:#50616d}
+.la-form input,.la-form select{width:100%;max-width:100%;box-sizing:border-box;padding:11px;border:1px solid #d0dce4;background:#f9fafb;color:#243745;border-radius:10px;font-size:13px;outline:none}
+.la-form input:focus,.la-form select:focus{border-color:#df7b28;box-shadow:0 0 0 2px #f5bb835c}
+.la-manage{--la-text:var(--text,#22323d);display:grid;gap:13px;padding-bottom:34px;max-width:900px}
+.la-manage-hero{border-radius:17px;padding:18px;background:linear-gradient(125deg,#fff4e5,#ffd099 45%,#ef852d);border:1px solid #f2b679;display:grid;gap:8px}
+.la-manage-hero>span{font-size:10px;font-weight:950;letter-spacing:1px;color:#794323}
+.la-manage-hero h1{font-size:25px;line-height:1.15;color:#302b27;letter-spacing:-.6px}
+.la-manage-hero p{font-size:12px;color:#6e4830;line-height:1.45}
+.la-manage-card{background:var(--surface,#fff);border:1px solid var(--line,#d3dfe6);border-radius:16px;padding:14px;display:grid;gap:12px}
+.la-manage-card h2{font-size:16px;font-weight:900;color:var(--text,#283943)}
+.la-manage-notice{border-radius:12px;padding:12px;background:#fff3e5;border:1px solid #f1bf96;color:#794b29}
+.la-manage-notice strong{font-size:12px}
+.la-manage-notice p{font-size:11px;line-height:1.5;margin-top:6px}
+.la-manage-heading{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.la-manage-heading>span{font-size:10px;color:var(--muted,#72818c);font-weight:750}
+.la-manage-account{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line,#e1e8ec);padding:10px 0}
+.la-manage-account>div{min-width:0;flex:1;display:grid;gap:5px}
+.la-manage-account strong{font-size:12px;overflow-wrap:anywhere}
+.la-manage-account small{font-size:10px;color:var(--muted,#687a87)}
+.la-manage-account button{border-radius:10px;border:1px solid var(--line,#d5dfe6);background:var(--surface2,#eff3f6);color:var(--text,#293943);font-size:11px;font-weight:850;padding:9px}
+.la-manage .la-primary{color:#fff}
+.la-manage .la-form input,.la-manage .la-form select{background:var(--surface2,#f4f6f8);border-color:var(--line,#d4dfe6);color:var(--text,#243747)}
+.la-manage .la-form label{color:var(--muted,#667885)}
+.la-manage-idle{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:var(--text,#263743)}
+.la-manage-idle select{padding:9px;border-radius:9px;background:var(--surface2,#f1f4f6);color:var(--text,#273c45);border:1px solid var(--line,#d1dfe6)}
+.la-muted{font-size:11px;line-height:1.5;color:var(--muted,#637784);margin:0}
+.la-manage-footer{text-align:center}
+@media(max-width:420px){
+ .la-screen{padding:17px 13px 35px;gap:16px}
+ .la-card{padding:16px;border-radius:20px}
+ .la-account-list{gap:7px}
+ .la-account{padding:8px;min-height:60px}
+ .la-pin-keypad button{height:46px}
+ .la-pin-dots{gap:7px}
+ .la-pin-dots>span{width:32px;height:35px}
+ .la-manage-account{flex-wrap:wrap}
+ .la-manage-account>div{min-width:130px}
+}
+@media(prefers-reduced-motion:reduce){.la-screen button,.la-manage button{transition:none}}
+
+.la-form [hidden]{display:none!important}
+.cm-identity-pinned{font-size:12px;font-weight:900;color:#754529;background:#fff7eabf;padding:9px 11px;border-radius:10px}
