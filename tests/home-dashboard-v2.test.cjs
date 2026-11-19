@@ -4,6 +4,16 @@ const html=fs.readFileSync('web/index.html','utf8'),android=fs.readFileSync('app
 const script=fs.readFileSync('web/home-dashboard.js','utf8'),css=fs.readFileSync('web/home-dashboard.css','utf8');
 assert.equal(html,android);assert.equal(script,fs.readFileSync('app/src/main/assets/web/home-dashboard.js','utf8'));
 assert.equal(css,fs.readFileSync('app/src/main/assets/web/home-dashboard.css','utf8'));
+const heroAsset=fs.readFileSync('web/home-hero-hdd.webp');
+const androidHero=fs.readFileSync('app/src/main/assets/web/home-hero-hdd.webp');
+assert(heroAsset.equals(androidHero),'Approved drill/crew artwork must be mirrored in Android assets');
+assert(heroAsset.length>4000&&heroAsset.length<30000,'Offline hero asset must be compact');
+assert.equal(heroAsset.subarray(0,4).toString(),'RIFF');
+assert.equal(heroAsset.subarray(8,12).toString(),'WEBP');
+assert(script.includes('home-hero-hdd.webp'),'Home must use the approved orange HDD art');
+assert(!script.includes('Directional drilling rig silhouette'),'The mystery silhouette must not return');
+assert(css.includes('.bh-hero-art img'),'Artwork must be responsive');
+assert(css.includes('.bh-hero:after{display:none}'),'Remove competing hillside overlay');
 assert(html.includes('<script src="./home-dashboard.js"></script>'));assert(html.includes('home-dashboard.css'));
 assert(html.includes('window.BoreLabHomeV2?.enabled?.()'));assert(html.includes('window.BoreLabHomeV2?.classicBanner?.()'));
 new Function(script);new Function(html.split('<script>')[1].split('</script>')[0]);

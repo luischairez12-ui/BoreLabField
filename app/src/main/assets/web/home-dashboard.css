@@ -191,3 +191,27 @@
  .bh-hero-main>.bh-hero-copy{max-width:calc(100% - 125px)}
  .bh-hero-weather{width:122px}
 }
+
+/* Dashboard hero artwork 2.2 — approved orange HDD drill + field crew.
+   Keep art behind live greeting, date, and weather; no layout change to widgets. */
+.bh-hero{min-height:239px}
+.bh-hero:after{display:none}
+.bh-hero-main{padding-bottom:112px}
+.bh-hero-art{left:0;right:0;bottom:0;width:100%;max-width:none;height:117px;opacity:1;z-index:1;pointer-events:none}
+.bh-hero-art img{display:block;width:100%;height:100%;object-fit:contain;object-position:center bottom}
+.bh-dense .bh-hero-art{height:106px}
+.bh-dense .bh-hero-main{padding-bottom:102px}
+@media(max-width:380px){
+ .bh-hero{min-height:226px}
+ .bh-hero-main{padding-bottom:99px}
+ .bh-hero-art{height:102px}
+ .bh-dense .bh-hero-art{height:94px}
+ .bh-dense .bh-hero-main{padding-bottom:91px}
+}
+@media(min-width:720px){
+ .bh-hero{min-height:255px}
+ .bh-hero-main{padding-bottom:128px}
+ .bh-hero-art{height:139px}
+ .bh-dense .bh-hero-art{height:128px}
+ .bh-dense .bh-hero-main{padding-bottom:120px}
+}

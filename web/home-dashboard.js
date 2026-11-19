@@ -226,14 +226,8 @@ function heroWeather(){
 function renderHome(){
  const c=workingConfig(),p=preset(c),current=visible(c),hour=new Date().getHours();
  const greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
- const rig='<svg viewBox="0 0 400 112" role="img" aria-label="Directional drilling rig silhouette" preserveAspectRatio="xMidYMax meet">'+
- '<path d="M0 98H400" stroke="#122333" stroke-width="2"/><path d="M8 95L56 95 65 82 140 82 155 95H192L209 86H252L267 95H379" fill="none" stroke="#101f2e" stroke-width="7"/>'+
- '<path d="M52 80L63 55 150 55 178 81M72 55L78 29 120 29 130 55" stroke="#142232" stroke-width="10" fill="none"/>'+
- '<path d="M90 28L153 21 275 38" fill="none" stroke="#16283a" stroke-width="8"/><path d="M242 33L359 3" stroke="#142438" stroke-width="5"/>'+
- '<rect x="80" y="56" width="70" height="22" rx="5" fill="#142438"/>'+
- '<circle cx="69" cy="89" r="14" fill="#152b3b"/><circle cx="155" cy="89" r="14" fill="#152b3b"/>'+
- '<path d="M297 82V62L303 51 313 63V82M302 50V41" stroke="#142438" stroke-width="7" fill="none"/>'+
- '<path d="M280 97H365" stroke="#142438" stroke-width="5"/></svg>';
+ // Approved Home Command artwork, isolated from the concept mockup so live text stays dynamic.
+ const rig='<img src="./home-hero-hdd.webp" width="520" height="150" alt="" aria-hidden="true" decoding="async">';
  const subtitle=esc(state().jobName||'Your HDD workday');
  const hero='<div class="bh-hero"><div class="bh-hero-top"><span class="bh-hero-tag">BORELAB FIELD · HOME COMMAND</span>'+
   '<button data-bh-edit aria-label="Customize home dashboard">⚙ Customize</button></div>'+
