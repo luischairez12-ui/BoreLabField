@@ -50,7 +50,7 @@ function renderShotCards(){
  '<div class="blv-count">'+selection().length+' matching bores</div><div id="blv-list" class="blv-list">'+
  (selection().length?selection().map(card).join(''):'<div class="blv-empty">No matching shots.</div>')+'</div>'+
  '<div class="blv-bottom"><button class="btn primary" data-action="new-shot">+ Add Bore</button>'+
- '<button class="btn ghost" data-page="shotboard">Shot Board</button></div></div>';
+ '<button class="btn ghost" data-page="shotboard">Shot Board</button><button class="btn ghost" data-page="jobmap">⌖ Map</button></div></div>';
 }
 function reelData(){
  const p=base.reelPlan?.()||{},sim=p.simulation||{reels:[],allocations:[],shortages:[],untracked:[]};

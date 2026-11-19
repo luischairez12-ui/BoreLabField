@@ -9,14 +9,14 @@ const fmt=x=>value(x).toLocaleString(undefined,{maximumFractionDigits:1});
 const today=()=>bridge()?.todayLocal?.()||new Date().toISOString().slice(0,10);
 const sizes=['small','medium','large'];
 const widgetSizes=id=>id==='active'?['compact',...sizes]:sizes;
-const ids=['job','active','shots','weather','next','crew','reels','finish','photos','scanner','quick','notes','backup'];
-const names={job:'Current Job',active:'Active Bore',shots:'Today’s Shots',weather:'Jobsite Weather',next:'Next 3 Shots',crew:'Crew Status',reels:'Reels on Truck',finish:'Estimated Finish',photos:'Photo Reminders',scanner:'Paperwork Scanner',quick:'Quick Actions',notes:'Job Notes',backup:'Backup & Recovery'};
-const symbols={job:'⌖',active:'◎',shots:'▦',weather:'☁',next:'☷',crew:'♙',reels:'◈',finish:'◷',photos:'▣',scanner:'▤',quick:'＋',notes:'✎',backup:'↶'};
+const ids=['job','active','shots','weather','next','crew','reels','finish','photos','scanner','quick','notes','backup','map'];
+const names={job:'Current Job',active:'Active Bore',shots:'Today’s Shots',weather:'Jobsite Weather',next:'Next 3 Shots',crew:'Crew Status',reels:'Reels on Truck',finish:'Estimated Finish',photos:'Photo Reminders',scanner:'Paperwork Scanner',quick:'Quick Actions',notes:'Job Notes',backup:'Backup & Recovery',map:'Jobsite Map'};
+const symbols={job:'⌖',active:'◎',shots:'▦',weather:'☁',next:'☷',crew:'♙',reels:'◈',finish:'◷',photos:'▣',scanner:'▤',quick:'＋',notes:'✎',backup:'↶',map:'⌖'};
 const presetNames={morning:'Morning Briefing',workday:'Active Workday',supervisor:'Supervisor Overview'};
 const defaults={
- morning:[['job','medium'],['weather','medium'],['shots','small'],['crew','small'],['next','medium'],['reels','medium'],['active','large'],['finish','small'],['photos','small'],['quick','medium'],['scanner','small'],['notes','small'],['backup','small']],
- workday:[['active','large'],['shots','small'],['reels','small'],['weather','medium'],['next','medium'],['crew','small'],['finish','small'],['photos','medium'],['quick','medium'],['job','medium'],['scanner','small'],['notes','small'],['backup','small']],
- supervisor:[['job','medium'],['shots','medium'],['crew','medium'],['next','medium'],['photos','medium'],['reels','medium'],['finish','small'],['weather','small'],['active','large'],['quick','medium'],['notes','small'],['scanner','small'],['backup','small']]
+ morning:[['map','medium'],['job','medium'],['weather','medium'],['shots','small'],['crew','small'],['next','medium'],['reels','medium'],['active','large'],['finish','small'],['photos','small'],['quick','medium'],['scanner','small'],['notes','small'],['backup','small']],
+ workday:[['map','medium'],['active','large'],['shots','small'],['reels','small'],['weather','medium'],['next','medium'],['crew','small'],['finish','small'],['photos','medium'],['quick','medium'],['job','medium'],['scanner','small'],['notes','small'],['backup','small']],
+ supervisor:[['map','medium'],['job','medium'],['shots','medium'],['crew','medium'],['next','medium'],['photos','medium'],['reels','medium'],['finish','small'],['weather','small'],['active','large'],['quick','medium'],['notes','small'],['scanner','small'],['backup','small']]
 };
 const initialShown={morning:['job','weather','shots','crew','next','reels','active','finish','quick','scanner'],workday:['active','shots','reels','weather','next','crew','finish','photos','quick','job'],supervisor:['job','shots','crew','next','photos','reels','finish','weather','active']};
 function defaultLayout(p){return defaults[p].map(([id,size])=>({id,size,visible:initialShown[p].includes(id)}))}
@@ -179,6 +179,13 @@ function widgetBody(id,size){
    '<button data-action="open-closeout">✓<small>Close Day</small></button></div>';
  if(id==='notes')return widgetHead('notes','job','Saved job notes')+
    '<p class="bh-small">'+esc(s.jobNotes||'No job notes saved yet. Add access details and crew instructions in Job Details.')+'</p>';
+ if(id==='map'){
+  const loc=all.filter(x=>bridge()?.coordsValid?.(x)).length,missing=all.length-loc;
+  return widgetHead('map','jobmap','Saved bore locations')+
+   '<div class="bh-two-metrics"><div><strong>'+loc+'</strong><small>GPS pins</small></div>'+
+   '<div><strong>'+missing+'</strong><small>Need GPS</small></div></div>'+
+   '<button class="bh-plain-action" data-page="jobmap">⌖ Open Jobsite Map ›</button>';
+ }
  if(id==='backup')return widgetHead('backup','recovery','Protect local records')+
    '<p class="bh-small">Export job data and photos to a safe backup file.</p>'+
    '<button class="bh-plain-action" data-page="recovery">Backup & Recovery ›</button>';

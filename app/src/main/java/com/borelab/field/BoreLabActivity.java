@@ -82,6 +82,8 @@ public class BoreLabActivity extends Activity {
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
+        // Identify BoreLab on external map-tile requests while preserving WebView compatibility.
+        settings.setUserAgentString(settings.getUserAgentString() + " BoreLabField/0.18");
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
         settings.setGeolocationEnabled(true);
