@@ -2799,7 +2799,7 @@ async function addPhoto(file){
  let pos=null;try{pos=await getPosition()}catch(e){console.info('Saving without GPS:',e.message)}
  try{
   const dataUrl=await compressImage(file);
-  const rec={id:uid(),jobId:photoJob,shotId:pendingPhotoShot||'',fieldPinId:linkPin,kind:pendingPhotoKind,stage:pendingPhotoStage||'',addedAt:new Date().toISOString(),lat:pos?.lat??null,lon:pos?.lon??null,accuracy:pos?.accuracy??null,dataUrl};
+  const rec={id:uid(),jobId:pendingPhotoJobId||state.activeJobId,shotId:pendingPhotoShot||'',fieldPinId:linkPin,kind:pendingPhotoKind,stage:pendingPhotoStage||'',addedAt:new Date().toISOString(),lat:pos?.lat??null,lon:pos?.lon??null,accuracy:pos?.accuracy??null,dataUrl};
   await photoDB('put',rec);await refreshPhotos();
   window.BoreLabAsBuilt?.onPinPhotoSaved?.(rec);
   pendingPhotoFieldPinId='';closeModal();
