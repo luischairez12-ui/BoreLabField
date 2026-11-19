@@ -90,7 +90,7 @@ async function useGps(){
    if(form.elements.gpsAccuracy)form.elements.gpsAccuracy.value=Number.isFinite(+p.accuracy)?Math.round(p.accuracy):'';
    if(form.elements.gpsSource)form.elements.gpsSource.value='device';
    const accuracy=form.querySelector?.('[data-fp-accuracy]');if(accuracy)accuracy.textContent='Device GPS accuracy ±'+Math.round(p.accuracy||0)+' m'+(p.accuracy>25?' · check location before relying on pin':'');
-  api()?.notify?.('GPS saved to form (±'+Math.round(p.accuracy||0)+' m). Tap Save Field Pin.');
+  api()?.notify?.('GPS saved (±'+Math.round(p.accuracy||0)+' m).'+(p.accuracy>25?' Weak accuracy: verify or recapture.':' Tap Save Field Pin.'));
  }catch(e){api()?.notify?.((e?.message||'GPS unavailable')+' Enter coordinates manually if needed.');}
 }
 function savePin(form){
@@ -135,6 +135,13 @@ function open(id,which){
  (url?'<button class="btn ghost" data-fp-nav="'+esc(p.id)+'">⌖ Navigate</button>':'')+'</div>');
 }
 document.addEventListener('input',e=>{
+ if(e.target.matches?.('form[data-fp-form] input[name="lat"],form[data-fp-form] input[name="lon"]')){
+  const form=e.target.closest?.('form[data-fp-form]');if(!form)return;
+  if(form.elements?.gpsAccuracy)form.elements.gpsAccuracy.value='';
+  if(form.elements?.gpsSource)form.elements.gpsSource.value='manual';
+  const hint=form.querySelector?.('[data-fp-accuracy]');if(hint)hint.textContent='Manual coordinates — verify against the actual installation.';
+  return;
+ }
  if(!e.target.matches?.('[data-fp-query]'))return;
  query=e.target.value.slice(0,100);
  const el=document.querySelector('[data-fp-results]');if(el)el.innerHTML=renderResults();
