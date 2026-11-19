@@ -22,5 +22,6 @@ for(const [reels,slots] of [[[],['','']],[[{id:'a',name:'4 inch reel',remaining:
  for(const label of ['data-bl-reel-slot="0"','data-bl-reel-slot="1"','Clear this date'])assert(m.includes(label));
 }
 assert(ops.includes('b.resolveShotAfterSave?.(shot.id)'));
-assert(html.includes('decodeFullPlusCode(address)'));
+assert(html.includes('decodeFullPlusCode?.(address)'));
+assert(ops.includes('decodeFullPlusCode?.(address)'));
 console.log('Plus Code GPS and two-reel responsive section regression tests passed.');
