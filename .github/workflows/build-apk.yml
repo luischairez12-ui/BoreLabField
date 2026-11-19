@@ -79,6 +79,8 @@ jobs:
         run: node tests/jobsite-map.test.cjs
       - name: Test dated bore search and installed field map pins
         run: node tests/dated-field-pins.test.cjs
+      - name: Test As-Built 2.0 field calendar, GPS photo linking, map jumps and PDF
+        run: node tests/asbuilt-2.test.cjs
       - name: Test closeout assistant and photo timeline v2
         run: node tests/closeout-photo-v2.test.cjs
       - name: Test connected operations 3.0 crew intelligence equipment and planner

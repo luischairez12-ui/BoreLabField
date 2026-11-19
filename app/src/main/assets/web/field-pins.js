@@ -49,7 +49,7 @@ function renderResults(){
  (result.length>80?'<p class="tiny muted">Showing the first 80 matches. Narrow the search or date to find older entries.</p>':'');
 }
 function renderBoresTools(){
- return '<section class="card fp-bores-tools"><div class="between"><div><span class="eyebrow">FIELD RECORDS</span><h3>Find a Bore or Field Pin</h3></div><button type="button" class="btn micro ghost" data-page="jobmap">📌 View Map</button></div>'+
+ return '<section class="card fp-bores-tools"><div class="between"><div><span class="eyebrow">FIELD RECORDS</span><h3>Find a Bore or Field Pin</h3></div><div class="fp-quick-nav"><button type="button" class="btn micro ghost" data-page="fieldhistory">📅 Calendar</button><button type="button" class="btn micro ghost" data-page="jobmap">📌 Map</button></div></div>'+
  '<label class="field spaced">Search shots, couplings, boxes, tie-ins or dates<input type="search" data-fp-query maxlength="100" autocomplete="off" placeholder="Shot 03, 11/19/2026, coupling..." value="'+esc(query)+'"></label>'+
  '<div class="fp-search-row"><label class="field">Work date<input type="date" data-fp-day value="'+esc(dayFilter)+'"></label><button type="button" class="btn micro ghost" data-fp-clear>Clear</button></div>'+
  '<div class="fp-results" data-fp-results>'+renderResults()+'</div>'+
@@ -63,13 +63,18 @@ function editPin(id='',initialKind='tie-in'){
  const date=localDay(current?.occurredDay||current?.occurredAt)||today();
  api()?.showModal?.('<div class="modal-head"><h2>'+(current?'Edit':'Add')+' Field Pin</h2><button class="icon-btn" type="button" data-action="close-modal">✕</button></div>'+
  '<p class="smalltext muted">Log the actual installed location. GPS is required for a map pin, but the record can be saved without it and located later.</p>'+
- '<form data-fp-form data-fp-id="'+esc(id)+'"><label class="field">Type<select name="kind">'+Object.keys(kindLabels).map(k=>'<option value="'+k+'"'+(k===kind?' selected':'')+'>'+kindLabel(k)+'</option>').join('')+'</select></label>'+
+ '<form data-fp-form data-fp-id="'+esc(id)+'"><label class="field">Type<select name="kind" data-fp-kind-select>'+Object.keys(kindLabels).map(k=>'<option value="'+k+'"'+(k===kind?' selected':'')+'>'+kindLabel(k)+'</option>').join('')+'</select></label>'+
  '<label class="field">Label<input name="name" maxlength="80" value="'+esc(name)+'" placeholder="e.g. Coupling at STA 3+50"></label>'+
  '<label class="field">Work date<input type="date" name="occurredDay" required value="'+esc(date)+'"></label>'+
  '<label class="field">Address / landmark (optional)<input name="address" maxlength="250" value="'+esc(current?.address||'')+'" placeholder="Nearest access point or street"></label>'+
+  '<div class="fp-install-details"><p class="eyebrow">SMART INSTALLATION DETAILS</p><div class="form-grid"><label class="field">Station / reference<input name="station" maxlength="70" value="'+esc(current?.station||'')+'" placeholder="STA 3+50"></label><label class="field">Pipe / fitting size<input name="size" maxlength="70" value="'+esc(current?.size||'')+'" placeholder="2 in"></label><label class="field">Material<input name="material" maxlength="90" value="'+esc(current?.material||'')+'" placeholder="HDPE / PVC"></label><label class="field">Depth (ft)<input name="depth" type="number" min="0" max="200" step="any" value="'+esc(current?.depth??'')+'" placeholder="Optional"></label></div>'+ 
+  '<label class="field" data-fp-only="tie-in"'+(kind==='tie-in'?'':' hidden')+'>Connection type<input name="connectionType" maxlength="100" value="'+esc(current?.connectionType||'')+'" placeholder="Service / main / reducer"></label>'+ 
+  '<label class="field" data-fp-only="coupling"'+(kind==='coupling'?'':' hidden')+'>Coupling / fitting style<input name="fittingType" maxlength="100" value="'+esc(current?.fittingType||'')+'" placeholder="Fusion / mechanical / transition"></label>'+ 
+  '<label class="field" data-fp-only="box"'+(kind==='box'?'':' hidden')+'>Box type / dimensions<input name="dimensions" maxlength="100" value="'+esc(current?.dimensions||'')+'" placeholder="Handhole, 24 x 36"></label></div>'+
  '<div class="form-grid"><label class="field">Latitude<input name="lat" type="number" step="any" value="'+esc(current?.lat??'')+'" placeholder="GPS latitude"></label>'+
  '<label class="field">Longitude<input name="lon" type="number" step="any" value="'+esc(current?.lon??'')+'" placeholder="GPS longitude"></label></div>'+
- '<button type="button" class="btn ghost" data-fp-gps>◎ Use current GPS</button>'+
+ '<input type="hidden" name="gpsAccuracy" value="'+esc(current?.gpsAccuracy??'')+'"><input type="hidden" name="gpsSource" value="'+esc(current?.gpsSource??'')+'">'+
+  '<button type="button" class="btn ghost" data-fp-gps>◎ Use current GPS</button><p class="tiny muted" data-fp-accuracy>'+(current?.gpsAccuracy?'Saved GPS accuracy ±'+esc(current.gpsAccuracy)+' m':'GPS accuracy not yet recorded · manual points are unverified')+'</p>'+
  '<label class="field spaced">Notes (optional)<textarea name="notes" maxlength="1500" rows="3" placeholder="Size, depth, station, nearby landmarks...">'+esc(current?.notes||'')+'</textarea></label>'+
  '<div class="modal-footer"><button type="button" class="btn ghost" data-action="close-modal">Cancel</button><button type="submit" class="btn primary">Save Field Pin</button></div></form>'+
  (current?'<div class="lightline"><button type="button" class="btn micro danger" data-fp-delete="'+esc(id)+'">Delete Pin</button></div>':''));
@@ -82,6 +87,9 @@ async function useGps(){
   const form=document.querySelector('[data-fp-form]');if(!form)return;
   form.elements.lat.value=Number(p.lat).toFixed(6);
   form.elements.lon.value=Number(p.lon).toFixed(6);
+   if(form.elements.gpsAccuracy)form.elements.gpsAccuracy.value=Number.isFinite(+p.accuracy)?Math.round(p.accuracy):'';
+   if(form.elements.gpsSource)form.elements.gpsSource.value='device';
+   const accuracy=form.querySelector?.('[data-fp-accuracy]');if(accuracy)accuracy.textContent='Device GPS accuracy ±'+Math.round(p.accuracy||0)+' m'+(p.accuracy>25?' · check location before relying on pin':'');
   api()?.notify?.('GPS saved to form (±'+Math.round(p.accuracy||0)+' m). Tap Save Field Pin.');
  }catch(e){api()?.notify?.((e?.message||'GPS unavailable')+' Enter coordinates manually if needed.');}
 }
@@ -99,7 +107,13 @@ function savePin(form){
   name:String(data.get('name')||'').trim().slice(0,80)||kindLabel(kind),
   occurredDay:day,createdAt:old?.createdAt||now,updatedAt:now,
   lat,lon,address:String(data.get('address')||'').trim().slice(0,250),
-  notes:String(data.get('notes')||'').trim().slice(0,1500)};
+  notes:String(data.get('notes')||'').trim().slice(0,1500),
+   station:String(data.get('station')||'').trim().slice(0,70),size:String(data.get('size')||'').trim().slice(0,70),
+   material:String(data.get('material')||'').trim().slice(0,90),depth:String(data.get('depth')||'').trim().slice(0,30),
+   connectionType:String(data.get('connectionType')||'').trim().slice(0,100),
+   fittingType:String(data.get('fittingType')||'').trim().slice(0,100),dimensions:String(data.get('dimensions')||'').trim().slice(0,100),
+   gpsAccuracy:lat?String(data.get('gpsAccuracy')||old?.gpsAccuracy||'').slice(0,16):'',
+   gpsSource:lat?String(data.get('gpsSource')||old?.gpsSource||'manual').slice(0,20):''};
  if(old)list.splice(list.indexOf(old),1,record);else list.push(record);
  api().state().demo=false;api().save();api().closeModal();
  api().render();api().notify(kindLabel(kind)+' pinned'+(lat?' on the map.':' as a record. Add GPS to map it.'));
@@ -109,12 +123,15 @@ function open(id,which){
  if(which==='shot'){api()?.shotDetail?.(id);return;}
  const p=pins().find(p=>p.id===id);if(!p)return;
  const url=api()?.mapsPinUrl?.(p);
+ const linked=window.BoreLabAsBuilt?.pinPhotos?.(id)||[];
+ const details=[p.station,p.size,p.material,p.depth?'Depth '+p.depth+' ft':'',p.connectionType,p.fittingType,p.dimensions].filter(Boolean);
  api()?.showModal?.('<div class="modal-head"><h2>📌 '+esc(p.name)+'</h2><button class="icon-btn" data-action="close-modal">✕</button></div>'+
  '<div class="card"><p><strong>'+esc(kindLabel(p.kind))+'</strong> · '+esc(displayDate(p))+'</p>'+
  '<p class="smalltext">'+esc(p.address||'No street address saved')+'</p>'+
- '<p class="smalltext muted">'+esc(p.notes||'No extra notes')+'</p>'+
- '<p class="tiny muted">'+(p.lat&&p.lon?'GPS '+esc(p.lat)+', '+esc(p.lon):'GPS not yet saved')+'</p></div>'+
- '<div class="action-row"><button class="btn primary" data-fp-edit="'+esc(p.id)+'">Edit Pin</button>'+
+ '<p class="smalltext muted">'+esc(details.join(' · ')||'No installation measurements yet')+'</p><p class="smalltext muted">'+esc(p.notes||'No extra notes')+'</p>'+
+ '<p class="tiny muted">'+(p.lat&&p.lon?'GPS '+esc(p.lat)+', '+esc(p.lon)+(p.gpsAccuracy?' · ±'+esc(p.gpsAccuracy)+' m':''): 'GPS not yet saved')+'</p>'+
+  (linked.length?'<div class="fp-pin-photos">'+linked.slice(0,6).map(photo=>'<button type="button" data-fp-photo-open="'+esc(photo.id)+'"><img src="'+esc(photo.dataUrl)+'" alt="Linked installation photo" loading="lazy"></button>').join('')+'</div>':'')+'</div>'+
+ '<div class="action-row"><button class="btn primary" data-fp-edit="'+esc(p.id)+'">Edit Pin</button><button class="btn ghost" data-fp-photo="'+esc(p.id)+'">📸 Capture & Pin</button>'+
  (url?'<button class="btn ghost" data-fp-nav="'+esc(p.id)+'">⌖ Navigate</button>':'')+'</div>');
 }
 document.addEventListener('input',e=>{
@@ -127,13 +144,15 @@ document.addEventListener('change',e=>{
  dayFilter=e.target.value;const el=document.querySelector('[data-fp-results]');if(el)el.innerHTML=renderResults();
 });
 document.addEventListener('click',e=>{
- const btn=e.target.closest?.('[data-fp-clear],[data-fp-add],[data-fp-open],[data-fp-gps],[data-fp-edit],[data-fp-delete],[data-fp-nav]');
+ const btn=e.target.closest?.('[data-fp-clear],[data-fp-add],[data-fp-open],[data-fp-gps],[data-fp-edit],[data-fp-delete],[data-fp-nav],[data-fp-photo],[data-fp-photo-open]');
  if(!btn)return;
  if(btn.hasAttribute('data-fp-clear')){query='';dayFilter='';api()?.render?.();return}
  if(btn.dataset.fpAdd){editPin('',btn.dataset.fpAdd);return}
  if(btn.hasAttribute('data-fp-open')){open(btn.dataset.fpOpen,btn.dataset.fpKind);return}
  if(btn.hasAttribute('data-fp-gps')){useGps();return}
  if(btn.dataset.fpEdit){editPin(btn.dataset.fpEdit);return}
+  if(btn.dataset.fpPhoto){api()?.capturePinPhoto?.(btn.dataset.fpPhoto);return}
+  if(btn.dataset.fpPhotoOpen){api()?.photoDetail?.(btn.dataset.fpPhotoOpen);return}
  if(btn.dataset.fpNav){const p=pins().find(x=>x.id===btn.dataset.fpNav);const url=p&&api()?.mapsPinUrl?.(p);if(url)api()?.openMapUrl?.(url);return}
  if(btn.dataset.fpDelete){
   const p=pins().find(x=>x.id===btn.dataset.fpDelete);
@@ -142,6 +161,7 @@ document.addEventListener('click',e=>{
   api().save();api().closeModal();api().render();api().notify('Field marker removed.');
  }
 });
+document.addEventListener('change',e=>{if(!e.target.matches?.('[data-fp-kind-select]'))return;const form=e.target.closest('form[data-fp-form]');form?.querySelectorAll?.('[data-fp-only]').forEach(el=>{el.hidden=el.getAttribute('data-fp-only')!==e.target.value});});
 document.addEventListener('submit',e=>{
  const form=e.target.closest?.('form[data-fp-form]');if(!form)return;
  e.preventDefault();savePin(form);

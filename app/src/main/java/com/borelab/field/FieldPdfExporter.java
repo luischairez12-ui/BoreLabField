@@ -228,6 +228,7 @@ public final class FieldPdfExporter {
             label("Location", str(shot, "address"));
             y += 4;
         }
+        renderAsbuilt(report);
         section("Crew hours");
         JSONArray crew = array(report, "crew");
         if (crew.length() == 0) write("No time records for this period.", 10, MUTED, false, 0);
@@ -289,6 +290,74 @@ public final class FieldPdfExporter {
         }
         y += 10;
         write("Generated from locally saved BoreLab records. Verify all field records before billing, payroll or compliance submission.", 9, MUTED, false, 0);
+    }
+
+
+    /** Field measurements and survey-free point plot for the one-tap As-Built PDF. */
+    private void renderAsbuilt(JSONObject report) {
+        JSONArray marks = array(report, "asbuilt");
+        if (marks.length() == 0) return;
+        section("As-built installations and GPS positions");
+        List<JSONObject> plotted = new ArrayList<>();
+        for (int i = 0; i < marks.length(); i++) {
+            JSONObject mark = marks.optJSONObject(i);
+            if (mark == null) continue;
+            String latitude = str(mark, "lat"), longitude = str(mark, "lon");
+            String location = latitude.isEmpty() || longitude.isEmpty() ? "GPS not recorded" : latitude + ", " + longitude;
+            String accuracy = str(mark, "accuracy");
+            item(str(mark, "name") + " - " + str(mark, "kind"),
+                    "Recorded: " + str(mark, "date") + "  |  GPS: " + location +
+                    (accuracy.isEmpty() ? "" : "  |  +/-" + accuracy + " m"),
+                    "Station: " + str(mark, "station") + "  |  Size: " + str(mark, "size") +
+                    "  |  Material: " + str(mark, "material") +
+                    "  |  Depth: " + str(mark, "depth") + " ft  |  " + str(mark, "details"));
+            if (!latitude.isEmpty() && !longitude.isEmpty()) {
+                double lat = mark.optDouble("lat", Double.NaN), lon = mark.optDouble("lon", Double.NaN);
+                if (Double.isFinite(lat) && Double.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180)
+                    plotted.add(mark);
+            }
+        }
+        if (plotted.isEmpty()) return;
+        section("GPS point plot - not a survey");
+        ensure(255);
+        double minLat = Double.POSITIVE_INFINITY, maxLat = Double.NEGATIVE_INFINITY;
+        double minLon = Double.POSITIVE_INFINITY, maxLon = Double.NEGATIVE_INFINITY;
+        for (JSONObject mark : plotted) {
+            double lat = mark.optDouble("lat"), lon = mark.optDouble("lon");
+            minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat);
+            minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon);
+        }
+        float left = M + 30, top = y + 8, width = RIGHT - M - 60, height = 175;
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(PALE);
+        canvas.drawRoundRect(new RectF(left, top, left + width, top + height), 8, 8, paint);
+        paint.setStrokeWidth(0.7f);
+        paint.setColor(Color.rgb(208, 220, 227));
+        for (int i = 1; i < 4; i++) {
+            float x = left + width * i / 4f, rowY = top + height * i / 4f;
+            canvas.drawLine(x, top, x, top + height, paint);
+            canvas.drawLine(left, rowY, left + width, rowY, paint);
+        }
+        paint.setTextSize(9);
+        paint.setTypeface(Typeface.DEFAULT_BOLD);
+        paint.setColor(INK);
+        canvas.drawText("N", left + 7, top + 13, paint);
+        canvas.drawText("^", left + 7, top + 24, paint);
+        int plottedCount = Math.min(25, plotted.size());
+        for (int i = 0; i < plottedCount; i++) {
+            JSONObject mark = plotted.get(i);
+            double lat = mark.optDouble("lat"), lon = mark.optDouble("lon");
+            float x = left + 14 + (float) ((lon - minLon) / Math.max(0.000001, maxLon - minLon)) * (width - 28);
+            float pointY = top + height - 14 - (float) ((lat - minLat) / Math.max(0.000001, maxLat - minLat)) * (height - 28);
+            paint.setColor(ORANGE);
+            canvas.drawCircle(x, pointY, 4f, paint);
+            paint.setTextSize(8);
+            paint.setColor(INK);
+            canvas.drawText(String.valueOf(i + 1), x + 6, pointY - 6, paint);
+        }
+        y = top + height + 14;
+        write("Schematic of recorded GPS points, north up. Numbers match the first " + plottedCount +
+                " GPS entries in the schedule above. Points are not surveyed; no underground bore alignment is inferred.", 9, MUTED, false, 0);
     }
 
     private void photo(JSONObject image) {

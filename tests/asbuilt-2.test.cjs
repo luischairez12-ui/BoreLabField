@@ -1,0 +1,52 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('web/index.html','utf8');
+const source=fs.readFileSync('web/asbuilt-2.js','utf8');
+const map=fs.readFileSync('web/jobsite-map.js','utf8');
+const pins=fs.readFileSync('web/field-pins.js','utf8');
+const pdf=fs.readFileSync('app/src/main/java/com/borelab/field/FieldPdfExporter.java','utf8');
+assert.equal(html,fs.readFileSync('app/src/main/assets/web/index.html','utf8'),'browser and Android markup must agree');
+for(const name of ['asbuilt-2.js','asbuilt-2.css','jobsite-map.js','field-pins.js']){
+ assert.equal(fs.readFileSync('web/'+name,'utf8'),fs.readFileSync('app/src/main/assets/web/'+name,'utf8'),name+' must be bundled in Android');
+ assert(html.includes('./'+name),'HTML must load '+name);
+}
+new Function(source);new Function(map);new Function(pins);
+assert(html.includes('fieldhistory:()=>window.BoreLabAsBuilt?.renderCalendar()'),'Calendar page route is registered');
+assert(html.includes('photoDetail,capturePinPhoto,setPage'),'Native camera photo flow is exposed');
+assert(html.includes('fieldPinId:linkPin'),'Photos are physically linked to installation IDs');
+assert(map.includes('actualEndpointPath(data,geom)'),'Map can render confirmed entry and exit points');
+assert(map.includes('clusterList(group)'),'Nearby pins have selection list');
+assert(map.includes('focusPhoto(photo)'),'Photo GPS can focus the live map');
+assert(pdf.includes('renderAsbuilt(report)'),'Native PDF includes asbuilt records');
+assert(pdf.includes('GPS point plot - not a survey'),'Native report plots GPS points with accuracy disclaimer');
+const job={id:'j1',jobName:'South Glades',shots:[{id:'s1',name:'Shot 1',lat:'26.6',lon:'-81.6',feet:175,startedAt:'2026-11-19T13:00:00Z',completedAt:'2026-11-19T17:00:00Z'}],fieldPins:[{id:'pin1',recordType:'fieldPin',kind:'coupling',name:'Coupling A',lat:'26.62',lon:'-81.62',occurredDay:'2026-11-19',size:'2 in'}],crew:[]};
+const other={id:'j2',jobName:'Another Job',shots:[],fieldPins:[{id:'pin2',kind:'box',name:'Handhole',lat:'26.65',lon:'-81.65',occurredDay:'2026-11-19'}],crew:[]};
+const state={jobs:[job,other],activeJobId:'j1',jobName:'South Glades',shots:job.shots,pipeMoves:[],mudLogs:[]};
+const photos=[{id:'photo1',jobId:'j1',fieldPinId:'pin1',dataUrl:'data:image/png;base64,AA==',lat:26.62,lon:-81.62,addedAt:'2026-11-19T17:15:00Z'}];
+let mapTarget='',mapDate='',pageName='',prints=0;
+const bridge={state:()=>state,photos:()=>photos,setPage:p=>{pageName=p},notify:()=>{},render:()=>{},save:()=>{prints++},
+ showModal:()=>{},closeModal:()=>{},getPosition:async()=>({lat:26.6,lon:-81.6,accuracy:12}),
+ switchActiveJob:id=>{state.activeJobId=id;return true}};
+const listeners={};
+const doc={addEventListener:(k,cb)=>{(listeners[k]??=[]).push(cb)},querySelector:()=>null};
+const win={BoreLabAssistantBridge:bridge,BoreLabJobMap:{setDay:d=>{mapDate=d},focusRecord:id=>{mapTarget=id}},addEventListener:()=>{}};
+const ab=new Function('window','document',source+';return window.BoreLabAsBuilt;')(win,doc);
+ab.setDay('2026-11-19');
+const events=ab.eventsOn('2026-11-19');
+assert.equal(events.filter(x=>x.type==='shot').length,2,'start and completion of bore logged on calendar');
+assert.equal(events.filter(x=>x.type==='pin').length,1,'installation listed for its actual work date');
+assert.equal(events.filter(x=>x.type==='photo').length,1,'linked GPS photo shown');
+assert(ab.calendarHTML().includes('data-ab-day="2026-11-19"'),'date is clickable on monthly calendar');
+const details=ab.detailsHTML();
+assert(details.includes('Coupling A')&&details.includes('photo1')&&details.includes('26.620000, -81.620000'),'day detail includes installation, thumbnail, and GPS');
+ab.goToMap(events.find(x=>x.type==='pin'));
+assert.equal(pageName,'jobmap');assert.equal(mapDate,'2026-11-19');assert.equal(mapTarget,'pin1');
+assert.equal(ab.pinPhotos('pin1').length,1);
+const emptyPin={id:'pin3',kind:'box',name:'Box without GPS',lat:'',lon:''};
+job.fieldPins.push(emptyPin);
+ab.onPinPhotoSaved({fieldPinId:'pin3',jobId:'j1',lat:26.622,lon:-81.611,accuracy:14});
+assert.equal(emptyPin.lat,'26.622000','confirmed camera GPS fills a previously unlocated pin');
+assert.equal(prints,1,'linking photo location persists data');
+assert(source.includes('window.BoreLabNative?.exportPdf'),'one tap exports through native Android PDF bridge');
+console.log('As-Built 2.0 calendar, linked photos, map jump, pin GPS, PDF and Android parity PASS');

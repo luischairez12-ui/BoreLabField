@@ -13,14 +13,16 @@ const statusText=s=>s==='complete'?'Complete':s==='progress'?'Drilling':'Pending
 const shades={planned:'pending',progress:'drilling',complete:'complete'};
 const activeShots=()=>st().shots||[];
 const activePins=()=>window.BoreLabFieldPins?.pins?.()||[];
-const activeRecords=()=>[...activeShots(),...activePins()];
+const activeRecords=()=>[...activeShots(),...activePins(),...(selectedPhoto?[selectedPhoto]:[])];
+const isPhoto=s=>s?.recordType==='fieldPhoto';
+const inMapDay=s=>!mapDay||[s.occurredDay,s.addedAt,s.startedAt,s.completedAt,s.createdAt,s.updatedAt].some(v=>window.BoreLabAsBuilt?.dayOf?.(v)===mapDay);
 const isPin=s=>s?.recordType==='fieldPin';
 const pinLabel=s=>window.BoreLabFieldPins?.kindLabel?.(s?.kind)||'Field marker';
 const recordDate=s=>window.BoreLabFieldPins?.displayDate?.(s)||'Date not recorded';
 const placed=()=>activeRecords().filter(s=>api()?.coordsValid?.(s));
 const missing=()=>activeRecords().filter(s=>!api()?.coordsValid?.(s));
 const point=s=>({lat:Number(s.lat),lon:Number(s.lon)});
-let currentJob=null,selected=null,filter='all',typeFilter='all',mode='street',showPath=true,view=null;
+let currentJob=null,selected=null,selectedPhoto=null,mapDay='',filter='all',typeFilter='all',mode='street',showPath=true,view=null;
 let pointerData=new Map(),gesture=null,suppressClick=0;
 let attemptedTiles=false,tilesFailed=false,drawRequest=false;
 function project(lat,lon,z){
@@ -43,9 +45,11 @@ function fit(points,w=340,h=430){
  return {zoom:z,center:unproject((minX+maxX)*2**z/2,(minY+maxY)*2**z/2,z)};
 }
 function model(){
- const shots=activeShots(),pins=activePins(),records=[...shots,...pins],geocoded=placed(),unknown=missing();
+ const shots=activeShots(),pins=activePins(),records=activeRecords(),geocoded=placed(),unknown=missing();
  const shown=geocoded.filter(s=>{
-  if(typeFilter==='bores')return !isPin(s)&&(filter==='all'||status(s)===filter);
+  if(!inMapDay(s))return false;
+   if(isPhoto(s))return typeFilter==='all';
+   if(typeFilter==='bores')return !isPin(s)&&(filter==='all'||status(s)===filter);
   if(typeFilter!=='all')return isPin(s)&&s.kind===typeFilter;
   return isPin(s)||filter==='all'||status(s)===filter;
  });
@@ -60,7 +64,7 @@ function ensureView(data=model()){
   if(!view.center&&data.geocoded.length){const recovered=fit(data.geocoded.map(point));if(recovered)view=recovered;}
   return;
  }
- currentJob=data.jobId;selected=null;pointerData.clear();gesture=null;
+ currentJob=data.jobId;selected=null;selectedPhoto=null;pointerData.clear();gesture=null;
  const pos=fit(data.geocoded.map(point));
  view=pos||{center:null,zoom:15};
  const pref=st().jobsiteMapPreferences;
@@ -92,17 +96,22 @@ function weatherChip(){
 function selectedPanel(data){
  const s=data.records.find(x=>x.id===selected);
  if(!s)return '';
+ if(isPhoto(s))return '<section class="blmap-sheet" aria-label="Selected photo GPS"><div class="blmap-sheet-handle"></div><div class="blmap-sheet-top"><span class="blmap-sheet-emblem">▣</span><div><strong>Jobsite Photo</strong><small>'+esc(recordDate(s))+'</small></div><button data-blmap-close aria-label="Close photo">✕</button></div>'+(String(s.dataUrl||'').startsWith('data:image/')?'<img class="ab-sheet-photo" src="'+esc(s.dataUrl)+'" alt="Saved jobsite photo">':'')+'<p class="smalltext">GPS '+Number(s.lat).toFixed(6)+', '+Number(s.lon).toFixed(6)+'</p><div class="blmap-sheet-actions"><button class="blmap-orange" data-blmap-photo-detail="'+esc(s.photoId)+'">▣ View Photo</button><button data-blmap-navigate="'+esc(s.id)+'">⌖ Navigate</button></div></section>';
  if(isPin(s)){
+  const photos=window.BoreLabAsBuilt?.pinPhotos?.(s.id)||[];
+  const fields=[s.station,s.size,s.material,s.depth?'Depth '+s.depth+' ft':'',s.connectionType,s.fittingType,s.dimensions].filter(Boolean);
   return '<section class="blmap-sheet" aria-label="Selected field pin details"><div class="blmap-sheet-handle"></div>'+
   '<div class="blmap-sheet-top"><span class="blmap-sheet-emblem">📌</span><div><strong>'+esc(s.name||pinLabel(s))+'</strong>'+
   '<small>'+esc(pinLabel(s))+' · '+esc(recordDate(s))+'</small></div>'+
   '<button data-blmap-close aria-label="Close selected pin">✕</button></div>'+
   '<div class="blmap-shot-details"><div><small>Type</small><strong>'+esc(pinLabel(s))+'</strong></div>'+
   '<div><small>Installed / recorded</small><strong>'+esc(recordDate(s))+'</strong></div>'+
-  '<div><small>Location</small><strong>GPS saved</strong></div></div>'+
+  '<div><small>Location</small><strong>GPS saved'+(s.gpsAccuracy?' · ±'+esc(s.gpsAccuracy)+' m':'')+'</strong></div></div>'+ 
+   (fields.length?'<p class="smalltext">'+esc(fields.join(' · '))+'</p>':'')+
+   (photos.length?'<div class="fp-pin-photos">'+photos.slice(0,4).map(p=>'<button data-blmap-photo-detail="'+esc(p.id)+'"><img loading="lazy" src="'+esc(p.dataUrl)+'" alt="Linked photo"></button>').join('')+'</div>':'')+
   (s.address?'<p class="smalltext">'+esc(s.address)+'</p>':'')+
   (s.notes?'<p class="smalltext">'+esc(s.notes)+'</p>':'')+
-  '<div class="blmap-sheet-actions"><button class="blmap-orange" data-blmap-edit-pin="'+esc(s.id)+'">✎ Edit Pin</button>'+
+  '<div class="blmap-sheet-actions"><button class="blmap-orange" data-blmap-edit-pin="'+esc(s.id)+'">✎ Edit Pin</button><button data-blmap-pin-camera="'+esc(s.id)+'">▣ Pin Camera</button>'+
   '<button data-blmap-navigate="'+esc(s.id)+'">⌖ Navigate</button>'+
   '<button data-blmap-close>✕ Close</button></div></section>';
  }
@@ -120,7 +129,7 @@ function selectedPanel(data){
  '<div><small>◈ Conduit</small><strong>'+esc(detail)+'</strong></div>'+
  '<div><small>▣ Photos</small><strong>'+p.length+'</strong></div></div>'+
  '<div class="blmap-sheet-actions"><button class="blmap-orange" data-blmap-open="'+esc(s.id)+'">▤ Open Shot</button>'+
- '<button data-blmap-navigate="'+esc(s.id)+'">⌖ Navigate</button><button data-blmap-photo="'+esc(s.id)+'">▣ Add Photo</button></div></section>';
+ '<button data-blmap-navigate="'+esc(s.id)+'">⌖ Navigate</button><button data-blmap-photo="'+esc(s.id)+'">▣ Add Photo</button><button data-ab-path="'+esc(s.id)+'">⌁ Endpoints</button></div></section>';
 }
 function unlocatedSection(data){
  if(!data.unknown.length)return '<div class="blmap-locations-ok">✓ All saved bores and field markers have GPS pins.</div>';
@@ -160,12 +169,13 @@ function renderMap(){
  '<span class="eyebrow">BORELAB FIELD / GPS PLANNING</span><h1>Interactive Jobsite Map</h1>'+
  '<p>'+esc(data.jobName)+'</p></div>'+weatherChip()+'</header>'+
  '<div class="blmap-actions"><button data-page="jobs">▦ Change Job</button><button data-page="planner">⌁ Shot Planner</button></div>'+
- '<div class="blmap-filters" role="group" aria-label="Filter bore shot status">'+statusTabs(data)+'</div>'+ 
+ '<div class="ab-map-header"><button data-page="fieldhistory">📅 Field Calendar</button><button data-blmap-pdf>▤ As-Built PDF</button><label class="tiny muted">Work date <input type="date" data-blmap-day value="'+esc(mapDay)+'"></label>'+(mapDay?'<button data-blmap-day-clear>Show all dates</button>':'')+'</div>'+ 
+  '<div class="blmap-filters" role="group" aria-label="Filter bore shot status">'+statusTabs(data)+'</div>'+ 
   '<div class="blmap-type-filters" role="group" aria-label="Filter pin type">'+typeTabs(data)+'</div>'+
  box+unlocatedSection(data)+
  '<div class="blmap-bottom"><button data-page="shotcards">◎ Smart Shot Cards</button>'+
  '<button data-action="new-shot" class="blmap-orange">＋ Add Bore</button><button data-blmap-new-pin>📌 Add Field Pin</button></div>'+
- '<p class="blmap-disclaimer">Map tiles are online-only. Bore and installed-location pins, dated records and the site plot remain usable offline. Check the actual jobsite before digging.</p></div>';
+ '<p class="ab-map-note">Cyan/orange endpoint lines are straight GPS references only, not surveyed underground bore alignment.</p><p class="blmap-disclaimer">Map tiles are online-only. Bore and installed-location pins, dated records and the site plot remain usable offline. Check the actual jobsite before digging.</p></div>';
  if(typeof requestAnimationFrame==='function')requestAnimationFrame(draw);
  return html;
 }
@@ -190,12 +200,12 @@ function visibleModels(data){
  return{groups,width,height,center};
 }
 function markerHTML(s,x,y,cluster=1){
- const selectedMarker=s.id===selected,field=isPin(s),kind=field?s.kind:status(s);
- const name=String(s.name||(field?pinLabel(s):'Bore'));
- const detail=field?pinLabel(s)+' · '+recordDate(s):fmt(s.feet)+' ft';
+ const selectedMarker=s.id===selected,field=isPin(s),photo=isPhoto(s),kind=photo?'fieldPhoto':field?s.kind:status(s);
+ const name=String(s.name||(photo?'Photo':field?pinLabel(s):'Bore'));
+ const detail=photo?'Photo · '+recordDate(s):field?pinLabel(s)+' · '+recordDate(s):fmt(s.feet)+' ft';
  return '<button type="button" class="blmap-pin is-'+esc(kind)+(selectedMarker?' selected':'')+(cluster>1?' is-cluster':'')+
  '" data-blmap-pin="'+esc(s.id)+'" style="left:'+Math.round(x)+'px;top:'+Math.round(y)+'px" aria-label="'+esc(name)+
- ', '+esc(detail)+'"><span class="blmap-pin-icon"><em>'+(cluster>1?cluster:field?(kind==='tie-in'?'T':kind==='coupling'?'C':'B'):status(s)==='complete'?'✓':status(s)==='progress'?'⌁':'⌖')+
+ ', '+esc(detail)+'"><span class="blmap-pin-icon"><em>'+(cluster>1?cluster:photo?'▣':field?(kind==='tie-in'?'T':kind==='coupling'?'C':'B'):status(s)==='complete'?'✓':status(s)==='progress'?'⌁':'⌖')+
  '</em></span><span class="blmap-pin-label"><b>'+esc(name)+'</b><small>'+esc(detail)+(cluster>1?' · '+cluster+' records':'')+'</small></span></button>';
 }
 function renderMarkers(groups,width,height){
@@ -228,6 +238,19 @@ function routePath(data,geom){
  return '<svg class="blmap-lines" width="'+geom.width+'" height="'+geom.height+'" viewBox="0 0 '+geom.width+' '+geom.height+
  '" aria-hidden="true"><polyline points="'+points+'" fill="none" stroke="#f5821f" stroke-width="4" stroke-dasharray="4 9" stroke-linecap="round" /></svg>';
 }
+const validEndpoint=x=>x&&x.lat!==''&&x.lon!==''&&Number.isFinite(+x.lat)&&Number.isFinite(+x.lon)&&+x.lat>=-90&&+x.lat<=90&&+x.lon>=-180&&+x.lon<=180;
+function actualEndpointPath(data,geom){
+ const paths=data.shots.filter(s=>validEndpoint(s.asbuiltStart)&&validEndpoint(s.asbuiltEnd)&&inMapDay(s));
+ if(!paths.length)return '';
+ const lines=paths.map(s=>{
+  const a=project(s.asbuiltStart.lat,s.asbuiltStart.lon,view.zoom),b=project(s.asbuiltEnd.lat,s.asbuiltEnd.lon,view.zoom);
+  const x1=a.x-geom.center.x+geom.width/2,y1=a.y-geom.center.y+geom.height/2,x2=b.x-geom.center.x+geom.width/2,y2=b.y-geom.center.y+geom.height/2,pt=v=>v.toFixed(2);
+  return '<line x1="'+pt(x1)+'" y1="'+pt(y1)+'" x2="'+pt(x2)+'" y2="'+pt(y2)+'" stroke="#20d4c6" stroke-width="3.5" stroke-linecap="round"/>'+
+   '<circle cx="'+pt(x1)+'" cy="'+pt(y1)+'" r="5" fill="#20d4c6" stroke="#fff" stroke-width="2"/>'+
+   '<circle cx="'+pt(x2)+'" cy="'+pt(y2)+'" r="5" fill="#f8a33c" stroke="#fff" stroke-width="2"/>';
+ }).join('');
+ return '<svg class="blmap-lines ab-endpoint-lines" width="'+geom.width+'" height="'+geom.height+'" viewBox="0 0 '+geom.width+' '+geom.height+'" aria-hidden="true">'+lines+'</svg>';
+}
 function draw(){
  const canvas=document.querySelector('[data-blmap-viewport]'),scene=canvas?.querySelector('[data-blmap-scene]');
  if(!canvas||!scene)return;
@@ -235,7 +258,7 @@ function draw(){
  if(!data.geocoded.length||!view.center){scene.innerHTML='';return}
  const geom=visibleModels(data);
  scene.innerHTML='<div class="blmap-tiles">'+tiles(geom.center,geom.width,geom.height,view.zoom)+'</div>'+
- routePath(data,geom)+'<div class="blmap-pins">'+renderMarkers(geom.groups,geom.width,geom.height)+'</div>';
+ routePath(data,geom)+actualEndpointPath(data,geom)+'<div class="blmap-pins">'+renderMarkers(geom.groups,geom.width,geom.height)+'</div>';
 }
 function choose(id){
  const item=activeRecords().find(x=>x.id===id);if(!item)return;
@@ -259,6 +282,22 @@ function reset(){
  document.querySelector('[data-blmap-viewport]')?.clientHeight||420);
  if(p){view=p;draw()}
 }
+function focusRecord(id){
+ const s=activeRecords().find(x=>x.id===id);if(!s)return false;
+ ensureView(model());selected=s.id;typeFilter='all';filter='all';
+ if(api()?.coordsValid?.(s))view={center:point(s),zoom:Math.max(17,view?.zoom||15)};
+ api()?.render?.();return true;
+}
+function focusPhoto(photo){
+ if(!photo||!api()?.coordsValid?.(photo))return false;
+ selectedPhoto={...photo,id:'photo:'+photo.id,photoId:photo.id,name:'Jobsite Photo',recordType:'fieldPhoto',occurredDay:window.BoreLabAsBuilt?.dayOf?.(photo.addedAt)||''};
+ return focusRecord(selectedPhoto.id);
+}
+function clusterList(group){
+ api()?.showModal?.('<div class="modal-head"><h2>📌 '+esc(group.shots.length+' records near this point')+'</h2><button type="button" class="icon-btn" data-action="close-modal">✕</button></div>'+
+ '<p class="smalltext muted">Choose an installation or bore to open its location card.</p><div class="ab-cluster-list spaced">'+
+ group.shots.map(s=>'<button data-blmap-cluster-select="'+esc(s.id)+'"><strong>'+esc(s.name||pinLabel(s))+'</strong><small>'+esc(isPhoto(s)?'Photo':isPin(s)?pinLabel(s):'Bore shot')+' · '+esc(recordDate(s))+'</small></button>').join('')+'</div>');
+}
 function navigate(s){
  if(!s)return;
  const url=api()?.mapsPinUrl?.(s);
@@ -271,8 +310,9 @@ function satellite(){
  const url='https://www.google.com/maps/@?api=1&map_action=map&center='+coords+'&zoom='+Math.min(20,view.zoom)+'&basemap=satellite';
  api()?.openMapUrl?.(url);
 }
+document.addEventListener('change',e=>{if(!e.target.matches?.('[data-blmap-day]')||api()?.currentPage?.()!=='jobmap')return;mapDay=e.target.value;selected=null;api()?.render?.()});
 document.addEventListener('click',e=>{
- const btn=e.target.closest?.('[data-blmap-filter],[data-blmap-type],[data-blmap-mode],[data-blmap-route],[data-blmap-fit],[data-blmap-zoom],[data-blmap-pin],[data-blmap-open],[data-blmap-navigate],[data-blmap-photo],[data-blmap-close],[data-blmap-locate],[data-blmap-unlocated],[data-blmap-unlocated-pin],[data-blmap-satellite],[data-blmap-edit-pin],[data-blmap-new-pin]');
+ const btn=e.target.closest?.('[data-blmap-filter],[data-blmap-type],[data-blmap-mode],[data-blmap-route],[data-blmap-fit],[data-blmap-zoom],[data-blmap-pin],[data-blmap-open],[data-blmap-navigate],[data-blmap-photo],[data-blmap-close],[data-blmap-locate],[data-blmap-unlocated],[data-blmap-unlocated-pin],[data-blmap-satellite],[data-blmap-edit-pin],[data-blmap-new-pin],[data-blmap-pdf],[data-blmap-day-clear],[data-blmap-cluster-select],[data-blmap-pin-camera],[data-blmap-photo-detail]');
  if(!btn||!api()||api().currentPage?.()!=='jobmap')return;
  if(btn.dataset.blmapFilter){filter=btn.dataset.blmapFilter;selected=null;saveSettings();api().render();return}
   if(btn.dataset.blmapType){typeFilter=btn.dataset.blmapType;selected=null;saveSettings();api().render();return}
@@ -283,14 +323,17 @@ document.addEventListener('click',e=>{
  if(btn.dataset.blmapPin){
   if(Date.now()<suppressClick)return;
   const data=model(),geom=visibleModels(data),group=geom.groups.find(g=>g.shots[0]?.id===btn.dataset.blmapPin);
-  // Multiple bores sharing a GPS point cycle through the same pin on successive taps.
-  if(group&&group.shots.length>1){
-   const idx=group.shots.findIndex(x=>x.id===selected);
-   choose(group.shots[(idx+1)%group.shots.length].id);
-  }else choose(btn.dataset.blmapPin);
+  // Grouped pins open an interactive selection list.
+   if(group&&group.shots.length>1)clusterList(group);
+   else choose(btn.dataset.blmapPin);
   return;
  }
- if(btn.hasAttribute('data-blmap-close')){selected=null;api().render();return}
+ if(btn.hasAttribute('data-blmap-pdf')){window.BoreLabAsBuilt?.exportAsBuilt?.();return}
+  if(btn.hasAttribute('data-blmap-day-clear')){mapDay='';selected=null;api().render();return}
+  if(btn.dataset.blmapClusterSelect){api().closeModal?.();focusRecord(btn.dataset.blmapClusterSelect);return}
+  if(btn.dataset.blmapPinCamera){api().capturePinPhoto?.(btn.dataset.blmapPinCamera);return}
+  if(btn.dataset.blmapPhotoDetail){api().photoDetail?.(btn.dataset.blmapPhotoDetail);return}
+  if(btn.hasAttribute('data-blmap-close')){selected=null;selectedPhoto=null;api().render();return}
  if(btn.dataset.blmapOpen){api().shotDetail?.(btn.dataset.blmapOpen);return}
  if(btn.dataset.blmapNavigate){navigate(activeRecords().find(x=>x.id===btn.dataset.blmapNavigate));return}
  if(btn.dataset.blmapPhoto){api().photoChoose?.('camera',btn.dataset.blmapPhoto);return}
@@ -369,6 +412,7 @@ document.addEventListener('error',e=>{
  }
 },true);
 window.addEventListener?.('resize',()=>{if(api()?.currentPage?.()==='jobmap')draw()});
-window.BoreLabJobMap={renderMap,project,unproject,fit,markerHTML,renderMarkers,model,draw,reset,
+window.BoreLabJobMap={renderMap,project,unproject,fit,markerHTML,renderMarkers,model,draw,reset,focusRecord,focusPhoto,actualEndpointPath,
+ setDay:x=>{mapDay=/^\d{4}-\d{2}-\d{2}$/.test(String(x))?x:''},
  getView:()=>({...view}),setFilter:x=>{filter=x;},setTypeFilter:x=>{typeFilter=x;},setMode:x=>{mode=x;},setSelected:id=>{selected=id}};
 })();
