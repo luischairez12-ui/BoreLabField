@@ -96,4 +96,13 @@ click({},['data-blmap-route']);assert(saved>=3,'filter, layer and path preferenc
 assert(changed>=3,'controls rerender with state changes');
 const home=fs.readFileSync('web/home-dashboard.js','utf8');
 assert(home.includes("map:'Jobsite Map'")&&home.includes("data-page=\"jobmap\""));
-console.log('Jobsite Map: real pins, statuses, projection, map modes, offline plot, navigation, sheet, Android wiring PASS');
+// A newly geocoded address should center the map without switching jobs.
+storage.activeJobId='j2';storage.jobName='Location Recovery';
+storage.shots=[{id:'fresh',name:'New Scanned Shot',feet:120,status:'planned',lat:'',lon:'',address:'Scanned Address'}];
+map.renderMap();
+assert.equal(map.getView().center,null,'No saved GPS must not invent a map center');
+storage.shots[0].lat='26.6500';storage.shots[0].lon='-81.6700';
+map.renderMap();
+const recovered=map.getView();
+assert(recovered.center&&Math.abs(recovered.center.lat-26.65)<.0001,'New GPS pin should recenter map');
+console.log('Jobsite Map: real pins, statuses, projection, map modes, offline plot, navigation, GPS recovery and Android wiring PASS');

@@ -45,7 +45,10 @@ function model(){
  return {shots,geocoded,unknown,shown,groups,jobId:st().activeJobId||'job',jobName:st().jobName||'Current job'};
 }
 function ensureView(data=model()){
- if(currentJob===data.jobId&&view)return;
+ if(currentJob===data.jobId&&view){
+  if(!view.center&&data.geocoded.length){const recovered=fit(data.geocoded.map(point));if(recovered)view=recovered;}
+  return;
+ }
  currentJob=data.jobId;selected=null;pointerData.clear();gesture=null;
  const pos=fit(data.geocoded.map(point));
  view=pos||{center:null,zoom:15};
