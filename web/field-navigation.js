@@ -42,7 +42,7 @@ function mount(){
  '<aside id="bfRightDrawer" class="bf-right-drawer" role="dialog" aria-modal="true" aria-label="BoreLab quick navigation" aria-hidden="true" inert>'+
  '<div class="bf-drawer-head"><div class="bf-drawer-kicker">BORELAB FIELD</div><div class="bf-drawer-headline"><div><strong>Field Menu</strong><small>Go where the work is</small></div>'+
  '<button type="button" class="bf-drawer-close" data-bf-close aria-label="Close navigation menu">✕</button></div></div>'+
- '<button class="bf-drawer-job" data-page="jobs" aria-label="Manage and switch jobs"><span class="bf-job-pin">⌖</span><span><small>ACTIVE JOB</small><strong id="bfDrawerJob">Current job</strong></span><span>›</span></button>'+
+ 
  '<div class="bf-drawer-scroller"><div class="bf-drawer-searchbox"><label for="bfDrawerUniversalInput">SEARCH EVERYTHING</label>'+
  '<div class="bf-drawer-search-input"><span aria-hidden="true">⌕</span><input id="bfDrawerUniversalInput" type="search" maxlength="100" autocomplete="off" placeholder="Address, worker, bore, date…" aria-label="Search saved BoreLab records"></div>'+
  '<small>All saved jobs · Offline</small></div><div id="bfDrawerSearchResults" role="status" aria-live="polite" hidden></div>'+

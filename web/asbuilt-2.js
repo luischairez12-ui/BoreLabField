@@ -13,7 +13,7 @@ const coords=x=>valid(x)?Number(x.lat).toFixed(6)+', '+Number(x.lon).toFixed(6):
 const kinds={'tie-in':'Tie-in',coupling:'Coupling',box:'Box'};
 const st=()=>api()?.state?.()||{};
 const active=()=>st().activeJobId;
-let selected=today(),month=selected.slice(0,7),scope='job',viewMode='calendar',atlasDayMode='all',searchQuery='',typeFilter='all',missingOnly=false;
+let selected=today(),month=selected.slice(0,7),scope='job',viewMode='calendar',atlasDayMode='all',searchQuery='',typeFilter='all',missingOnly=false,replayDayOpen=false;
 const typeLabels={all:'All',shot:'Bores',pin:'Installations',photo:'Photos',crew:'Crew',pipe:'Pipe',mud:'Mud',journal:'Changes',note:'Notes',marker:'Field Markers',arrival:'Arrivals',closeout:'Closeouts'};
 const eventText=e=>{const r=e.record||{},d=new Date(e.day+'T12:00:00');return [e.title,e.jobName,e.extra,e.day,d.toLocaleDateString('en-US'),d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),r.name,r.label,r.address,r.notes,r.text,r.kind,r.station,r.material,r.size,r.dimensions,r.connectionType,r.fittingType,r.feet].filter(x=>x!=null).join(' ').toLowerCase()};
 const matches=e=>(typeFilter==='all'||e.type===typeFilter)&&(!searchQuery||eventText(e).includes(searchQuery.trim().toLowerCase()));
@@ -95,7 +95,7 @@ function detailsHTML(){
  const dayLabel=esc(niceDay(selected));
  let html='<section class="ab-day"><div class="between"><div><span class="eyebrow">DAILY FIELD HISTORY</span><h2>'+dayLabel+'</h2></div><span class="ab-count">'+events.length+' activities</span></div>'+
  '<div class="ab-summary"><span>⌁ '+completed.length+' finished · '+Number(ft.toFixed(1))+' ft</span><span>📌 '+installed.length+' installations</span><span>▣ '+photos.length+' photos</span><span>⌖ '+coordsCount+' GPS records</span></div>'+
- '<div class="ab-day-actions"><button data-ab-pdf="day" class="btn primary">▤ Day As-Built PDF'+(scope==='all'?' (current job)':'')+'</button><button data-ab-visit-map class="btn ghost">⌖ View This Day on Atlas</button></div>';
+ '<div class="ab-day-actions"><button data-ab-pdf="day" class="btn primary">▤ Day As-Built PDF'+(scope==='all'?' (current job)':'')+'</button><button data-ab-visit-map class="btn ghost">⌖ View This Day on Atlas</button></div>'+(replayDayOpen?(window.BoreLabInsights?.renderReplayCard?.(selected)||''):'');
  if(photos.length){
   html+='<div class="ab-day-gallery"><strong>Photos from this day</strong><div class="ab-day-gallery-strip">'+photos.map(e=>'<button type="button" data-ab-photo="'+esc(e.record.id)+'" aria-label="Open photo"><img alt="Photo recorded '+esc(selected)+'" loading="lazy" src="'+esc(e.record.dataUrl||'')+'"></button>').join('')+'</div></div>';
  }
@@ -127,11 +127,8 @@ function updateBody(){const box=document.querySelector('[data-ab-body]');if(box)
 function renderCalendar(){
  const labels=Object.entries(typeLabels).map(([id,label])=>'<button data-ab-type="'+id+'" class="'+(typeFilter===id?'active':'')+'" aria-pressed="'+(typeFilter===id)+'">'+label+'</button>').join('');
  return '<div class="page ab-page"><div class="between"><div><span class="eyebrow">BORELAB / FIELD ATLAS</span><h1>Field Atlas & Calendar</h1></div><button class="btn micro ghost" data-ab-completion>✓ Job Checklist</button></div>'+
- '<p class="muted smalltext spaced">One history, four ways to explore: Calendar, Atlas, Daily Replay and Insights. All use saved field records.</p>'+
- '<div class="ab-view-toggle" role="group" aria-label="Field Atlas display mode"><button data-ab-view="calendar" class="'+(!showChecklist&&viewMode==='calendar'?'active':'')+'" aria-pressed="'+(!showChecklist&&viewMode==='calendar')+'">📅 Calendar</button><button data-ab-view="atlas" class="'+(!showChecklist&&viewMode==='atlas'?'active':'')+'" aria-pressed="'+(!showChecklist&&viewMode==='atlas')+'">📍 Atlas Map</button><button data-ab-view="replay" class="'+(!showChecklist&&viewMode==='replay'?'active':'')+'" aria-pressed="'+(!showChecklist&&viewMode==='replay')+'">▶ Daily Replay</button><button data-ab-view="insights" class="'+(!showChecklist&&viewMode==='insights'?'active':'')+'" aria-pressed="'+(!showChecklist&&viewMode==='insights')+'">▥ Insights</button></div>'+
- '<div class="ab-global-search"><label class="field">Find records by job, date, address, station, material or type<input type="search" data-ab-search placeholder="11/19/2026, coupling, Shot 03..." value="'+esc(searchQuery)+'" maxlength="110" autocomplete="off"></label>'+
- '<div class="ab-scope-row"><label class="field">Search in<select data-ab-scope><option value="job"'+(scope==='job'?' selected':'')+'>Current job</option><option value="all"'+(scope==='all'?' selected':'')+'>All jobs (including archived)</option></select></label><button data-ab-all-jobs class="btn micro ghost">⌖ Search All Jobs</button></div>'+
- '<div class="ab-type-chips" role="group" aria-label="Filter field record type">'+labels+'</div></div>'+
+ '<p class="muted smalltext spaced">Choose a date or a map pin to see recorded history and replay. Universal search is in the sidebar.</p>'+
+ '<div class="ab-view-toggle" role="group" aria-label="Field Atlas display mode"><button data-ab-view="calendar" class="'+(!showChecklist&&viewMode==='calendar'?'active':'')+'" aria-pressed="'+(!showChecklist&&viewMode==='calendar')+'">📅 Calendar</button><button data-ab-view="atlas" class="'+(!showChecklist&&viewMode==='atlas'?'active':'')+'" aria-pressed="'+(!showChecklist&&viewMode==='atlas')+'">📍 Atlas Map</button><button data-ab-view="insights" class="'+(!showChecklist&&viewMode==='insights'?'active':'')+'" aria-pressed="'+(!showChecklist&&viewMode==='insights')+'">▥ Insights</button></div>'+
  '<div data-ab-body>'+renderBody()+'</div>'+
  '<p class="tiny muted spaced">Recorded information only. Location estimates are not surveyed utility locates. The offline site plot works without map tiles; keep a current backup of photos and records.</p></div>';
 }
@@ -328,12 +325,12 @@ document.addEventListener('click',e=>{
  const el=e.target.closest?.('[data-ab-month],[data-ab-day],[data-ab-today],[data-ab-goto],[data-ab-photo],[data-ab-pdf],[data-ab-path],[data-ab-gps],[data-ab-prev],[data-ab-next],[data-ab-visit-map],[data-ab-view],[data-ab-all-jobs],[data-ab-atlas-period],[data-ab-completion],[data-ab-type],[data-ab-suggest],[data-ab-link]');
  if(!el)return;
  if(el.hasAttribute('data-ab-month')){const [y,m]=month.split('-').map(Number),d=new Date(y,m-1+Number(el.dataset.abMonth),1);month=d.getFullYear()+'-'+pad(d.getMonth()+1);api()?.render?.();return}
- if(el.hasAttribute('data-ab-day')){selected=el.dataset.abDay;month=selected.slice(0,7);api()?.render?.();return}
- if(el.hasAttribute('data-ab-today')){selected=today();month=selected.slice(0,7);api()?.render?.();return}
+ if(el.hasAttribute('data-ab-day')){selected=el.dataset.abDay;month=selected.slice(0,7);replayDayOpen=true;window.BoreLabInsights?.pauseCard?.();api()?.render?.();return}
+ if(el.hasAttribute('data-ab-today')){selected=today();month=selected.slice(0,7);replayDayOpen=true;window.BoreLabInsights?.pauseCard?.();api()?.render?.();return}
  if(el.hasAttribute('data-ab-prev')||el.hasAttribute('data-ab-next')){
   const dates=activityDays(),target=el.hasAttribute('data-ab-prev')?[...dates].reverse().find(d=>d<selected):dates.find(d=>d>selected);
   if(!target)return api()?.notify?.('No other saved workday in this direction.');
-  selected=target;month=target.slice(0,7);api()?.render?.();return;
+  selected=target;month=target.slice(0,7);replayDayOpen=true;window.BoreLabInsights?.pauseCard?.();api()?.render?.();return;
  }
  if(el.hasAttribute('data-ab-visit-map')){atlasDayMode='selected';viewMode='atlas';showChecklist=false;api()?.render?.();return}
  if(el.dataset.abGoto){const found=eventsOn().find(x=>x.record.id===el.dataset.abGoto&&x.jobId===el.dataset.abJob&&x.type===el.dataset.abType);if(found)goToAtlas(found);return}
@@ -343,14 +340,14 @@ document.addEventListener('click',e=>{
  if(el.hasAttribute('data-ab-pdf')){exportAsBuilt(el.dataset.abPdf==='day'?selected:'');return}
  if(el.dataset.abPath){pathEditor(el.dataset.abPath);return}
  if(el.dataset.abGps){captureEndpoint(el.dataset.abGps);return}
- if(el.dataset.abView){window.BoreLabInsights?.pause?.();viewMode=['calendar','atlas','replay','insights'].includes(el.dataset.abView)?el.dataset.abView:'calendar';if(viewMode==='replay')atlasDayMode='selected';showChecklist=false;api()?.render?.();return}
+ if(el.dataset.abView){window.BoreLabInsights?.pause?.();window.BoreLabInsights?.pauseCard?.();viewMode=['calendar','atlas','insights'].includes(el.dataset.abView)?el.dataset.abView:'calendar';showChecklist=false;api()?.render?.();return}
  if(el.hasAttribute('data-ab-all-jobs')){scope='all';showChecklist=false;api()?.render?.();return}
  if(el.dataset.abAtlasPeriod){atlasDayMode=el.dataset.abAtlasPeriod==='selected'?'selected':'all';api()?.render?.();return}
  if(el.hasAttribute('data-ab-completion')){showChecklist=!showChecklist;api()?.render?.();return}
  if(el.dataset.abType){typeFilter=Object.prototype.hasOwnProperty.call(typeLabels,el.dataset.abType)?el.dataset.abType:'all';api()?.render?.();return}
 });
 document.addEventListener('change',e=>{
- if(e.target.matches?.('[data-ab-picker]')&&/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)){selected=e.target.value;month=selected.slice(0,7);api()?.render?.();return}
+ if(e.target.matches?.('[data-ab-picker]')&&/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)){selected=e.target.value;month=selected.slice(0,7);replayDayOpen=true;window.BoreLabInsights?.pauseCard?.();api()?.render?.();return}
  if(e.target.matches?.('[data-ab-scope]')){scope=e.target.value==='all'?'all':'job';api()?.render?.();return}
  if(e.target.matches?.('[data-ab-review]')){setReviewed(e.target.dataset.abReview,e.target.checked);return}
  if(e.target.matches?.('[data-ab-missing-only]')){missingOnly=!!e.target.checked;api()?.render?.();return}
@@ -369,9 +366,9 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('submit',e=>{const form=e.target.closest?.('[data-ab-path-form]');if(!form)return;e.preventDefault();savePath(form)});
 window.BoreLabAsBuilt={renderCalendar,renderChecklist,checklist,eventsOn,allEvents,matchingEvents,atlasEvents,calendarHTML,detailsHTML,dayHistory,exportAsBuilt,pathEditor,pinPhotos,onPinPhotoSaved,dayOf,coords,valid,gpsQuality,goToMap,goToAtlas,openPhoto,candidateRecords,suggestPhoto,linkPhoto,setReviewed,
- setDay:x=>{if(/^\d{4}-\d{2}-\d{2}$/.test(String(x))){selected=x;month=x.slice(0,7);window.BoreLabInsights?.pause?.()}},getDay:()=>selected,getMonth:()=>month,
+ setDay:x=>{if(/^\d{4}-\d{2}-\d{2}$/.test(String(x))){selected=x;month=x.slice(0,7);replayDayOpen=true;window.BoreLabInsights?.pause?.()}},getDay:()=>selected,getMonth:()=>month,
  getScope:()=>scope,getSearch:()=>searchQuery,getType:()=>typeFilter,getView:()=>viewMode,getAtlasDayMode:()=>atlasDayMode,
  setScope:x=>{scope=x==='all'?'all':'job'},setView:x=>{window.BoreLabInsights?.pause?.();viewMode=['calendar','atlas','replay','insights'].includes(x)?x:'calendar';if(viewMode==='replay')atlasDayMode='selected';showChecklist=false},
- setMonth:x=>{if(/^\d{4}-\d{2}$/.test(String(x)))month=x},getMissingOnly:()=>missingOnly,setMissingOnly:x=>{missingOnly=!!x},
+ setMonth:x=>{if(/^\d{4}-\d{2}$/.test(String(x)))month=x},getReplayDayOpen:()=>replayDayOpen,getMissingOnly:()=>missingOnly,setMissingOnly:x=>{missingOnly=!!x},
  setAtlasPeriod:x=>{atlasDayMode=x==='selected'?'selected':'all'},setQuery:x=>{searchQuery=String(x||'').slice(0,110)},setType:x=>{typeFilter=typeLabels[x]?x:'all'}};
 })();
