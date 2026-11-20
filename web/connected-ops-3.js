@@ -80,7 +80,7 @@ function renderCrew(){
  panel('Crew & Attendance',(cards||empty('No saved crew yet. Add names using Crew Hours.'))+
  '<div class="b3-actions"><button data-b3-roster>＋ Manage People</button>'+action('crew','◷ Timesheets / Check In')+'</div>')+
  (duplicate.length?panel('⚠ Time Review',duplicate.map(p=>'<p class="b3-warn">'+esc(p.name)+' has multiple open shifts. Verify timesheets before payroll.</p>').join('')):'')+
- panel('Job Assignments','<label class="b3-date">Date <input type="date" data-b3-crew-date value="'+crewDate+'"></label>'+
+ panel('Job Assignments','<div class="b3-actions"><button class="b3-primary" data-page="dispatch3">♙ Assign Whole Crew ›</button><button data-page="readiness3">☑ Bore Readiness ›</button></div><label class="b3-date">Date <input type="date" data-b3-crew-date value="'+crewDate+'"></label>'+
  '<p class="b3-muted">Assignments are planning notes; they do not check anyone in or change recorded hours.</p>'+
  (assigned.length?assigned.map(a=>'<div class="b3-row"><div><strong>'+esc(person(a.personId))+'</strong>'+
  '<small>'+esc(a.role)+' · '+esc(jobName(a.jobId))+(a.notes?' · '+esc(a.notes):'')+'</small></div>'+
