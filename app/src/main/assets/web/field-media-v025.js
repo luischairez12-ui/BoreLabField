@@ -9,6 +9,12 @@ const job=()=>bridge()?.activeJob?.()||{};
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 const videos=()=>Array.isArray(state().mediaVideos)?state().mediaVideos:[];
 const photos=()=>bridge()?.photos?.()||[];
+const receipts=()=>window.BoreLabReceiptsV33?.records?.()||[];
+function thumbnail(r){
+ if(r.mediaType==='photo')return '<img loading="lazy" src="'+esc(r.dataUrl||'')+'" alt="Saved field photo">';
+ if(r.mediaType==='receipt')return r.mime==='application/pdf'?'<div class="v25-receipt-tile"><strong>▤</strong><small>PDF RECEIPT</small></div>':'<img loading="lazy" src="'+esc(r.dataUrl||'')+'" alt="Saved purchase receipt">';
+ return '<div class="v25-video-tile"><video preload="metadata" muted playsinline src="'+esc(r.uri||'')+'"></video><span class="v25-play">▶</span></div>';
+}
 const size=n=>Number(n)>=1048576?(Number(n)/1048576).toFixed(1)+' MB':(Number(n||0)/1024).toFixed(0)+' KB';
 const day=x=>x?new Date(x).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}):'Unknown date';
 const unlocked=()=>!!bridge()&&(!window.BoreLabLocalAccounts||window.BoreLabLocalAccounts.isUnlocked?.());
@@ -20,9 +26,11 @@ const jobPhotos=()=>photos().filter(p=>p.jobId===state().activeJobId||(!p.jobId&
 function records(){
  const ps=jobPhotos().map(p=>({...p,mediaType:'photo',description:p.notes||p.caption||'',date:p.addedAt,sortKey:p.addedAt||''}));
  const vs=jobVideos().map(v=>({...v,mediaType:'video',description:v.notes||'',date:v.addedAt,sortKey:v.addedAt||''}));
- return [...ps,...vs].filter(x=>{
+ const rs=receipts().map(r=>({...r,mediaType:'receipt',description:[r.vendor,r.notes,r.receiptDate,r.amount,r.name].filter(Boolean).join(' '),date:r.receiptDate||r.addedAt,sortKey:r.addedAt||''}));
+ return [...ps,...vs,...rs].filter(x=>{
   if(filter==='photos'&&x.mediaType!=='photo')return false;
   if(filter==='videos'&&x.mediaType!=='video')return false;
+  if(filter==='receipts'&&x.mediaType!=='receipt')return false;
   if(filter==='unlinked'&&(x.shotId||x.fieldPinId))return false;
   const sh=(job().shots||[]).find(q=>q.id===x.shotId),pin=(job().fieldPins||[]).find(q=>q.id===x.fieldPinId);
   return !search||[x.description,x.mediaType,sh?.name,pin?.name,day(x.date)].join(' ').toLowerCase().includes(search.toLowerCase());
@@ -31,24 +39,24 @@ function records(){
 const titleFor=r=>(job().shots||[]).find(s=>s.id===r.shotId)?.name||
  (job().fieldPins||[]).find(p=>p.id===r.fieldPinId)?.name||'General jobsite media';
 function render(){
- const all=records(),total=jobPhotos().length+jobVideos().length;
- return '<div class="page v25-vault"><span class="eyebrow">FIELD / MEDIA EVIDENCE</span><h1>Photos & Videos</h1>'+
- '<p class="smalltext muted">One searchable job library. Existing photos are preserved. Videos stay in private phone storage until you export them or connect Drive in a future batch.</p>'+
+ const all=records(),total=jobPhotos().length+jobVideos().length+receipts().length;
+ return '<div class="page v25-vault"><span class="eyebrow">FIELD / MEDIA EVIDENCE</span><h1>Media Vault</h1>'+
+ '<p class="smalltext muted">Job photos, videos and receipts in one searchable library. Saved files stay on this device until you export them.</p>'+
  '<div class="v25-actions"><button class="btn primary" data-action="choose-photo">▣ Take Photo</button>'+
- '<button class="btn ghost" data-action="choose-gallery">＋ Add Photo</button>'+
+ '<button class="btn ghost" data-action="choose-gallery">＋ Add Photo</button>'+ 
+ (editable()?'<button type="button" class="btn ghost" data-b33-receipt-camera>▣ Scan Receipt</button><button type="button" class="btn ghost" data-b33-receipt-upload>＋ Upload Receipt</button>':'')+
  (editable()?'<button class="btn primary" data-v25-record>● Record Video</button><button class="btn ghost" data-v25-import>＋ Add Video</button>':'')+
  '<button class="btn ghost" data-page="phototimeline2">☷ Photo Timeline</button></div>'+
- '<div class="v25-summary"><strong>'+total+' media records</strong><small>'+jobPhotos().length+' photos · '+jobVideos().length+' videos · Active job</small></div>'+
- '<div class="v25-filters"><label>Show<select data-v25-filter>'+[['all','All media'],['photos','Photos'],['videos','Videos'],['unlinked','Unlinked']].map(([v,l])=>'<option value="'+v+'"'+(filter===v?' selected':'')+'>'+l+'</option>').join('')+'</select></label>'+
+ '<div class="v25-summary"><strong>'+total+' media records</strong><small>'+jobPhotos().length+' photos · '+jobVideos().length+' videos · '+receipts().length+' receipts · Active job</small></div>'+
+ '<div class="v25-filters"><label>Show<select data-v25-filter>'+[['all','All media'],['photos','Photos'],['videos','Videos'],['receipts','Receipts'],['unlinked','Unlinked']].map(([v,l])=>'<option value="'+v+'"'+(filter===v?' selected':'')+'>'+l+'</option>').join('')+'</select></label>'+
  '<label>Find<input type="search" data-v25-search value="'+esc(search)+'" placeholder="Shot, location or note"></label></div>'+
  '<div class="v25-media-grid">'+(all.length?all.slice(0,250).map(r=>
  '<button type="button" class="v25-media-card" data-v25-open="'+esc(r.id)+'" data-v25-type="'+r.mediaType+'">'+
- (r.mediaType==='photo'?'<img loading="lazy" src="'+esc(r.dataUrl||'')+'" alt="Saved field photo">':
- '<div class="v25-video-tile"><video preload="metadata" muted playsinline src="'+esc(r.uri||'')+'"></video><span class="v25-play">▶</span></div>')+
- '<span class="v25-media-info"><strong>'+esc(titleFor(r))+'</strong><small>'+esc(r.mediaType==='video'?'VIDEO · '+size(r.bytes):'PHOTO · '+String(r.stage||'Field'))+' · '+esc(day(r.date))+'</small></span></button>').join(''):
- '<p class="v25-empty">No media matches this view. Capture a photo or a short field video to start.</p>')+'</div>'+
+ thumbnail(r)+
+ '<span class="v25-media-info"><strong>'+esc(r.mediaType==='receipt'?(r.vendor||r.name||'Receipt'):titleFor(r))+'</strong><small>'+esc(r.mediaType==='receipt'?'RECEIPT':r.mediaType==='video'?'VIDEO · '+size(r.bytes):'PHOTO · '+String(r.stage||'Field'))+' · '+esc(r.mediaType==='receipt'?(r.receiptDate||'Unknown date'):day(r.date))+'</small></span></button>').join(''):
+ '<p class="v25-empty">No media matches this view. Add a job photo, field video or receipt to start.</p>')+'</div>'+
  (all.length>250?'<p class="smalltext muted">Showing the latest 250 matches. Narrow your search to view more.</p>':'')+
- '<div class="v25-warning">Video storage is local to this installation. The existing JSON backup does not contain video bytes. Share important clips before uninstalling BoreLab or changing phones.</div>'+
+ '<div class="v25-warning">Videos live in app-private files and are not included in JSON backups. Receipt photos and PDFs are included in new BoreLab JSON backups. Save important videos separately.</div>'+
  '<p class="tiny muted">Recording a utility concern does not replace notifications to the locator, superintendent, or required safety procedures.</p></div>';
 }
 function begin(kind,shotId='',fieldPinId=''){
@@ -85,6 +93,7 @@ function onVideoImported(payload){
 }
 function view(id,type){
  if(type==='photo'){bridge()?.photoDetail?.(id);return}
+ if(type==='receipt'){window.BoreLabReceiptsV33?.view?.(id);return}
  const r=jobVideos().find(x=>x.id===id);if(!r)return;
  bridge()?.showModal?.('<div class="modal-head"><h2>Field Video</h2><button class="icon-btn" data-action="close-modal">✕</button></div>'+
  '<video class="v25-video-player" src="'+esc(r.uri)+'" controls playsinline preload="metadata"></video>'+
