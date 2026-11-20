@@ -145,6 +145,8 @@ function unlocatedSection(data){
  '<button class="blmap-locate" data-blmap-locate>⌖ Locate Saved Bore Addresses</button></div></details>';
 }
 function renderMap(){
+ // Date filters belong to the previous job; clear before calculating new job totals.
+ if(currentJob!==null&&currentJob!==(st().activeJobId||'job'))mapDay='';
  const data=model();ensureView(data);
  const legend='<div class="blmap-legend"><span><i class="blmap-legend-dot drilling"></i>Drilling</span>'+
  '<span><i class="blmap-legend-dot complete"></i>Complete</span><span><i class="blmap-legend-dot pending"></i>Pending</span>'+ 
