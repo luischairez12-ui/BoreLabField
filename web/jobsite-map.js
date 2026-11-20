@@ -85,7 +85,7 @@ function statusTabs(data){
  label+' <span>'+data.groups[key]+'</span></button>').join('');
 }
 function typeTabs(data){
- return [['all','All Pins'],['bores','Bores'],...Object.entries(window.BoreLabFieldPins?.kindLabels||{})].map(([key,label])=>
+ return [['all','All Pins'],['bores','Bores'],...Object.entries(window.BoreLabFieldPins?.kindLabels||{}).map(([key,label])=>[key,({'tie-in':'Tie-ins',coupling:'Couplings',box:'Boxes'}[key]||label)])].map(([key,label])=>
  '<button type="button" data-blmap-type="'+key+'" aria-pressed="'+(typeFilter===key?'true':'false')+'" class="'+(typeFilter===key?'active':'')+'">'+
  label+' <span>'+data.types[key]+'</span></button>').join('');
 }
