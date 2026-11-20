@@ -66,7 +66,7 @@ function compress(file){
   img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Image cannot be decoded. Try JPG or PNG.'))};
   img.src=url;
  }) }
-function readPdf(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve({mime:'application/pdf',dataUrl:String(reader.result)});reader.onerror=()=>reject(new Error('Could not read PDF'));reader.readAsDataURL(file)})}
+function readPdf(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const raw=String(reader.result||'');const base64=raw.split(',')[1]||'';if(!base64)return reject(new Error('Empty PDF file'));resolve({mime:'application/pdf',dataUrl:'data:application/pdf;base64,'+base64})};reader.onerror=()=>reject(new Error('Could not read PDF'));reader.readAsDataURL(file)})}
 async function pickFile(file){
  if(!editable())return notify('This action requires an authorized field account.');
  if(!file)return;
@@ -166,6 +166,6 @@ document.addEventListener('submit',e=>{
  const f=e.target.closest?.('[data-b33-receipt-form]');if(!f)return;e.preventDefault();
  saveForm(f).then(r=>{if(!r.ok)notify(r.error)});
 });
-window.BoreLabReceiptsV33={refresh,records,get,choose,view,saveForm,pickFile,exportRecords,replaceAll,clear,valid};
+window.BoreLabReceiptsV33={refresh,records,allRecords:()=>cache.slice(),get,choose,view,saveForm,pickFile,exportRecords,replaceAll,clear,valid};
 refresh().then(()=>{if(b()?.currentPage?.()==='photos')b()?.render?.()}).catch(err=>{notify('Receipt storage unavailable: '+String(err.message||err))});
 })();
