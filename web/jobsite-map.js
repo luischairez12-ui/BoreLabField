@@ -20,6 +20,8 @@ const isPin=s=>s?.recordType==='fieldPin';
 const pinLabel=s=>window.BoreLabFieldPins?.kindLabel?.(s?.kind)||'Field marker';
 const recordDate=s=>window.BoreLabFieldPins?.displayDate?.(s)||'Date not recorded';
 const placed=()=>activeRecords().filter(s=>api()?.coordsValid?.(s));
+const endpointValid=p=>p&&p.lat!==''&&p.lon!==''&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lon))&&Number(p.lat)>=-90&&Number(p.lat)<=90&&Number(p.lon)>=-180&&Number(p.lon)<=180;
+const mapBounds=()=>[...placed(),...activeShots().flatMap(s=>[s.asbuiltStart,s.asbuiltEnd].filter(endpointValid))];
 const missing=()=>activeRecords().filter(s=>!api()?.coordsValid?.(s));
 const point=s=>({lat:Number(s.lat),lon:Number(s.lon)});
 let currentJob=null,selected=null,selectedPhoto=null,mapDay='',filter='all',typeFilter='all',mode='street',showPath=true,view=null;
@@ -55,13 +57,13 @@ function model(){
  });
  const groups={all:shots.length,planned:0,progress:0,complete:0};
  shots.forEach(s=>groups[status(s)]++);
- const types={all:records.length,bores:shots.length,'tie-in':0,coupling:0,box:0};
+ const types={all:records.length,bores:shots.length};for(const kind of Object.keys(window.BoreLabFieldPins?.kindLabels||{}))types[kind]=0;
  pins.forEach(p=>{if(Object.prototype.hasOwnProperty.call(types,p.kind))types[p.kind]++});
  return {shots,pins,records,geocoded,unknown,shown,groups,types,jobId:st().activeJobId||'job',jobName:st().jobName||'Current job'};
 }
 function ensureView(data=model()){
  if(currentJob===data.jobId&&view){
-  if(!view.center&&data.geocoded.length){const recovered=fit(data.geocoded.map(point));if(recovered)view=recovered;}
+  if(!view.center&&mapBounds().length){const recovered=fit(mapBounds().map(point));if(recovered)view=recovered;}
   return;
  }
  currentJob=data.jobId;selected=null;selectedPhoto=null;pointerData.clear();gesture=null;
@@ -71,7 +73,7 @@ function ensureView(data=model()){
  mode=pref?.mode==='plot'?'plot':'street';
  showPath=pref?.showPath!==false;
  filter=['all','planned','progress','complete'].includes(pref?.filter)?pref.filter:'all';
-  typeFilter=['all','bores','tie-in','coupling','box'].includes(pref?.typeFilter)?pref.typeFilter:'all';
+  typeFilter=['all','bores',...Object.keys(window.BoreLabFieldPins?.kindLabels||{})].includes(pref?.typeFilter)?pref.typeFilter:'all';
 }
 function saveSettings(){
  st().jobsiteMapPreferences={mode,showPath,filter,typeFilter};
@@ -83,7 +85,7 @@ function statusTabs(data){
  label+' <span>'+data.groups[key]+'</span></button>').join('');
 }
 function typeTabs(data){
- return [['all','All Pins'],['bores','Bores'],['tie-in','Tie-ins'],['coupling','Couplings'],['box','Boxes']].map(([key,label])=>
+ return [['all','All Pins'],['bores','Bores'],...Object.entries(window.BoreLabFieldPins?.kindLabels||{})].map(([key,label])=>
  '<button type="button" data-blmap-type="'+key+'" aria-pressed="'+(typeFilter===key?'true':'false')+'" class="'+(typeFilter===key?'active':'')+'">'+
  label+' <span>'+data.types[key]+'</span></button>').join('');
 }
@@ -144,8 +146,10 @@ function renderMap(){
  const data=model();ensureView(data);
  const legend='<div class="blmap-legend"><span><i class="blmap-legend-dot drilling"></i>Drilling</span>'+
  '<span><i class="blmap-legend-dot complete"></i>Complete</span><span><i class="blmap-legend-dot pending"></i>Pending</span>'+ 
-  '<span><i class="blmap-legend-dot tie-in"></i>Tie-in</span><span><i class="blmap-legend-dot coupling"></i>Coupling</span><span><i class="blmap-legend-dot box"></i>Box</span></div>';
- const mapAvail=data.geocoded.length>0;
+  '<span><i class="blmap-legend-dot tie-in"></i>Tie-in</span><span><i class="blmap-legend-dot coupling"></i>Coupling</span><span><i class="blmap-legend-dot box"></i>Box</span>'+ 
+ Object.entries(window.BoreLabFieldPins?.kindLabels||{}).filter(([k])=>!['tie-in','coupling','box'].includes(k)&&data.pins.some(p=>p.kind===k)).map(([k,l])=>'<span><b>'+esc(window.BoreLabFieldPins.symbolFor({kind:k}))+'</b> '+esc(l)+'</span>').join('')+
+ '<span><b>A—B</b> Straight GPS reference</span></div>';
+ const mapAvail=mapBounds().length>0;
  const box='<section class="blmap-mapbox"><div class="blmap-maphead"><strong>Jobsite Locations</strong>'+
  '<span>'+data.geocoded.length+' mapped / '+data.records.length+' total</span></div>'+
  '<div class="blmap-toolbar"><div class="blmap-layer-tabs" role="group" aria-label="Map layers">'+
@@ -164,7 +168,7 @@ function renderMap(){
  '</div><p class="blmap-attribution">'+(mode==='street'?'© OpenStreetMap contributors · ':'')+
  (mode==='street'?'Street tiles online · ':'Site plot · ')+'Pins from saved GPS</p>'+
  legend+'<p class="blmap-route-info">'+(showPath?'Dotted lines show a suggested shot sequence, <strong>not roads or travel directions</strong>.':
- 'Tap a GPS pin to see the type and recorded date.')+'</p></section>';
+ 'Tap a GPS pin or bore line to see the record. Hold an empty area of the map to place a symbol.')+'</p></section>';
  const html='<div class="page blmap-page"><header class="blmap-header"><div>'+
  '<span class="eyebrow">BORELAB FIELD / GPS PLANNING</span><h1>Interactive Jobsite Map</h1>'+
  '<p>'+esc(data.jobName)+'</p></div>'+weatherChip()+'</header>'+
@@ -174,7 +178,7 @@ function renderMap(){
   '<div class="blmap-type-filters" role="group" aria-label="Filter pin type">'+typeTabs(data)+'</div>'+
  box+unlocatedSection(data)+
  '<div class="blmap-bottom"><button data-page="shotcards">◎ Smart Shot Cards</button>'+
- '<button data-action="new-shot" class="blmap-orange">＋ Add Bore</button><button data-blmap-new-pin>📌 Add Field Pin</button></div>'+
+ '<button data-action="new-shot" class="blmap-orange">＋ Add Bore</button><button data-blmap-new-pin>📌 Add Field Pin</button><button data-blmap-endpoints>⌁ Entry / Exit</button></div>'+
  '<p class="ab-map-note">Cyan/orange endpoint lines are straight GPS references only, not surveyed underground bore alignment.</p><p class="blmap-disclaimer">Map tiles are online-only. Bore and installed-location pins, dated records and the site plot remain usable offline. Check the actual jobsite before digging.</p></div>';
  if(typeof requestAnimationFrame==='function')requestAnimationFrame(draw);
  return html;
@@ -205,7 +209,7 @@ function markerHTML(s,x,y,cluster=1){
  const detail=photo?'Photo · '+recordDate(s):field?pinLabel(s)+' · '+recordDate(s):fmt(s.feet)+' ft';
  return '<button type="button" class="blmap-pin is-'+esc(kind)+(selectedMarker?' selected':'')+(cluster>1?' is-cluster':'')+
  '" data-blmap-pin="'+esc(s.id)+'" style="left:'+Math.round(x)+'px;top:'+Math.round(y)+'px" aria-label="'+esc(name)+
- ', '+esc(detail)+'"><span class="blmap-pin-icon"><em>'+(cluster>1?cluster:photo?'▣':field?(kind==='tie-in'?'T':kind==='coupling'?'C':'B'):status(s)==='complete'?'✓':status(s)==='progress'?'⌁':'⌖')+
+ ', '+esc(detail)+'"><span class="blmap-pin-icon"><em>'+(cluster>1?cluster:photo?'▣':field?esc(window.BoreLabFieldPins?.symbolFor?.(s)||'📌'):status(s)==='complete'?'✓':status(s)==='progress'?'⌁':'⌖')+
  '</em></span><span class="blmap-pin-label"><b>'+esc(name)+'</b><small>'+esc(detail)+(cluster>1?' · '+cluster+' records':'')+'</small></span></button>';
 }
 function renderMarkers(groups,width,height){
@@ -245,7 +249,7 @@ function actualEndpointPath(data,geom){
  const lines=paths.map(s=>{
   const a=project(s.asbuiltStart.lat,s.asbuiltStart.lon,view.zoom),b=project(s.asbuiltEnd.lat,s.asbuiltEnd.lon,view.zoom);
   const x1=a.x-geom.center.x+geom.width/2,y1=a.y-geom.center.y+geom.height/2,x2=b.x-geom.center.x+geom.width/2,y2=b.y-geom.center.y+geom.height/2,pt=v=>v.toFixed(2);
-  return '<line x1="'+pt(x1)+'" y1="'+pt(y1)+'" x2="'+pt(x2)+'" y2="'+pt(y2)+'" stroke="#20d4c6" stroke-width="3.5" stroke-linecap="round"/>'+
+  return '<line data-v25-boreline="'+esc(s.id)+'" x1="'+pt(x1)+'" y1="'+pt(y1)+'" x2="'+pt(x2)+'" y2="'+pt(y2)+'" stroke="#20d4c6" stroke-width="7" stroke-opacity=".75" stroke-linecap="round" style="pointer-events:stroke;cursor:pointer"/>'+
    '<circle cx="'+pt(x1)+'" cy="'+pt(y1)+'" r="5" fill="#20d4c6" stroke="#fff" stroke-width="2"/>'+
    '<circle cx="'+pt(x2)+'" cy="'+pt(y2)+'" r="5" fill="#f8a33c" stroke="#fff" stroke-width="2"/>';
  }).join('');
@@ -277,7 +281,7 @@ function zoom(amount){
  draw();
 }
 function reset(){
- const p=fit(placed().map(point),
+ const p=fit(mapBounds().map(point),
  document.querySelector('[data-blmap-viewport]')?.clientWidth||340,
  document.querySelector('[data-blmap-viewport]')?.clientHeight||420);
  if(p){view=p;draw()}
@@ -312,7 +316,7 @@ function satellite(){
 }
 document.addEventListener('change',e=>{if(!e.target.matches?.('[data-blmap-day]')||api()?.currentPage?.()!=='jobmap')return;mapDay=e.target.value;selected=null;api()?.render?.()});
 document.addEventListener('click',e=>{
- const btn=e.target.closest?.('[data-blmap-filter],[data-blmap-type],[data-blmap-mode],[data-blmap-route],[data-blmap-fit],[data-blmap-zoom],[data-blmap-pin],[data-blmap-open],[data-blmap-navigate],[data-blmap-photo],[data-blmap-close],[data-blmap-locate],[data-blmap-unlocated],[data-blmap-unlocated-pin],[data-blmap-satellite],[data-blmap-edit-pin],[data-blmap-new-pin],[data-blmap-pdf],[data-blmap-day-clear],[data-blmap-cluster-select],[data-blmap-pin-camera],[data-blmap-photo-detail]');
+ const btn=e.target.closest?.('[data-blmap-filter],[data-blmap-type],[data-blmap-mode],[data-blmap-route],[data-blmap-fit],[data-blmap-zoom],[data-blmap-pin],[data-blmap-open],[data-blmap-navigate],[data-blmap-photo],[data-blmap-close],[data-blmap-locate],[data-blmap-unlocated],[data-blmap-unlocated-pin],[data-blmap-satellite],[data-blmap-edit-pin],[data-blmap-new-pin],[data-blmap-pdf],[data-blmap-day-clear],[data-blmap-cluster-select],[data-blmap-pin-camera],[data-blmap-photo-detail],[data-blmap-endpoints]');
  if(!btn||!api()||api().currentPage?.()!=='jobmap')return;
  if(btn.dataset.blmapFilter){filter=btn.dataset.blmapFilter;selected=null;saveSettings();api().render();return}
   if(btn.dataset.blmapType){typeFilter=btn.dataset.blmapType;selected=null;saveSettings();api().render();return}
@@ -341,6 +345,7 @@ document.addEventListener('click',e=>{
   if(btn.dataset.blmapUnlocatedPin){window.BoreLabFieldPins?.editPin?.(btn.dataset.blmapUnlocatedPin);return}
   if(btn.dataset.blmapEditPin){window.BoreLabFieldPins?.editPin?.(btn.dataset.blmapEditPin);return}
   if(btn.hasAttribute('data-blmap-new-pin')){window.BoreLabFieldPins?.editPin?.();return}
+ if(btn.hasAttribute('data-blmap-endpoints')){const shots=activeShots();if(!shots.length)return api().notify('Add a bore first.');api().showModal('<div class="modal-head"><h2>Choose Bore Alignment</h2><button data-action="close-modal" class="icon-btn">✕</button></div>'+shots.map(s=>'<button class="btn ghost" style="width:100%;margin:5px 0" data-v25-select-bore="'+esc(s.id)+'">'+esc(s.name||'Bore')+'</button>').join(''));return}
  if(btn.hasAttribute('data-blmap-locate')){Promise.resolve(api().resolveMissingAddresses?.(true)).then(()=>api().render()).catch(e=>api().notify?.(String(e.message||e)));return}
  if(btn.hasAttribute('data-blmap-satellite')){satellite();return}
 });
