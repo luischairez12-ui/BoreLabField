@@ -13,7 +13,25 @@ const actions=[
  {id:'note',icon:'✎',title:'Quick Note',sub:'Record a jobsite observation'}
 ];
 let opened=false,lastFocus=null;
-const contextActions=page=>window.BoreLabFieldCommand3?.fabActions?.(page)||window.BoreLabEdgeV22?.pageActions?.(page)||actions;
+const contextActions=page=>{
+ if(page==='bores')return [
+  {id:'bore',icon:'⌁',title:'Add Bore',sub:'Plan a new shot'},
+  {id:'gps',icon:'⌖',title:'Add Field Pin',sub:'Tie-in, box or coupling'},
+  {id:'photo',icon:'▣',title:'Jobsite Photo',sub:'Capture field evidence'}];
+ if(page==='pipe')return [
+  {id:'reel',icon:'◈',title:'Add Reel',sub:'Record pipe inventory'},
+  {id:'note',icon:'✎',title:'Quick Field Note',sub:'Log material observations'}];
+ if(page==='fieldcommand')return [
+  {id:'fc-dispatch',icon:'♙',title:'Dispatch Crew',sub:'Assign workers and equipment'},
+  {id:'note',icon:'✎',title:'Quick Note',sub:'Record a field update'}];
+ if(page==='crew')return [
+  {id:'roster',icon:'♙',title:'Manage Crew',sub:'Add or update people'},
+  {id:'fc-dispatch',icon:'☷',title:'Assign Workers',sub:'Today’s work roles'}];
+ if(page==='photos')return [
+  {id:'photo',icon:'▣',title:'Take Photo',sub:'Attach evidence to the job'},
+  {id:'note',icon:'✎',title:'Quick Note',sub:'Log an observation'}];
+ return window.BoreLabFieldCommand3?.fabActions?.(page)||window.BoreLabEdgeV22?.pageActions?.(page)||actions;
+};
 const actionHTML=a=>'<button type="button" class="bf-fab-action" data-bf-fab-action="'+a.id+'"><span class="bf-fab-icon" aria-hidden="true">'+a.icon+'</span><span><strong>'+a.title+'</strong><small>'+a.sub+'</small></span><span aria-hidden="true">›</span></button>';
 const allowed=()=>{
  const a=account();
@@ -70,6 +88,8 @@ function handleAction(id){
  close();
  if(window.BoreLabFieldCommand3?.handleFabAction?.(id))return;
  if(id==='bore'){return api()?.newBore?.()}
+  if(id==='reel'){return api()?.reelForm?.()}
+  if(id==='roster'){return api()?.openRosterForm?.()}
  if(id==='photo'){const n=window.BoreLabNavigation;n?.open?.();if(n?.isOpen?.())n.toggleQuick?.();return}
  if(id==='gps'){return window.BoreLabFieldPins?.editPin?.('','tie-in')}
  if(id==='note'){return openNote()}
