@@ -14,7 +14,7 @@ const shortcuts=[
  {page:'fieldproductivity',icon:'◈',name:'Field Productivity',detail:'Materials, Next Move & Photos'},
  {page:'reelcommand',icon:'◉',name:'Reel Command',detail:'Burn-down and return planning'},
  {page:'crossings',icon:'⚠',name:'Utility Crossings',detail:'Measured crossing records'},
- {page:'planner',icon:'⌁',name:'Bores',detail:'Shot planner'},
+ {page:'planner',icon:'⌁',name:'Bores',detail:'Cards, routes & pipe'},
  {page:'shotboard',icon:'☷',name:'Today’s Shot Board',detail:'Daily work'},
  {page:'photos',icon:'▣',name:'Media Vault',detail:'Photos, videos & field evidence'},
  {page:'crew',icon:'♙',name:'Crew',detail:'Hours and attendance'},
@@ -42,8 +42,11 @@ function mount(){
  '<div class="bf-drawer-head"><div class="bf-drawer-kicker">BORELAB FIELD</div><div class="bf-drawer-headline"><div><strong>Field Menu</strong><small>Go where the work is</small></div>'+
  '<button type="button" class="bf-drawer-close" data-bf-close aria-label="Close navigation menu">✕</button></div></div>'+
  '<button class="bf-drawer-job" data-page="jobs" aria-label="Manage and switch jobs"><span class="bf-job-pin">⌖</span><span><small>ACTIVE JOB</small><strong id="bfDrawerJob">Current job</strong></span><span>›</span></button>'+
- '<div class="bf-drawer-scroller"><div class="bf-drawer-section-title"><span>SHORTCUTS</span><small>Tap to open</small></div>'+
- '<div class="bf-drawer-links">'+shortcuts.map(item).join('')+'</div>'+
+ '<div class="bf-drawer-scroller"><div class="bf-drawer-searchbox"><label for="bfDrawerUniversalInput">SEARCH EVERYTHING</label>'+
+ '<div class="bf-drawer-search-input"><span aria-hidden="true">⌕</span><input id="bfDrawerUniversalInput" type="search" maxlength="100" autocomplete="off" placeholder="Address, worker, bore, date…" aria-label="Search saved BoreLab records"></div>'+
+ '<small>All saved jobs · Offline</small></div><div id="bfDrawerSearchResults" role="status" aria-live="polite" hidden></div>'+
+ '<div class="bf-drawer-section-title"><span>SHORTCUTS</span><small>Tap to open</small></div>'+
+ '<div class="bf-drawer-links">'+shortcuts.filter(v=>v.page!=='search').map(item).join('')+'</div>'+
  '<div class="bf-drawer-bottom-spacer" aria-hidden="true"></div></div>'+
  '<div class="bf-drawer-quick"><button type="button" class="bf-quick-main" data-bf-menu-action="quick" aria-expanded="false" aria-controls="bfQuickChoices">'+icons.camera+
  '<span>Quick Photo & Pin</span><span class="bf-quick-arrow">⌄</span></button>'+
@@ -71,7 +74,7 @@ function syncPage(page){
  if(job)job.textContent=bridge()?.state?.()?.jobName||'Choose a job';
  const links=document.querySelectorAll('.bf-drawer-link');
  links.forEach(el=>{
-  const active=el.dataset.bfRoute===page;
+  const active=el.dataset.bfRoute===page||(page==='bores'&&el.dataset.bfRoute==='planner');
   el.classList.toggle('active',active);
   if(active)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');
  });
@@ -107,6 +110,20 @@ function close(){
  setExpanded(false);
  if(lastFocus?.isConnected)lastFocus.focus?.({preventScroll:true});
 }
+function openSearch(){
+ if(!open)show();
+ if(!open)return;
+ requestAnimationFrame(()=>$('#bfDrawerUniversalInput')?.focus({preventScroll:true}));
+}
+function updateSearch(){
+ const input=$('#bfDrawerUniversalInput'),results=$('#bfDrawerSearchResults');
+ if(!input||!results)return;
+ const q=input.value.trim(),searching=q.length>0;
+ document.documentElement.classList.toggle('bf-drawer-searching',searching);
+ results.hidden=!searching;
+ results.innerHTML=searching?(window.BoreLabUnifiedSearchV28?.render?.(q)||'Search unavailable.'):'';
+ if(searching){const scroller=$('.bf-drawer-scroller');if(scroller)scroller.scrollTop=0}
+}
 function toggleQuick(){
  const box=$('#bfQuickChoices');if(!box)return;
  quick=!quick;box.hidden=!quick;
@@ -120,7 +137,13 @@ function act(kind){
  if(kind==='camera')return bridge()?.photoChoose?.('camera');
  if(['coupling','box','tie-in'].includes(kind))return window.BoreLabFieldPins?.editPin?.('',kind);
 }
+document.addEventListener('input',e=>{if(e.target?.id==='bfDrawerUniversalInput')updateSearch()});
 document.addEventListener('click',e=>{
+ const hit=e.target.closest?.('[data-bf-search-hit]');
+ if(hit){e.preventDefault();e.stopImmediatePropagation?.();
+  const {bfSearchHit:type,id,job}=hit.dataset;
+  close();window.BoreLabUnifiedSearchV28?.openHit?.(type,id,job);return;
+ }
  const toggler=e.target.closest?.('[data-bf-drawer]');
  if(toggler){e.preventDefault();if(toggler.classList?.contains('bf-edge-tab')&&window.BoreLabEdgeV22?.handleTabClick?.(e))return;show();return}
  if(e.target.closest?.('[data-bf-close]')){e.preventDefault();close();return}
@@ -150,5 +173,5 @@ document.addEventListener('pointerup',e=>{
 document.addEventListener('pointercancel',()=>{gesture=null},{passive:true});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});
 else mount();
-window.BoreLabNavigation={open:show,close,isOpen:()=>open,syncPage,toggleQuick,shortcuts};
+window.BoreLabNavigation={open:show,openSearch,close,isOpen:()=>open,syncPage,toggleQuick,shortcuts};
 })();
