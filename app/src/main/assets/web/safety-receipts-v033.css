@@ -1,0 +1,48 @@
+/* BoreLab Field 811 / Safety Contacts and Receipt Vault — daylight field layout */
+.b33-safety,.b33-receipts{max-width:900px;margin:0 auto;padding:14px 14px 85px!important;color:#243b49}
+.b33-safety-header h1{font-size:clamp(30px,6vw,38px);margin:6px 0;line-height:1.08;color:#183447}
+.b33-safety-header p{color:#5e7381;font-size:14px;line-height:1.45;margin:8px 0 20px}
+.b33-safety-card{border:1px solid #dce3e8;border-radius:17px;padding:15px;background:#fff;box-shadow:0 4px 14px #2638480b;margin:13px 0}
+.b33-safety-card h2{font-size:19px;color:#243c4b;margin:0 0 12px}
+.b33-hotline{display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:14px;padding:13px;border:1px solid #e1e6e9;background:#f9fafb;margin:9px 0}
+.b33-hotline.b33-811{border-color:#e9c899;background:#fff6e9}
+.b33-hotline.b33-911{border-color:#e5adab;background:#fff0ee}
+.b33-hotline>div,.b33-contact>div{min-width:0;flex:1}
+.b33-hotline strong,.b33-hotline small,.b33-contact strong,.b33-contact small{display:block;overflow-wrap:anywhere}
+.b33-hotline strong{font-size:16px;color:#253f4f}
+.b33-hotline small,.b33-contact small{font-size:11px;color:#596f7d;margin-top:4px;line-height:1.45}
+.b33-call{display:inline-flex;align-items:center;justify-content:center;min-height:47px;min-width:90px;flex-shrink:0;text-decoration:none;background:#db720d;color:#fff!important;border-radius:11px;font-size:13px;font-weight:850;padding:10px 11px}
+.b33-911 .b33-call{background:#b9352f}
+.b33-note,.b33-footer{font-size:12px;line-height:1.55;color:#5e7481;margin:12px 0 0}
+.b33-safety-head{display:flex;align-items:start;justify-content:space-between;gap:8px}
+.b33-safety-head h2{margin:0}
+.b33-safety-head p{font-size:11px;color:#607581;margin:5px 0}
+.b33-primary{background:linear-gradient(115deg,#f69a34,#da6b06);border:0;border-radius:11px;color:white;padding:11px;font-size:13px;min-height:48px;font-weight:850}
+.b33-contact-list{display:grid;gap:9px;margin:12px 0}
+.b33-contact{border:1px solid #dbe3e8;padding:12px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.b33-contact-type{display:block;font-size:10px;letter-spacing:.3px;color:#9f540f;font-weight:800;margin-bottom:4px}
+.b33-contact-actions{display:flex;gap:6px;flex-wrap:wrap}
+.b33-contact-actions button{background:#fff;border:1px solid #cad7de;border-radius:9px;font-size:12px;padding:8px;min-height:43px;color:#344f60;font-weight:800}
+.b33-contact .b33-call{min-width:76px}
+.b33-empty{background:#f7f9fa;border:1px dashed #aebdc7;border-radius:12px;padding:18px;font-size:13px;color:#627784}
+.b33-contact-form{margin:14px 0;padding:15px;background:#fff9f3;border:1px solid #edcbab;border-radius:13px}
+.b33-contact-form h2{margin:0 0 13px}
+.b33-contact-form form{display:grid;gap:12px}
+.b33-contact-form label{font-size:12px;font-weight:850;display:grid;gap:5px}
+.b33-contact-form input,.b33-contact-form select,.b33-contact-form textarea{width:100%;min-height:45px;max-width:100%;background:#fff;border:1px solid #bfcfd7;border-radius:10px;color:#223b49;padding:10px;font-size:14px}
+.b33-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.b33-buttons button:not(.b33-primary){border:1px solid #d0d9df;background:#fff;color:#344c5c;min-height:47px;border-radius:10px;padding:10px}
+.b33-safety button:focus-visible,.b33-safety a:focus-visible{outline:3px solid #b15a11;outline-offset:2px}
+.b33-receipt-actions{display:flex;gap:8px;flex-wrap:wrap}
+.b33-receipt-actions button{min-height:48px;padding:10px 13px;border:1px solid #d4dce3;border-radius:12px;background:#fff;color:#35526a;font-size:12px;font-weight:850}
+.b33-receipt-actions button:first-child{background:#e9790b;border-color:#d8740f;color:#fff}
+.v25-receipt-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:127px;background:#fff2e4;border-radius:12px;color:#a75a13;gap:9px}
+.v25-receipt-tile>strong{font-size:30px}
+.v25-receipt-tile>small{font-size:11px;font-weight:800}
+.b33-receipt-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.b33-pdf-preview{background:#fff3e7;border:1px solid #ecccae;display:grid;place-items:center;text-align:center;gap:8px;padding:35px;border-radius:12px;color:#a9580d;font-size:20px;font-weight:850}
+.b33-pdf-preview small{display:block;font-size:12px;line-height:1.4;color:#617785}
+.b33-receipt-details{display:grid;gap:4px;margin:14px 0;color:#213945}
+.b33-receipt-details span{font-size:12px;color:#667b88}
+.b33-receipt-details p{font-size:12px;line-height:1.5}
+@media(max-width:385px){.b33-safety{padding-left:10px!important;padding-right:10px!important}.b33-hotline{padding:9px}.b33-hotline strong{font-size:14px}.b33-call{min-width:75px;font-size:11px}.b33-receipt-fields{grid-template-columns:1fr}}
