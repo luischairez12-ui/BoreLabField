@@ -55,10 +55,11 @@ function model(){
   if(typeFilter!=='all')return isPin(s)&&s.kind===typeFilter;
   return isPin(s)||filter==='all'||status(s)===filter;
  });
- const groups={all:shots.length,planned:0,progress:0,complete:0};
- shots.forEach(s=>groups[status(s)]++);
- const types={all:records.length,bores:shots.length};for(const kind of Object.keys(window.BoreLabFieldPins?.kindLabels||{}))types[kind]=0;
- pins.forEach(p=>{if(Object.prototype.hasOwnProperty.call(types,p.kind))types[p.kind]++});
+ const scopedShots=shots.filter(inMapDay),scopedRecords=records.filter(inMapDay),scopedPins=pins.filter(inMapDay);
+ const groups={all:scopedShots.length,planned:0,progress:0,complete:0};
+ scopedShots.forEach(s=>groups[status(s)]++);
+ const types={all:scopedRecords.length,bores:scopedShots.length};for(const kind of Object.keys(window.BoreLabFieldPins?.kindLabels||{}))types[kind]=0;
+ scopedPins.forEach(p=>{if(Object.prototype.hasOwnProperty.call(types,p.kind))types[p.kind]++});
  return {shots,pins,records,geocoded,unknown,shown,groups,types,jobId:st().activeJobId||'job',jobName:st().jobName||'Current job'};
 }
 function ensureView(data=model()){
@@ -66,6 +67,7 @@ function ensureView(data=model()){
   if(!view.center&&mapBounds().length){const recovered=fit(mapBounds().map(point));if(recovered)view=recovered;}
   return;
  }
+ if(currentJob!==null&&currentJob!==data.jobId)mapDay='';
  currentJob=data.jobId;selected=null;selectedPhoto=null;pointerData.clear();gesture=null;
  const pos=fit(mapBounds().map(point));
  view=pos||{center:null,zoom:15};
@@ -81,7 +83,7 @@ function saveSettings(){
 }
 function statusTabs(data){
  return [['all','All'],['planned','Pending'],['progress','Drilling'],['complete','Complete']].map(([key,label])=>
- '<button type="button" data-blmap-filter="'+key+'" aria-pressed="'+(filter===key?'true':'false')+'" class="'+(filter===key?'active':'')+'">'+
+ '<button type="button" data-blmap-filter="'+key+'" aria-pressed="'+(filter===key?'true':'false')+'" class="blmap-filter-'+key+(filter===key?' active':'')+'">'+
  label+' <span>'+data.groups[key]+'</span></button>').join('');
 }
 function typeTabs(data){
@@ -143,6 +145,8 @@ function unlocatedSection(data){
  '<button class="blmap-locate" data-blmap-locate>⌖ Locate Saved Bore Addresses</button></div></details>';
 }
 function renderMap(){
+ // Date filters belong to the previous job; clear before calculating new job totals.
+ if(currentJob!==null&&currentJob!==(st().activeJobId||'job'))mapDay='';
  const data=model();ensureView(data);
  const legend='<div class="blmap-legend"><span><i class="blmap-legend-dot drilling"></i>Drilling</span>'+
  '<span><i class="blmap-legend-dot complete"></i>Complete</span><span><i class="blmap-legend-dot pending"></i>Pending</span>'+ 
@@ -172,8 +176,7 @@ function renderMap(){
  const html='<div class="page blmap-page"><header class="blmap-header"><div>'+
  '<span class="eyebrow">BORELAB FIELD / GPS PLANNING</span><h1>Interactive Jobsite Map</h1>'+
  '<p>'+esc(data.jobName)+'</p></div>'+weatherChip()+'</header>'+
- '<div class="blmap-actions"><button data-page="jobs">▦ Change Job</button><button data-page="planner">⌁ Shot Planner</button></div>'+
- '<div class="ab-map-header"><button data-page="fieldhistory">📅 Field Calendar</button><button data-blmap-pdf>▤ As-Built PDF</button><label class="tiny muted">Work date <input type="date" data-blmap-day value="'+esc(mapDay)+'"></label>'+(mapDay?'<button data-blmap-day-clear>Show all dates</button>':'')+'</div>'+ 
+ (window.BoreLabMapCalendarV31?.render?.(mapDay)||'')+
   '<div class="blmap-filters" role="group" aria-label="Filter bore shot status">'+statusTabs(data)+'</div>'+ 
   '<div class="blmap-type-filters" role="group" aria-label="Filter pin type">'+typeTabs(data)+'</div>'+
  box+unlocatedSection(data)+
@@ -419,5 +422,5 @@ document.addEventListener('error',e=>{
 window.addEventListener?.('resize',()=>{if(api()?.currentPage?.()==='jobmap')draw()});
 window.BoreLabJobMap={renderMap,project,unproject,fit,markerHTML,renderMarkers,model,draw,reset,focusRecord,focusPhoto,actualEndpointPath,
  setDay:x=>{mapDay=/^\d{4}-\d{2}-\d{2}$/.test(String(x))?x:''},
- getView:()=>({...view}),setFilter:x=>{filter=x;},setTypeFilter:x=>{typeFilter=x;},setMode:x=>{mode=x;},setSelected:id=>{selected=id}};
+ getView:()=>({...view}),getDay:()=>mapDay,setFilter:x=>{filter=x;},setTypeFilter:x=>{typeFilter=x;},setMode:x=>{mode=x;},setSelected:id=>{selected=id}};
 })();
