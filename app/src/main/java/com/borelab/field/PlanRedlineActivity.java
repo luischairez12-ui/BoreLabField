@@ -198,7 +198,7 @@ public final class PlanRedlineActivity extends Activity {
             if(action==MotionEvent.ACTION_DOWN||action==MotionEvent.ACTION_MOVE||action==MotionEvent.ACTION_UP){
                 double x=Math.max(0,Math.min(1,(event.getX()-rect.left)/rect.width()));
                 double y=Math.max(0,Math.min(1,(event.getY()-rect.top)/rect.height()));
-                JSONArray pt=new JSONArray();pt.put(x);pt.put(y);current.put(pt);
+                try { JSONArray pt=new JSONArray();pt.put(x);pt.put(y);current.put(pt); } catch (org.json.JSONException ignored) { return false; }
                 invalidate();
                 if(action==MotionEvent.ACTION_UP){writePaths(index,strokes);current=null;}
                 return true;
