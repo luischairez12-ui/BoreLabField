@@ -167,4 +167,5 @@ document.addEventListener('submit',e=>{
  saveForm(f).then(r=>{if(!r.ok)notify(r.error)});
 });
 window.BoreLabReceiptsV33={refresh,records,get,choose,view,saveForm,pickFile,exportRecords,replaceAll,clear,valid};
+refresh().then(()=>{if(b()?.currentPage?.()==='photos')b()?.render?.()}).catch(err=>{notify('Receipt storage unavailable: '+String(err.message||err))});
 })();
