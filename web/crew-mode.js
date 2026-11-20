@@ -155,7 +155,7 @@ function crewNav(){
 function renderCrew(){
  const p=person(),j=assignedJob(p);
  if(!p){
-  return '<div class="page cm-page"><header class="cm-hero"><span>BORELAB FIELD · CREW PREVIEW</span><h1>Crew Mode 1.0</h1><p>Choose a saved worker to preview their dashboard.</p></header>'+
+  return '<div class="page cm-page"><header class="cm-hero"><span>BORELAB FIELD · CREW PREVIEW</span><h1>Crew Mode</h1><p>Choose a saved worker to preview their dashboard.</p></header>'+
    '<section class="cm-card"><h2>No crew profiles available yet</h2><p>Add your crew in Crew Management first. Then return to try the preview.</p>'+
    '<button data-cm-open-roster class="cm-cta">Open Crew Management</button><button data-cm-exit>Return to Foreman Mode</button></section>'+
    '<p class="cm-privacy">This is a shared-device preview. It does not authenticate or restrict access to company information.</p></div>';

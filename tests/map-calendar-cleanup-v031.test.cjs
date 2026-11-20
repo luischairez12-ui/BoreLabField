@@ -11,7 +11,7 @@ for(const file of ['map-calendar-v031.js','map-calendar-v031.css','jobsite-map.j
 const inline=html.split('<script>')[1].split('</script>')[0],
  mapSource=read('web/jobsite-map.js'),calendarSource=read('web/map-calendar-v031.js'),asBuiltSource=read('web/asbuilt-2.js'),css=read('web/map-calendar-v031.css');
 for(const src of [inline,mapSource,calendarSource,asBuiltSource])new Function(src);
-assert(html.includes('BoreLab Field · v0.31.0'),'Updated build footer');
+assert(html.includes('BoreLab Field · Records stay on this device'),'Updated build footer');
 assert(html.includes("const KEY='borelab-field-v0.1'"),'Original local data structure preserved');
 const day='2026-11-19';
 const shots=[

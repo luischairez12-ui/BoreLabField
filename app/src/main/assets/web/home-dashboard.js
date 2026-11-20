@@ -40,7 +40,7 @@ function cleanConfig(raw){
 function cfg(){return cleanConfig(state().homeDashboard2)}
 function saveConfig(c){state().homeDashboard2=cleanConfig(c);bridge()?.save?.()}
 function isEnabled(){return cfg().enabled}
-function classicBanner(){return '<div class="bh-classic-return"><strong>Home Dashboard 2.0 is turned off.</strong><button data-bh-enable>Try New Dashboard ›</button></div>'}
+function classicBanner(){return '<div class="bh-classic-return"><strong>Custom Dashboard is turned off.</strong><button data-bh-enable>Try New Dashboard ›</button></div>'}
 let editing=false,draft=null;
 function workingConfig(){return editing&&draft?cleanConfig(draft):cfg()}
 function stage(c){if(editing){draft=cleanConfig(c)}else saveConfig(c);render()}

@@ -59,7 +59,7 @@ assert.equal(summary.peopleOpen,1);
 const issues=api.todaysIssues();
 for(const prefix of ['after:s1','gps:s1','notes:s1','pipe:s1','crew','unlinked'])assert(issues.some(x=>x.key===prefix),'missing alert '+prefix);
 let page=api.renderEndDay();
-for(const token of ['End-of-Day Assistant 2.0','South Glades','Today’s Completion Summary','Smart Alerts','Closeout Checklist',
+for(const token of ['End-of-Day Assistant','South Glades','Today’s Completion Summary','Smart Alerts','Closeout Checklist',
  'BoreLab Intelligence','Daily Report Preview','145 ft','8 hr','3','Generate PDF','Review & Close Day','data-bf2-review="crew"']){
  assert(page.includes(token),'missing end-day element '+token);
 }
@@ -82,7 +82,7 @@ click({},['data-bf2-pdf']);assert.deepEqual(pdfDays,[date]);
 click({},['data-bf2-close']);assert.deepEqual(closeDays,[date]);
 click({bf2Issue:'crew'});assert.equal(pages.at(-1),'crew');
 page=api.renderPhotoTimeline();
-for(const token of ['Smart Photo Timeline 2.0','Photo Coverage Summary','Shot 01','Shot 02',
+for(const token of ['Smart Photo Timeline','Photo Coverage Summary','Shot 01','Shot 02',
  'Missing Photo Checks','Timeline Intelligence','missing After photo','Before','During','After','Review / Organize']){
  assert(page.includes(token),'missing timeline feature '+token);
 }
@@ -106,5 +106,5 @@ assert.equal(writes,0,'Suggested photo changes cannot silently save');
  assert.equal(api.timelineStats().missingAfter,0);
  assert(!api.todaysIssues().some(x=>x.key==='after:s1'),'After photo warning resolves when a verified photo is linked');
  assert(saves>=1);
- console.log('BoreLab End-of-Day Assistant 2.0 and Smart Photo Timeline 2.0: PASS');
+ console.log('BoreLab End-of-Day Assistant and Smart Photo Timeline: PASS');
 })().catch(e=>{console.error(e);process.exitCode=1});

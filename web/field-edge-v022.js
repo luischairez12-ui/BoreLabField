@@ -195,7 +195,7 @@ function deleteMarker(id){
 }
 function markerCards(){
  const list=jobMarkers().slice().sort((a,z)=>String(z.updatedAt||z.occurredAt).localeCompare(String(a.updatedAt||a.occurredAt)));
- return '<section class="be-card"><div class="be-panel-head"><div><h3>Field Markers 2.0</h3><small>Obstructions, utility crossings and follow-up items</small></div><button type="button" class="be-primary" data-be-new-marker>＋ Marker</button></div>'+
+ return '<section class="be-card"><div class="be-panel-head"><div><h3>Field Markers</h3><small>Obstructions, utility crossings and follow-up items</small></div><button type="button" class="be-primary" data-be-new-marker>＋ Marker</button></div>'+
  '<p class="tiny muted">These are work reminders, not installed asset records or surveyed utility locates. GPS-marked items also appear in Field Atlas.</p>'+
  (list.length?'<div class="be-markers">'+list.map(m=>'<article class="be-marker"><span class="be-marker-icon">'+(markerKinds.find(k=>k.id===m.kind)?.icon||'!')+'</span>'+
  '<div><strong>'+esc(m.label||markerKind(m.kind))+'</strong><small>'+esc(markerKind(m.kind))+' · '+(m.status==='resolved'?'✓ Resolved':'Open')+' · '+esc(dayOf(m.occurredAt))+(valid(m)?' · GPS saved':' · No GPS')+'</small>'+

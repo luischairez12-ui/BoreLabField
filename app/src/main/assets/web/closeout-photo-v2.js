@@ -108,7 +108,7 @@ function renderEndDay(){
  const shotRows=dayShots().filter(sh=>sh.status==='complete');
  const c=checks.length;
  return '<div class="page bf2-page bf2-closeout">'+
- rigBanner('End-of-Day Assistant 2.0','Review today’s field records before closeout.','INTELLIGENT CLOSEOUT')+
+ rigBanner('End-of-Day Assistant','Review today’s field records before closeout.','INTELLIGENT CLOSEOUT')+
  '<div class="bf2-day-select"><label>Work date <input type="date" data-bf2-day value="'+esc(currentDay())+'"></label>'+
  '<span>'+esc(data.jobName)+'</span></div>'+
  '<section class="bf2-card">'+sectionHead('◎','Today’s Completion Summary',timeLabel(currentDay()))+
@@ -243,7 +243,7 @@ function renderPhotoTimeline(){
  const stats=timelineStats(),all=allPhotos(),warnings=flaggedPhotos();
  const tabs=['all',...stages,'unclassified'];
  return '<div class="page bf2-page bf2-timeline">'+
- rigBanner('Smart Photo Timeline 2.0','Organize photos by shot, stage, and date.','PHOTO MANAGEMENT')+
+ rigBanner('Smart Photo Timeline','Organize photos by shot, stage, and date.','PHOTO MANAGEMENT')+
  '<section class="bf2-card">'+sectionHead('▣','Photo Coverage Summary',esc(state().jobName||'Current Job'))+
  '<div class="bf2-stats">'+stat('Total photos',String(stats.photos),'▣')+
  stat('Full stage sets',String(stats.completeSets),'✓')+stat('Completed missing After',String(stats.missingAfter),'⚠')+
