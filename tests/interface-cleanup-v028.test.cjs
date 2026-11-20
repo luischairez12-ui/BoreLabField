@@ -1,0 +1,35 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const read=p=>fs.readFileSync(p,'utf8');
+const html=read('web/index.html');
+assert.equal(html,read('app/src/main/assets/web/index.html'),'Android and browser HTML must match');
+for(const file of ['unified-search-v028.js','interface-cleanup-v028.css']){
+ assert.equal(read('web/'+file),read('app/src/main/assets/web/'+file),'Mirrored '+file);
+ assert(html.includes('./'+file),'HTML loads '+file);
+}
+const inline=html.split('<script>')[1].split('</script>')[0];
+new Function(inline);
+assert(inline.includes('function renderBoresWorkspace()'));
+assert(inline.includes('data-bores-tab="cards"')&&inline.includes('data-bores-tab="route"'));
+assert(inline.includes("if(p==='planner'||p==='shotcards')"),'Old destinations select one Bores workspace');
+assert(inline.includes('renderBoresActions?.()'),'No redundant Bores search form');
+assert(inline.includes('const KEY=\'borelab-field-v0.1\''),'Preserve offline data key');
+const nav=read('web/field-navigation.js');
+new Function(nav);
+assert(nav.includes('bfDrawerUniversalInput')&&nav.includes('openSearch()'));
+assert(nav.includes("shortcuts.filter(v=>v.page!=='search')"),'Duplicate drawer search shortcut removed');
+const pins=read('web/field-pins.js');
+assert(pins.includes('function renderBoresActions()'));
+const state={jobs:[{id:'j1',jobName:'Current job'}],reels:[{id:'r1',name:'4 inch HDPE',size:'4 in',remaining:250}],history:[{id:'h1',jobName:'North Glades',day:'2026-11-19'}],manualLinks:[{id:'m1',label:'Vermeer D24x40'}]};
+const fakeWindow={BoreLabAssistantBridge:{state:()=>state,setPage:()=>{},reelForm:()=>{}},BoreLabFieldInfo3:{searchRecords:q=>q==='carlos'?[{type:'person',id:'p1',label:'Carlos',detail:'Locator'}]:[],openHit:()=>{}}};
+vm.runInNewContext(read('web/unified-search-v028.js'),{window:fakeWindow});
+const search=fakeWindow.BoreLabUnifiedSearchV28;
+assert(search.search('carlos').some(r=>r.label==='Carlos'));
+assert(search.search('hdpe').some(r=>r.type==='reel'));
+assert(search.search('glades').some(r=>r.type==='history'));
+assert(search.search('d24x40').some(r=>r.type==='manual'));
+assert(search.render('carlos').includes('data-bf-search-hit'));
+assert.equal(search.search('a').length,0,'At least two characters to search');
+console.log('BoreLab 0.28 unified sidebar search, merged Bores and Android mirror PASS');
