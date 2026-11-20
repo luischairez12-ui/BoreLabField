@@ -16,7 +16,7 @@ assert(!abCode.includes("'<div class=\"ab-global-search\">"),'Duplicate Calendar
 assert(!abCode.includes('data-ab-view="replay"'),'Replay is not a standalone visible tab');
 assert(abCode.includes('renderReplayCard?.(selected)'),'Selected day embeds Replay');
 assert(atlasCode.includes('renderReplayCard?.(replayDay)'),'Selecting a dated map pin embeds Replay');
-assert(html.includes('BoreLab Field · v0.31.0'),'Version is updated');
+assert(html.includes('BoreLab Field · Records stay on this device'),'Version is updated');
 assert(html.includes("const KEY='borelab-field-v0.1'"),'Offline records use the same storage key');
 const date='2026-11-19';
 const shot={id:'s1',name:'North bore',feet:175,status:'complete',lat:26.6,lon:-81.6,

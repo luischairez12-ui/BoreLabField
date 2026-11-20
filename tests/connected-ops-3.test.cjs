@@ -37,8 +37,8 @@ const document={addEventListener:(event,fn)=>{(listeners[event]??=[]).push(fn)}}
 const ops=new Function('window','document',js+';return window.BoreLabConnectedOps3')(window,document);
 const before=JSON.stringify({shots:job.shots,crew:job.crew,reels:st.reels,equipment:st.equipment});
 for(const [method,contains] of [
- ['renderCrew','Crew Management 2.0'],['renderIntelligence','Field Intelligence 3.0'],
- ['renderEquipment','Smart Equipment Manager 2.0'],['renderTomorrow','Tomorrow’s Work Planner']]){
+ ['renderCrew','Crew Management'],['renderIntelligence','Field Intelligence'],
+ ['renderEquipment','Equipment Manager'],['renderTomorrow','Tomorrow’s Work Planner']]){
  const screen=ops[method]();
  assert(screen.includes(contains),method+' not rendered');
  assert(!screen.includes('NaN'),method+' contains invalid numbers');

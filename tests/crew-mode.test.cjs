@@ -6,7 +6,7 @@ const html=fs.readFileSync('web/index.html','utf8');
 assert.equal(html,fs.readFileSync('app/src/main/assets/web/index.html','utf8'));
 assert.equal(js,fs.readFileSync('app/src/main/assets/web/crew-mode.js','utf8'));
 assert.equal(css,fs.readFileSync('app/src/main/assets/web/crew-mode.css','utf8'));
-for(const token of ['crew-mode.css','crew-mode.js','crewpreview','Crew Mode 1.0 · Preview','Preview Crew UI','dataset.crewPreview'])
+for(const token of ['crew-mode.css','crew-mode.js','crewpreview','Crew View · Preview','Preview Crew UI','dataset.crewPreview'])
  assert(html.includes(token),'missing integration '+token);
 assert(css.includes('html[data-crew-preview="on"] .bottom-nav'));
 new Function(js);
