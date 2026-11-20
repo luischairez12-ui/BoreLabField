@@ -66,6 +66,21 @@ const form=(type,values={},ids={})=>({
 });
 const submit=f=>{for(const fn of listeners.submit||[])fn({target:f,preventDefault:()=>{}})};
 click({},['data-b3-roster']);assert.equal(rosterOpened,1);
+// Crew titles persist as regular roster roles and are separate from a date/job assignment.
+assert(ops.renderCrew().includes('data-b3-edit-role="p1"'));
+click({b3EditRole:'p1'});
+assert(ops.renderCrew().includes('data-b3-person-role'));
+submit(form('data-b3-person-role',{personId:'p1',role:'Driller'}));
+assert.equal(operator.primaryRole,'Driller');
+assert(ops.renderCrew().includes('Driller</b> · Regular role'));
+assert.equal(st.crewAssignmentsV2,undefined,'Regular role does not auto-assign a job');
+click({b3EditRole:'p2'});
+submit(form('data-b3-person-role',{personId:'p2',role:'Mini Excavator Operator'}));
+assert.equal(locator.primaryRole,'Mini Excavator Operator');
+click({b3AssignPerson:'p2'});
+assert(ops.renderCrew().includes('data-b3-assignment')&&ops.renderCrew().includes('Assign Miguel to a job'));
+click({},['data-b3-cancel-assignment']);
+assert(!ops.renderCrew().includes('Assign Miguel to a job'));
 click({},['data-b3-toggle-assignment']);
 assert(ops.renderCrew().includes('data-b3-assignment'));
 ops.setCrewDate(next);

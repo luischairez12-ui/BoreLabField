@@ -28,9 +28,11 @@ const uid=()=>api()?.uid?.()||String(Date.now())+Math.random().toString(36).slic
 const save=()=>api()?.save?.();
 const redraw=()=>api()?.render?.();
 const notice=s=>api()?.notify?.(s);
-const roles=['Foreman','Driller','Locator','Operator','Gas Technician','Laborer','Driver','Supervisor','Other'];
+const roles=['Foreman','Driller','Locator','Mini Excavator Operator','Operator','Gas Technician','Laborer','Driver','Supervisor','Other'];
+const regularRole=p=>roles.includes(p?.primaryRole)?p.primaryRole:'Role not assigned';
+const roleChoices=selected=>'<option value="">Not assigned</option>'+roles.map(r=>'<option value="'+esc(r)+'"'+(r===selected?' selected':'')+'>'+esc(r)+'</option>').join('');
 const issueKinds=['Breakdown','Repair Needed','Inspection','Hydraulic','Electrical','Fuel / Engine','Other'];
-let crewDate=today(),planDate=tomorrow(),editAssignment=false,equipEditor='',equipKind='',equipFilter='active',insightFilter='all';
+let crewDate=today(),planDate=tomorrow(),editAssignment=false,roleEditor='',assignPerson='',equipEditor='',equipKind='',equipFilter='active',insightFilter='all';
 const heading=(eyebrow,title,caption)=>'<header class="b3-head"><span class="eyebrow">'+esc(eyebrow)+'</span><h1>'+esc(title)+'</h1><p>'+esc(caption)+'</p></header>';
 const panel=(title,body,action='')=>'<section class="b3-panel"><div class="b3-panel-head"><h2>'+esc(title)+'</h2>'+action+'</div>'+body+'</section>';
 const stat=(title,n,icon)=>'<div class="b3-stat"><span>'+icon+'</span><strong>'+esc(n)+'</strong><small>'+esc(title)+'</small></div>';
@@ -43,16 +45,32 @@ function renderCrew(){
  const people=roster(),active=openCrew(),assigned=assns().filter(a=>a.date===crewDate);
  const duplicate=people.filter(p=>activeFor(p).length>1);
  const cards=people.map(p=>{
-  const act=activeFor(p),a=assigned.find(x=>x.personId===p.id),entries=historyFor(p);
+  const act=activeFor(p),a=assigned.find(x=>x.personId===p.id),entries=historyFor(p),defaultRole=regularRole(p);
+  const roleForm=roleEditor===p.id?'<form class="b3-form b3-role-editor" data-b3-person-role>'+
+   '<strong>Regular role for '+esc(p.name)+'</strong><input type="hidden" name="personId" value="'+esc(p.id)+'">'+
+   '<label>Job title / primary role<select name="role">'+roleChoices(p.primaryRole)+'</select></label>'+
+   '<p class="b3-muted">Saved on this person’s crew profile. Daily job assignments may override the role for one date.</p>'+
+   '<div class="b3-actions"><button type="submit" class="b3-primary">✓ Save Regular Role</button><button type="button" data-b3-cancel-role>Cancel</button></div></form>':'';
+  const quickForm=assignPerson===p.id?'<form class="b3-form b3-role-editor" data-b3-assignment>'+
+   '<strong>Assign '+esc(p.name)+' to a job</strong><input type="hidden" name="personId" value="'+esc(p.id)+'">'+
+   '<label>Work date<input type="date" name="date" value="'+esc(crewDate)+'" required></label>'+
+   '<label>Job<select name="jobId" required>'+jobs().filter(j=>!j.archived).map(j=>'<option value="'+esc(j.id)+'"'+((a?.jobId||st().activeJobId)===j.id?' selected':'')+'>'+esc(j.jobName)+'</option>').join('')+'</select></label>'+
+   '<label>Role for this job/day<select name="role">'+roleChoices(a?.role||p.primaryRole)+'</select></label>'+
+   '<label>Instructions (optional)<input name="notes" maxlength="160" value="'+esc(a?.notes||'')+'" placeholder="Locate shot 01, operate mini..."></label>'+
+   '<div class="b3-actions"><button type="submit" class="b3-primary">✓ Save Job Assignment</button><button type="button" data-b3-cancel-assignment>Cancel</button></div>'+
+   '<p class="b3-muted">A job assignment does not clock anyone in or change recorded hours.</p></form>':'';
   return '<div class="b3-person"><div class="b3-avatar">'+esc(p.name).slice(0,1).toUpperCase()+'</div><div class="b3-person-body">'+
    '<div class="b3-between"><strong>'+esc(p.name)+'</strong><span class="b3-pill '+(act.length?'good':'neutral')+'">'+(act.length?'● Clocked in':'Off clock')+'</span></div>'+
-   '<small>'+esc(a?.role||'Role not assigned')+' · '+esc(a?jobName(a.jobId):'No assignment for '+crewDate)+'</small>'+
-   '<small>'+fmt(entries.reduce((n,e)=>n+hour(e),0))+' completed hours across jobs</small></div></div>';
+   '<small><b>'+esc(defaultRole)+'</b> · Regular role'+(a&&a.role!==p.primaryRole?' · Today: '+esc(a.role):'')+'</small>'+
+   '<small>'+esc(a?'Assigned: '+jobName(a.jobId):'No job assignment for '+crewDate)+'</small>'+
+   '<small>'+fmt(entries.reduce((n,e)=>n+hour(e),0))+' completed hours across jobs</small>'+
+   '<div class="b3-person-actions"><button type="button" data-b3-edit-role="'+esc(p.id)+'">✎ Set Role</button><button type="button" data-b3-assign-person="'+esc(p.id)+'">▦ Assign Job</button></div>'+
+   '</div></div>'+roleForm+quickForm;
  }).join('');
  const form=editAssignment?'<form class="b3-form" data-b3-assignment>'+
   '<label>Person<select name="personId" required><option value="">Choose crew member</option>'+people.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join('')+'</select></label>'+
   '<label>Job<select name="jobId" required>'+jobs().filter(j=>!j.archived).map(j=>'<option value="'+esc(j.id)+'">'+esc(j.jobName)+'</option>').join('')+'</select></label>'+
-  '<label>Role<select name="role">'+roles.map(r=>'<option>'+r+'</option>').join('')+'</select></label>'+
+  '<label>Role<select name="role">'+roleChoices('')+'</select></label>'+
   '<label>Assignment note<input name="notes" maxlength="160" placeholder="e.g. Locate shots 01–03"></label>'+
   '<button class="b3-primary" type="submit">✓ Save Assignment</button></form>':'';
  return '<div class="page b3-page">'+heading('FIELD / TEAM','Crew Management 2.0','Assignments, active shifts, and verified hours across jobs.')+
@@ -217,7 +235,7 @@ function renderTomorrow(){
  empty('No unfinished shots. Add shots before creating a plan.'))+
  action('planner','Open Shot Planner ›'))+
  panel('Crew & Roles','<p class="b3-muted">Select crew for the plan; assignments never start a time entry.</p>'+
- (allCrew.length?allCrew.map(x=>planTick('crew',x.id,x.name,assigned.find(a=>a.personId===x.id)?.role||'Role not assigned',crewIds.has(x.id))).join(''):
+ (allCrew.length?allCrew.map(x=>planTick('crew',x.id,x.name,assigned.find(a=>a.personId===x.id)?.role||regularRole(x),crewIds.has(x.id))).join(''):
  empty('No saved crew yet.'))+action('crewmanager2','Manage Crew Assignments ›'))+
  panel('Reels & Pipe','<div class="b3-summary-strip"><div><small>Selected shots need</small><strong>'+fmt(need)+' ft</strong></div>'+
  '<div><small>Recorded truck pipe</small><strong>'+fmt(capacity)+' ft</strong></div></div>'+
@@ -240,15 +258,28 @@ function renderTomorrow(){
 
 function formValue(f,n){return String(f.querySelector?.('[name="'+n+'"]')?.value||'')}
 function checked(f,name){return [...(f.querySelectorAll?.('[data-b3-plan-'+name+']:checked')||[])].map(x=>String(x.value))}
+function submitRegularRole(form){
+ const personId=formValue(form,'personId'),role=formValue(form,'role');
+ const member=roster().find(p=>p.id===personId);
+ if(!member){notice('Crew member not found.');return}
+ if(role&&!roles.includes(role)){notice('Choose a valid regular role.');return}
+ member.primaryRole=role;member.roleUpdatedAt=clock();roleEditor='';
+ save();redraw();notice(member.name+' regular role saved as '+(role||'Not assigned')+'.');
+}
 function submitAssignment(form){
  const personId=formValue(form,'personId'),jobId=formValue(form,'jobId'),role=formValue(form,'role');
- if(!roster().some(x=>x.id===personId)||!jobs().some(x=>x.id===jobId)){notice('Select a saved person and job.');return}
- const existing=assns().find(x=>x.personId===personId&&x.date===crewDate);
- const revised=assns().filter(x=>!(x.personId===personId&&x.date===crewDate));
- revised.push({id:existing?.id||uid(),personId,jobId,date:crewDate,role:roles.includes(role)?role:'Other',
+ const date=formValue(form,'date')||crewDate;
+ if(!roster().some(x=>x.id===personId)||!jobs().some(x=>x.id===jobId&&!x.archived)){notice('Select a saved person and active job.');return}
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){notice('Choose a valid assignment date.');return}
+ if(role&&!roles.includes(role)){notice('Choose a valid assignment role.');return}
+ const member=roster().find(p=>p.id===personId),dayRole=role||member.primaryRole||'';
+ if(!dayRole){notice('Choose a role for this assignment first.');return}
+ const existing=assns().find(x=>x.personId===personId&&x.date===date);
+ const revised=assns().filter(x=>!(x.personId===personId&&x.date===date));
+ revised.push({id:existing?.id||uid(),personId,jobId,date,role:dayRole,
   notes:formValue(form,'notes').trim().slice(0,160),updatedAt:clock()});
- st().crewAssignmentsV2=revised;editAssignment=false;save();redraw();
- notice('Crew assignment saved. Time entries were not changed.');
+ st().crewAssignmentsV2=revised;editAssignment=false;assignPerson='';save();redraw();
+ notice('Crew assignment saved for '+date+'. Recorded time and regular role are unchanged.');
 }
 function submitIssue(f){
  if(!equipment().some(x=>x.id===equipEditor))return;
@@ -287,9 +318,13 @@ function submitPlan(f){
  save();redraw();notice('Next-shift plan saved. Crew, shots and pipe inventory were not changed.');
 }
 document.addEventListener('click',e=>{
- const t=e.target.closest?.('[data-b3-roster],[data-b3-toggle-assignment],[data-b3-remove-assignment],[data-b3-report],[data-b3-log-service],[data-b3-close-editor],[data-b3-edit-equipment],[data-b3-add-equipment],[data-b3-resolve],[data-b3-equip-tab],[data-b3-signal]');
+ const t=e.target.closest?.('[data-b3-roster],[data-b3-edit-role],[data-b3-assign-person],[data-b3-cancel-role],[data-b3-cancel-assignment],[data-b3-toggle-assignment],[data-b3-remove-assignment],[data-b3-report],[data-b3-log-service],[data-b3-close-editor],[data-b3-edit-equipment],[data-b3-add-equipment],[data-b3-resolve],[data-b3-equip-tab],[data-b3-signal]');
  if(!t||!api())return;
  if(t.hasAttribute('data-b3-roster')){api().openRosterForm?.();return}
+ if(t.dataset.b3EditRole){roleEditor=roleEditor===t.dataset.b3EditRole?'':t.dataset.b3EditRole;assignPerson='';redraw();return}
+ if(t.dataset.b3AssignPerson){assignPerson=assignPerson===t.dataset.b3AssignPerson?'':t.dataset.b3AssignPerson;roleEditor='';redraw();return}
+ if(t.hasAttribute('data-b3-cancel-role')){roleEditor='';redraw();return}
+ if(t.hasAttribute('data-b3-cancel-assignment')){assignPerson='';redraw();return}
  if(t.hasAttribute('data-b3-toggle-assignment')){editAssignment=!editAssignment;redraw();return}
  if(t.dataset.b3RemoveAssignment){
   if(!window.confirm?.('Remove this planned assignment? Recorded hours are not affected.'))return;
@@ -315,13 +350,15 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('submit',e=>{
  const f=e.target;
- const kind=f.hasAttribute?.('data-b3-assignment')?'assignment':
+ const kind=f.hasAttribute?.('data-b3-person-role')?'person-role':
+ f.hasAttribute?.('data-b3-assignment')?'assignment':
  f.hasAttribute?.('data-b3-issue')?'issue':
  f.hasAttribute?.('data-b3-service')?'service':
  f.hasAttribute?.('data-b3-plan')?'plan':'';
  if(!kind||!api())return;
  e.preventDefault();
  try{
+  if(kind==='person-role')submitRegularRole(f);
   if(kind==='assignment')submitAssignment(f);
   if(kind==='issue')submitIssue(f);
   if(kind==='service')submitService(f);
@@ -330,5 +367,5 @@ document.addEventListener('submit',e=>{
 });
 window.BoreLabConnectedOps3={renderCrew,renderIntelligence,renderEquipment,renderTomorrow,signalData,
  planKey,selectedPlan,pipeNeeded,historyFor,activeFor,assignments:assns,issues,services,
- setCrewDate:d=>{crewDate=d},setPlanDate:d=>{planDate=d}};
+ setCrewDate:d=>{crewDate=d},setPlanDate:d=>{planDate=d},regularRole,roleOptions:()=>[...roles],beginRoleEdit:id=>{if(roster().some(p=>p.id===id)){roleEditor=id;assignPerson='';redraw()}}};
 })();

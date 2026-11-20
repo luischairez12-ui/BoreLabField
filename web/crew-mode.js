@@ -49,7 +49,7 @@ function pageTop(p,j){
 }
 function jobCard(p,j){
  const a=chosenAssignment(p),todayShots=(j?.shots||[]).filter(s=>s.status!=='complete');
- const role=a?.role||'No role assigned',sub=a?.notes||'No work notes saved for today';
+ const role=a?.role||p?.primaryRole||'No role assigned',sub=a?.notes||'No work notes saved for today';
  const address=j?.jobAddress||'Address not saved';
  const matching=Boolean(j&&j.id===st().activeJobId);
  return '<section class="cm-job"><div class="cm-between"><span class="cm-eyebrow">TODAY’S JOB</span>'+
@@ -107,7 +107,7 @@ function tasksCard(p,j){
  const a=chosenAssignment(p),pending=(j?.shots||[]).filter(s=>s.status!=='complete');
  return '<section class="cm-card"><div class="cm-section-head"><span class="cm-section-icon">▦</span><div>'+
  '<strong>My Assignments</strong><small>'+esc(today())+' · '+esc(j?.jobName||'No job')+'</small></div></div>'+
- '<div class="cm-assignment-role"><span>Today’s Role</span><strong>'+esc(a?.role||'Not assigned')+'</strong></div>'+
+ '<div class="cm-assignment-role"><span>'+(a?'Today’s Role':'Regular Role')+'</span><strong>'+esc(a?.role||p?.primaryRole||'Not assigned')+'</strong></div>'+
  (a?.notes?'<div class="cm-work-note"><strong>Work instructions</strong><p>'+esc(a.notes)+'</p></div>':
  '<p class="cm-muted">No personal task notes saved yet. Ask the foreman for today’s responsibilities.</p>')+
  '<div class="cm-shot-heading"><strong>Upcoming Bores</strong><small>'+pending.length+' pending</small></div>'+

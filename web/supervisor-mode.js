@@ -192,6 +192,8 @@ function crewView(){
  metric('Assignments',String(roles.length),'▦')+'</div>'+
  '<section class="sm-panel">'+subheading('Currently Clocked In',open.length+' open shifts across jobs')+
  (open.length?openRows:'<p class="sm-empty">No open crew entries in saved jobs.</p>')+'</section>'+
+ '<section class="sm-panel">'+subheading('Regular Crew Roles','Saved job titles, independent of daily job assignments')+
+ (people.length?people.map(p=>'<div class="sm-row"><div><strong>'+esc(p.name)+'</strong><small>'+esc(p.primaryRole||'Role not assigned')+'</small></div></div>').join(''):'<p class="sm-empty">No saved crew profiles.</p>')+'</section>'+ 
  '<section class="sm-panel">'+subheading('Assigned Roles','Crew assignments for '+date)+
  (roles.length?roles.map(a=>'<div class="sm-row"><div><strong>'+esc(people.find(p=>p.id===a.personId)?.name||'Unknown crew')+'</strong>'+
  '<small>'+esc(a.role||'Role not entered')+' · '+esc(jobs().find(j=>j.id===a.jobId)?.jobName||'Unknown job')+
