@@ -1,0 +1,17 @@
+const fs=require('node:fs'),assert=require('node:assert/strict'),vm=require('node:vm');
+const js=fs.readFileSync('web/closeout-studio-v026.js','utf8'),html=fs.readFileSync('web/index.html','utf8');
+const native=fs.readFileSync('app/src/main/java/com/borelab/field/BoreLabActivity.java','utf8');
+assert(html.includes('data-page="studio"'));assert(html.includes('closeout-studio-v026.js'));
+assert(fs.readFileSync('web/closeout-studio-v026.css','utf8')===fs.readFileSync('app/src/main/assets/web/closeout-studio-v026.css','utf8'));
+assert(js===fs.readFileSync('app/src/main/assets/web/closeout-studio-v026.js','utf8'));
+assert(native.includes('importCloseoutPlan'));assert(native.includes('connectCloseoutFolder'));
+const job={id:'j1',jobName:'Test & Work',shots:[{name:'Shot A',status:'complete',feet:100,asbuiltStart:{lat:26.55,lon:-81.45},asbuiltEnd:{lat:26.56,lon:-81.46}}],fieldPins:[{name:'Box 1',kind:'handhole',lat:26.55,lon:-81.44}]};
+const state={activeJobId:'j1',legacyJobId:'j1',shopAddress:'Shop',jobs:[job]},els=[];
+const sandbox={window:{BoreLabAssistantBridge:{state:()=>state,activeJob:()=>job,photos:()=>[],save:()=>{},currentPage:()=>'',notify:()=>{}}},document:{addEventListener:()=>{},querySelector:()=>null},TextEncoder,TextDecoder,Uint8Array,DataView,Number,Date,Math,JSON,Array,Set,String,RegExp,console,btoa:globalThis.btoa,confirm:()=>true};
+vm.runInNewContext(js,sandbox);
+const x=sandbox.window.BoreLabCloseoutStudio;assert(x);
+const k=x.kml();assert(k.includes('Test &amp; Work'));assert(k.includes('<LineString>'));assert(k.includes('<Point>'));assert(k.includes('STRAIGHT ENDPOINT REFERENCE'));
+assert.equal(x.quantities().feet,100);assert.equal(x.asBuiltMarks().filter(a=>a.lat).length,3);
+const zip=x.kmz(k);assert(zip.length>k.length);assert.equal(new DataView(zip.buffer).getUint32(0,true),0x04034b50);
+assert(x.report('customer').asbuilt.length===3);assert(x.report('billing').title.includes('DRAFT'));
+console.log('v0.26 Studio: mapping, KMZ, PDF payload, UI mirrors OK');

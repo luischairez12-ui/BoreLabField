@@ -210,6 +210,33 @@ public final class FieldPdfExporter {
             if (!closeoutNote.isEmpty()) label("Foreman notes", closeoutNote);
         }
 
+        String customer = str(report, "customer"), contract = str(report, "contract"), prepared = str(report, "preparedBy");
+        if (!customer.isEmpty() || !contract.isEmpty() || !prepared.isEmpty()) {
+            section("Customer and contract");
+            if (!customer.isEmpty()) label("Customer / prime", customer);
+            if (!contract.isEmpty()) label("PO / contract", contract);
+            if (!prepared.isEmpty()) label("Prepared by", prepared);
+        }
+        JSONArray documents = array(report, "documents");
+        if (documents.length() > 0) {
+            section("Referenced PDF plans and redlines");
+            for (int i = 0; i < documents.length(); i++) {
+                JSONObject ref = documents.optJSONObject(i);
+                if (ref != null) item(str(ref, "name"), str(ref, "detail"), "Attach flattened marked plan separately when submitting.");
+            }
+        }
+        JSONArray billing = array(report, "billing");
+        if (billing.length() > 0 || !str(report, "billingStatus").isEmpty()) {
+            section("Draft billing schedule - verify before invoicing");
+            for (int i = 0; i < billing.length(); i++) {
+                JSONObject row = billing.optJSONObject(i);
+                if (row != null) item(str(row, "name"),
+                    str(row, "qty") + " " + str(row, "unit") + " x " + str(row, "rate") + " = " + str(row, "amount"), "");
+            }
+            label("Draft total", str(report, "billingTotal"));
+            write(str(report, "billingStatus"), 10, MUTED, true, 0);
+        }
+
         section("Bore log");
         JSONArray shots = array(report, "shots");
         if (shots.length() == 0) write("No bore records for this period.", 10, MUTED, false, 0);
