@@ -20,7 +20,7 @@ assert(html.includes('window.BoreLabNavigation?.isOpen?.()'),'Android Back close
 assert(html.includes('window.BoreLabNavigation?.syncPage?.(page)'),'Drawer tracks actual app page');
 assert(html.includes("const mode='daylight';")&&html.includes("state.theme='daylight';"),'White and orange is a single current default');
 assert(!html.includes('data-theme-select>'),'Unused night theme selector must not offer an inconsistent second skin');
-assert(html.includes('BoreLab Field · v0.30.0'),'New design ships as v0.19');
+assert(html.includes('BoreLab Field · v0.31.0'),'New design ships as v0.19');
 assert(home.includes('bf-home-jobline')&&home.includes('data-bf-menu-action="quick"'),'Dashboard has job and thumb-friendly photo shortcut');
 assert(home.includes('data-page="fieldhistory"'),'Home links to the existing Calendar | Atlas page');
 assert(css.includes('.bf-right-drawer')&&css.includes('right:max(0px'),'Drawer slides from right');
