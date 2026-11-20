@@ -72,7 +72,7 @@ function enhanceTools(){
  }
  const power=document.createElement('section');power.className='fc-power-tools';
  power.innerHTML='<h3>Field shortcuts</h3><p>Everything you need to manage this workday.</p><div class="fc-power-grid">'+
- [['dispatch3','♙','Dispatch Crew','Assign everyone'],['readiness3','☑','Bore Readiness','Review each shot'],['evidence3','▣','Evidence Review','What needs attention'],['find3','⌕','Find Anything','Search all jobs'],['savestatus3','◉','Save & Backup','Check local storage']]
+ [['dispatch3','♙','Dispatch Crew','Assign everyone'],['readiness3','☑','Bore Readiness','Review each shot'],['evidence3','▣','Evidence Review','What needs attention'],['savestatus3','◉','Save & Backup','Check local storage']]
  .map(x=>'<button data-page="'+x[0]+'">'+x[1]+'<strong>'+x[2]+'</strong><small>'+x[3]+'</small></button>').join('')+'</div>';
  deck.appendChild(power);
 }
