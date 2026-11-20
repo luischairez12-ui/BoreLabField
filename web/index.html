@@ -632,7 +632,7 @@ let universalQuery='';
 let boresView='route'; // legacy fallback; main planner is default in v0.29
 if(typeof state.jobAddress!=='string')state.jobAddress='';
 if(typeof state.jobNotes!=='string')state.jobNotes='';
-const BORELAB_PAGES=new Set(['dispatch3','readiness3','evidence3','find3','savestatus3','home','fieldcommand','bores','job','jobs','dayassist','dayassistlegacy','phototimeline2','shotboard','planner','fieldhistory','pipe','mud','mudstock','manuals','photos','crew','closeout','history','settings','tools','search','command','shotcards','reelplan','photosmart','recovery','scan3','jobmap','dayassistlegacy','phototimeline2','crewmanager2','fieldintelligence3','equipmentmanager2','tomorrowplanner','crewpreview','supervisorpreview','localaccounts','fieldhub','fieldproductivity','reelcommand','crossings','companion','studio']);
+const BORELAB_PAGES=new Set(['dispatch3','readiness3','evidence3','find3','savestatus3','home','fieldcommand','bores','job','jobs','dayassist','dayassistlegacy','phototimeline2','shotboard','planner','fieldhistory','pipe','equipment','toolinventory','mudhub','mud','mudstock','manuals','photos','crew','closeout','history','settings','tools','search','command','shotcards','reelplan','photosmart','recovery','scan3','jobmap','dayassistlegacy','phototimeline2','crewmanager2','fieldintelligence3','equipmentmanager2','tomorrowplanner','crewpreview','supervisorpreview','localaccounts','fieldhub','fieldproductivity','reelcommand','crossings','companion','studio']);
 try{const saved=JSON.parse(sessionStorage.getItem('borelab-screen-stack-v1')||'[]');if(Array.isArray(saved))screenStack=saved.filter(p=>BORELAB_PAGES.has(p)).slice(-30);}catch{}
 
 const openSettingsSections=new Set();

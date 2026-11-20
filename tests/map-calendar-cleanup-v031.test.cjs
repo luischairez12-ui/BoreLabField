@@ -34,8 +34,10 @@ const map=new Function('window','document','requestAnimationFrame',mapSource+';r
 const cal=new Function('window','document',calendarSource+';return window.BoreLabMapCalendarV31')(w,doc);
 assert(cal&&map&&ab,'Required modules load');
 let screen=map.renderMap();
-assert(screen.includes('Field Calendar')&&screen.includes('data-blcal-day="2026-11-19"'),'Full-width monthly Calendar integrated above map');
-assert(screen.indexOf('Field Calendar')<screen.indexOf('Jobsite Locations'),'Calendar sits above jobsite pins');
+assert(screen.includes('Field Calendar')&&screen.includes('data-blcal-day="2026-11-19"'),'Full-width monthly Calendar integrated into Job Map');
+assert(screen.indexOf('Jobsite Locations')<screen.indexOf('Field Calendar'),'Interactive map opens first; calendar is below the map');
+assert(screen.indexOf('Field Calendar')>screen.indexOf('data-blmap-filter="planned"'),'Calendar follows bore status filters');
+assert(screen.indexOf('Field Calendar')>screen.indexOf('data-blmap-new-pin'),'Calendar sits at the bottom of map tools');
 for(const duplicate of ['▦ Change Job','⌁ Shot Planner','▤ As-Built PDF','Work date <input']){
  assert(!screen.includes(duplicate),'Removed redundant control: '+duplicate);
 }
