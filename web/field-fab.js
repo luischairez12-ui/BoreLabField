@@ -21,6 +21,14 @@ const contextActions=page=>{
  if(page==='pipe')return [
   {id:'reel',icon:'◈',title:'Add Reel',sub:'Record pipe inventory'},
   {id:'note',icon:'✎',title:'Quick Field Note',sub:'Log material observations'}];
+ if(page==='equipment')return [
+  {id:'fw32-new-equipment',icon:'▣',title:'Add Equipment',sub:'New drill, truck or rig'},
+  {id:'fw32-manuals',icon:'▤',title:'Drill Manuals',sub:'View operator, parts & service PDFs'}];
+ if(page==='toolinventory')return [
+  {id:'fw32-new-tool',icon:'⚒',title:'Add Tool',sub:'Pulling head, swivel or reamer'}];
+ if(page==='mudhub')return [
+  {id:'fw32-mud-mixer',icon:'◉',title:'Mud Mixer',sub:'Mix or top off a tank'},
+  {id:'fw32-mud-stock',icon:'▣',title:'Mud Inventory',sub:'Track bags, additives & buckets'}];
  if(page==='fieldcommand')return [
   {id:'fc-dispatch',icon:'♙',title:'Dispatch Crew',sub:'Assign workers and equipment'},
   {id:'note',icon:'✎',title:'Quick Note',sub:'Record a field update'}];
@@ -87,6 +95,11 @@ function handleAction(id){
  if(!allowed())return;
  close();
  if(window.BoreLabFieldCommand3?.handleFabAction?.(id))return;
+ if(id==='fw32-new-tool')return window.BoreLabWorkspacesV32?.beginTool?.();
+ if(id==='fw32-new-equipment'){window.BoreLabWorkspacesV32?.selectTab?.('equipment','fleet',false);return api()?.openEquipmentForm?.()}
+ if(id==='fw32-manuals')return window.BoreLabWorkspacesV32?.selectTab?.('equipment','manuals');
+ if(id==='fw32-mud-mixer')return window.BoreLabWorkspacesV32?.selectTab?.('mud','mixer');
+ if(id==='fw32-mud-stock')return window.BoreLabWorkspacesV32?.selectTab?.('mud','stock');
  if(id==='bore'){return api()?.newBore?.()}
   if(id==='reel'){return api()?.reelForm?.()}
   if(id==='roster'){return api()?.openRosterForm?.()}
