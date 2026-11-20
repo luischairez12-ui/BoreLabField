@@ -25,7 +25,7 @@ assert(jobmap.includes('mapBounds().map(point)'),'Endpoint-only bores are includ
 assert(jobmap.includes('data-blmap-endpoints'),'Bore endpoint editor accessible from map');
 assert(jobmap.includes('symbolFor?.(s)'),'Map respects custom marker symbols');
 const atlas=read('web/field-atlas.js');
-assert(atlas.includes('shot.asbuiltStart')&&atlas.includes('shot.asbuiltEnd'),'Atlas reads both endpoints');
+assert(atlas.includes("['asbuiltStart','Entry point']")&&atlas.includes("['asbuiltEnd','Exit point']"),'Atlas reads both endpoint keys');
 assert(atlas.includes('HH Handhole'),'Atlas legend includes HH');
 const native=read('app/src/main/java/com/borelab/field/BoreLabActivity.java');
 const paths=read('app/src/main/res/xml/manual_paths.xml');
