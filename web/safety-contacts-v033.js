@@ -87,4 +87,6 @@ document.addEventListener('submit',e=>{
  if(!result.ok)notify(result.error);
 });
 window.BoreLabSafetyContactsV33={render,addContact,removeContact,contacts:recordList,validPhone};
+// Repaint a restored Safety screen once this externally loaded module is ready.
+if(bridge()?.currentPage?.()==='safetycontacts')Promise.resolve().then(()=>bridge()?.render?.());
 })();
