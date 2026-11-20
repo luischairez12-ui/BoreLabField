@@ -1,0 +1,61 @@
+/* BoreLab Field — Equipment, Tool Inventory, and Mud unified workspaces */
+.fw32-workspace{--fw-ink:#203847;--fw-border:#d8e2e8;--fw-orange:#de7614;max-width:900px;margin:0 auto;padding:12px 14px 90px!important}
+.fw32-head{display:block;margin:0 0 17px}
+.fw32-head h1{font-size:clamp(31px,6vw,40px);line-height:1.1;margin:6px 0;color:var(--fw-ink);font-weight:900}
+.fw32-head p{font-size:13px;line-height:1.5;color:#617784;margin:6px 0 0}
+.fw32-quickstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0 15px}
+.fw32-quickstats>span{display:grid;gap:4px;align-content:center;min-height:61px;font-size:11px;color:#647a86;text-align:center;background:var(--surface,#fff);border:1px solid var(--fw-border);border-radius:12px;padding:8px}
+.fw32-quickstats strong{font-size:19px;color:var(--fw-ink)}
+.fw32-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:5px;border-radius:15px;background:#edf1f3;border:1px solid #dce4e8;margin:10px 0 16px}
+.fw32-tabs button{min-height:49px;border:0;border-radius:11px;background:transparent;color:#496171;font-size:13px;font-weight:850;padding:8px}
+.fw32-tabs button[aria-selected=true]{background:linear-gradient(120deg,#f39a37,#d66c0a);color:white;box-shadow:0 3px 8px #c8792d39}
+.fw32-embedded{min-width:0}
+.fw32-embedded>.page{padding:0!important;max-width:none!important;margin:0!important}
+.fw32-embedded>.page>.between:first-child,.fw32-embedded>.page>.b3-heading:first-child{display:none!important}
+.fw32-embedded>.page>.muted.smalltext.spaced:first-of-type{margin-top:3px}
+.fw32-embedded .b3-page{padding:0}
+.fw32-embedded .b3-tabs{margin-top:10px}
+.fw32-embedded .footer-note{display:none}
+.fw32-inventory-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.fw32-inventory-head>div{min-width:0;flex:1}
+.fw32-primary{background:linear-gradient(120deg,#f3962f,#d86c07);color:#fff;border:1px solid #c9660a;border-radius:12px;padding:12px 14px;font-weight:850;min-height:49px;white-space:nowrap}
+.fw32-filter-row{display:flex;justify-content:space-between;align-items:end;gap:10px;margin:16px 0;flex-wrap:wrap}
+.fw32-filter-row label{display:grid;gap:6px;font-size:12px;font-weight:800;color:#516877;min-width:160px;flex:1}
+.fw32-filter-row select{width:100%;min-height:46px;padding:9px 12px;background:#fff;color:#213a49;border:1px solid #c9d7df;border-radius:11px}
+.fw32-filter-row>button{border:1px solid #cddde5;background:#fff;color:#a9550d;border-radius:11px;min-height:46px;padding:9px 11px;font-size:12px;font-weight:850}
+.fw32-tool-list{display:grid;gap:11px}
+.fw32-tool-card{border:1px solid var(--fw-border);background:#fff;border-radius:16px;padding:14px;box-shadow:0 4px 14px #1b34470a;min-width:0}
+.fw32-tool-heading{display:flex;justify-content:space-between;align-items:start;gap:10px}
+.fw32-tool-heading>div{min-width:0;flex:1}
+.fw32-tool-heading strong{display:block;color:var(--fw-ink);font-size:17px;overflow-wrap:anywhere}
+.fw32-tool-heading small{display:block;font-size:11px;color:#687d89;line-height:1.5;margin-top:5px;overflow-wrap:anywhere}
+.fw32-condition{padding:6px 8px;border-radius:99px;border:1px solid #94d4b2;background:#e5f6ec;color:#226d46;font-size:10px;white-space:nowrap;font-weight:850}
+.fw32-condition.attention{background:#fff1df;border-color:#eab975;color:#925012}
+.fw32-tool-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:13px 0}
+.fw32-tool-counts span{background:#f6f8fa;border-radius:10px;padding:9px 5px;color:#657785;font-size:11px;text-align:center}
+.fw32-tool-counts strong{display:block;font-size:20px;color:#203a4b;margin-bottom:3px}
+.fw32-muted{margin:7px 0;color:#617685;font-size:12px;overflow-wrap:anywhere;line-height:1.45}
+.fw32-issues{border-top:1px solid #e6ebee;margin-top:10px;padding-top:10px;display:grid;gap:8px}
+.fw32-issues>strong{font-size:12px;color:#41596a}
+.fw32-issues>div{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#4e6472;font-size:12px}
+.fw32-issues>div>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.fw32-issues button{border:1px solid #c6d9d2;border-radius:9px;background:#e7f7ec;color:#216a43;font-weight:850;min-height:42px;padding:8px 10px}
+.fw32-card-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}
+.fw32-card-actions button{flex:1;min-height:46px;min-width:70px;border:1px solid #cad7df;border-radius:10px;background:#fff;color:#365365;font-size:12px;font-weight:850;padding:9px}
+.fw32-card-actions button:first-child{background:#fff0df;border-color:#eab985;color:#a14c08}
+.fw32-card-actions button:disabled{opacity:.4}
+.fw32-empty{background:#fff;border:1px dashed #afc0cb;border-radius:16px;text-align:center;padding:22px}
+.fw32-empty strong{font-size:17px;color:#294153}
+.fw32-empty p{color:#687a87;font-size:12px;line-height:1.5}
+.fw32-disclaimer{font-size:11px;line-height:1.5;color:#6f818e;margin:16px 2px}
+.fw32-form-panel{background:#fff;border:1px solid #eac9a7;border-radius:16px;padding:15px;margin:14px 0;box-shadow:0 3px 14px #b76f1f16}
+.fw32-form-panel h2{color:var(--fw-ink);font-size:19px;margin:0 0 12px}
+.fw32-form-panel form{display:grid;gap:12px}
+.fw32-form-panel label{display:grid;gap:6px;font-weight:800;font-size:12px;color:#415968}
+.fw32-form-panel input,.fw32-form-panel select,.fw32-form-panel textarea{width:100%;max-width:100%;min-width:0;min-height:46px;background:#fff;color:#203744;border:1px solid #bacbd4;border-radius:10px;padding:10px;font-size:14px;font-weight:550}
+.fw32-form-panel textarea{resize:vertical}
+.fw32-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.fw32-form-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.fw32-form-buttons button:not(.fw32-primary){background:#fff;color:#39515e;border:1px solid #cdd8df;border-radius:11px;padding:11px 15px;font-weight:850;min-height:49px}
+.fw32-workspace button:focus-visible,.fw32-workspace select:focus-visible,.fw32-workspace input:focus-visible{outline:3px solid #b45a0d;outline-offset:2px}
+@media(max-width:430px){.fw32-workspace{padding-left:10px!important;padding-right:10px!important}.fw32-head h1{font-size:32px}.fw32-quickstats strong{font-size:17px}.fw32-form-grid{grid-template-columns:1fr}.fw32-tool-counts strong{font-size:18px}.fw32-inventory-head .fw32-primary{font-size:12px;padding:11px}}
