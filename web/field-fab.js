@@ -13,6 +13,8 @@ const actions=[
  {id:'note',icon:'✎',title:'Quick Note',sub:'Record a jobsite observation'}
 ];
 let opened=false,lastFocus=null;
+const contextActions=page=>window.BoreLabEdgeV22?.pageActions?.(page)||actions;
+const actionHTML=a=>'<button type="button" class="bf-fab-action" data-bf-fab-action="'+a.id+'"><span class="bf-fab-icon" aria-hidden="true">'+a.icon+'</span><span><strong>'+a.title+'</strong><small>'+a.sub+'</small></span><span aria-hidden="true">›</span></button>';
 const allowed=()=>{
  const a=account();
  return !!api()&&(!a||a.isUnlocked?.())&&(!a||['owner','foreman'].includes(a.role?.()));
@@ -23,7 +25,7 @@ function mount(){
  wrap.id='bfFabRoot';wrap.className='bf-fab-root';wrap.hidden=true;
  wrap.innerHTML='<div class="bf-fab-actions" id="bfFabActions" role="group" aria-label="Quick field actions" hidden>'+
  '<div class="bf-fab-heading"><span>QUICK ACTIONS</span><small>Current job</small></div>'+
- actions.map(a=>'<button type="button" class="bf-fab-action" data-bf-fab-action="'+a.id+'"><span class="bf-fab-icon" aria-hidden="true">'+a.icon+'</span><span><strong>'+a.title+'</strong><small>'+a.sub+'</small></span><span aria-hidden="true">›</span></button>').join('')+
+ contextActions(api()?.currentPage?.()||'home').map(actionHTML).join('')+
  '</div><button type="button" class="bf-fab-trigger" id="bfFabTrigger" data-bf-fab-toggle aria-label="Open quick actions" aria-expanded="false" aria-controls="bfFabActions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg></button>';
  document.body.appendChild(wrap);sync();
 }
@@ -31,6 +33,7 @@ function sync(){
  const wrap=$('#bfFabRoot');
  if(!wrap)return;
  const page=api()?.currentPage?.()||'home';
+ const panel=$('#bfFabActions');if(panel&&panel.dataset.page!==page){panel.dataset.page=page;panel.innerHTML='<div class="bf-fab-heading"><span>QUICK ACTIONS</span><small>'+page.replace(/[^a-z]/g,' ').toUpperCase()+'</small></div>'+contextActions(page).map(actionHTML).join('');}
  const excluded=['crewpreview','supervisorpreview','localaccounts'];
  const visible=allowed()&&!excluded.includes(page);
  wrap.hidden=!visible;
@@ -69,6 +72,7 @@ function handleAction(id){
  if(id==='photo'){const n=window.BoreLabNavigation;n?.open?.();if(n?.isOpen?.())n.toggleQuick?.();return}
  if(id==='gps'){return window.BoreLabFieldPins?.editPin?.('','tie-in')}
  if(id==='note'){return openNote()}
+ if(['marker','inbox','story','arrival','progress','finish'].includes(id))return window.BoreLabEdgeV22?.action?.(id)
 }
 function saveNote(form){
  const b=api(),job=b?.activeJob?.();if(!job)return b?.notify?.('Select a job first.');
@@ -79,6 +83,7 @@ function saveNote(form){
  if(!Array.isArray(job.quickNotes))job.quickNotes=[];
  job.quickNotes.push(record);b.state().demo=false;
  b.save();b.closeModal?.();b.render?.();b.notify?.('Quick note saved to '+(job.jobName||'this job')+'.');
+ window.BoreLabEdgeV22?.registerUndo?.('note',job.id,record.id,null,record,'Quick note saved');
 }
 document.addEventListener('click',e=>{
  const trigger=e.target.closest?.('[data-bf-fab-toggle]');

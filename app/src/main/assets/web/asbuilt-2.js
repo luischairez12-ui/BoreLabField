@@ -14,8 +14,8 @@ const kinds={'tie-in':'Tie-in',coupling:'Coupling',box:'Box'};
 const st=()=>api()?.state?.()||{};
 const active=()=>st().activeJobId;
 let selected=today(),month=selected.slice(0,7),scope='job',viewMode='calendar',atlasDayMode='all',searchQuery='',typeFilter='all',missingOnly=false;
-const typeLabels={all:'All',shot:'Bores',pin:'Installations',photo:'Photos',crew:'Crew',pipe:'Pipe',mud:'Mud',journal:'Changes',note:'Notes',closeout:'Closeouts'};
-const eventText=e=>{const r=e.record||{},d=new Date(e.day+'T12:00:00');return [e.title,e.jobName,e.extra,e.day,d.toLocaleDateString('en-US'),d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),r.name,r.address,r.notes,r.text,r.kind,r.station,r.material,r.size,r.dimensions,r.connectionType,r.fittingType,r.feet].filter(x=>x!=null).join(' ').toLowerCase()};
+const typeLabels={all:'All',shot:'Bores',pin:'Installations',photo:'Photos',crew:'Crew',pipe:'Pipe',mud:'Mud',journal:'Changes',note:'Notes',marker:'Field Markers',arrival:'Arrivals',closeout:'Closeouts'};
+const eventText=e=>{const r=e.record||{},d=new Date(e.day+'T12:00:00');return [e.title,e.jobName,e.extra,e.day,d.toLocaleDateString('en-US'),d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),r.name,r.label,r.address,r.notes,r.text,r.kind,r.station,r.material,r.size,r.dimensions,r.connectionType,r.fittingType,r.feet].filter(x=>x!=null).join(' ').toLowerCase()};
 const matches=e=>(typeFilter==='all'||e.type===typeFilter)&&(!searchQuery||eventText(e).includes(searchQuery.trim().toLowerCase()));
 const matchingEvents=()=>allEvents().filter(matches);
 const atlasEvents=()=>matchingEvents().filter(e=>atlasDayMode!=='selected'||e.day===selected);
@@ -35,6 +35,8 @@ function allEvents(){
   }
   for(const pin of job.fieldPins||[])push(job,'pin',pin,pin.occurredDay||pin.occurredAt||pin.createdAt,pin.name||kinds[pin.kind]||'Installation',pin.occurredAt||pin.createdAt,'Installed '+(kinds[pin.kind]||'field marker'));
   for(const note of job.quickNotes||[]){if(note.at)push(job,'note',note,note.at,'Quick field note',note.at,String(note.text||'').slice(0,500));}
+  for(const marker of job.fieldMarkers||[]){if(marker.occurredAt)push(job,'marker',marker,marker.occurredAt,marker.label||'Field marker',marker.occurredAt,(window.BoreLabEdgeV22?.markerKind?.(marker.kind)||marker.kind||'Marker')+' · '+(marker.status==='resolved'?'Resolved':'Open'));}
+  for(const arrival of job.arrivalLog||[]){if(arrival.at)push(job,'arrival',arrival,arrival.at,'Jobsite arrival',arrival.at,'Manual arrival'+(valid(arrival)?' · GPS saved':''));}
   for(const member of job.crew||[]){
    if(member.start)push(job,'crew',member,member.start,member.name||'Crew member',member.start,'Clocked in');
    if(member.end)push(job,'crew',member,member.end,member.name||'Crew member',member.end,'Clocked out');
@@ -89,7 +91,7 @@ function gpsQuality(record){
 }
 function detailsHTML(){
  const {events,photos,installed,completed,ft,coordsCount}=dayHistory();
- const glyph={pin:'📌',shot:'⌁',photo:'▣',crew:'♙',pipe:'◈',mud:'◉',journal:'✎',note:'✎',closeout:'✓'};
+ const glyph={pin:'📌',shot:'⌁',photo:'▣',crew:'♙',pipe:'◈',mud:'◉',journal:'✎',note:'✎',marker:'⚠',arrival:'⌖',closeout:'✓'};
  const dayLabel=esc(niceDay(selected));
  let html='<section class="ab-day"><div class="between"><div><span class="eyebrow">DAILY FIELD HISTORY</span><h2>'+dayLabel+'</h2></div><span class="ab-count">'+events.length+' activities</span></div>'+
  '<div class="ab-summary"><span>⌁ '+completed.length+' finished · '+Number(ft.toFixed(1))+' ft</span><span>📌 '+installed.length+' installations</span><span>▣ '+photos.length+' photos</span><span>⌖ '+coordsCount+' GPS records</span></div>'+
@@ -107,6 +109,7 @@ function detailsHTML(){
    (e.type==='photo'&&String(r.dataUrl||'').startsWith('data:image/')?'<button data-ab-photo="'+esc(r.id)+'" class="ab-photo-thumb" aria-label="Open saved photo"><img src="'+esc(r.dataUrl)+'" loading="lazy" alt="Photo recorded '+esc(selected)+'"></button>':'')+
    (hasGps?'<button class="ab-gps" data-ab-goto="'+esc(r.id)+'" data-ab-job="'+esc(e.jobId)+'" data-ab-type="'+esc(e.type)+'">⌖ '+esc(coords(r))+' <span>Atlas ›</span></button><small class="ab-quality">'+esc(gpsQuality(r))+'</small>':'<p class="tiny muted">GPS not recorded</p>')+
    (e.type==='pin'?'<p class="tiny muted">'+esc([r.station,r.size,r.material,r.depth?'Depth '+r.depth+' ft':''].filter(Boolean).join(' · '))+'</p>':'')+
+   (e.type==='marker'?'<p class="tiny muted">'+esc(r.notes||'No details')+' · '+esc(r.status||'open')+'</p>':'')+
    (e.type==='photo'?'<div class="ab-photo-actions"><button class="btn micro ghost" data-ab-photo="'+esc(r.id)+'">View Photo</button>'+(!r.fieldPinId&&!r.shotId?'<button class="btn micro ghost" data-ab-suggest="'+esc(r.id)+'">⌖ Suggest Nearby Records</button>':'')+'</div>':'')+
   '</article>';
  }).join('')+'</div></section>';

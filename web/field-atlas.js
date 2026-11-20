@@ -108,7 +108,7 @@ function draw(){
  const w=el.clientWidth||350,h=el.clientHeight||430,c=proj(view.center.lat,view.center.lon,view.zoom),grouped=groups(all,w,h,c);
  const marks=grouped.map(g=>{
   const first=g.items[0],n=g.items.length,many=n>1,selected=g.items.some(x=>x.key===selectedKey);
-  const icon=many?String(n):first.type==='photo'?'▣':first.type==='pin'?({coupling:'C',box:'B','tie-in':'T'}[first.record.kind]||'📌'):first.type==='shot'?'⌁':'◎';
+  const icon=many?String(n):first.type==='photo'?'▣':first.type==='pin'?({coupling:'C',box:'B','tie-in':'T'}[first.record.kind]||'📌'):first.type==='shot'?'⌁':first.type==='marker'?'⚠':first.type==='arrival'?'⌖':'◎';
   return '<button class="atlas-marker atlas-'+esc(first.type)+(selected?' selected':'')+(many?' grouped':'')+'" data-atlas-point="'+esc(g.key)+'" style="left:'+Math.round(g.x)+'px;top:'+Math.round(g.y)+'px" aria-label="'+esc(many?n+' field records':first.title)+'"><b>'+esc(icon)+'</b></button>';
  }).join('');
  const lines=all.filter(p=>p.type==='shot'&&valid(p.record.asbuiltStart)&&valid(p.record.asbuiltEnd)).map(p=>{
@@ -129,7 +129,7 @@ function quality(record){
 }
 function card(p){
  const r=p.record,ph=api()?.photos?.()||[],attached=p.type==='pin'?ph.filter(x=>x.jobId===p.jobId&&x.fieldPinId===r.id):p.type==='shot'?ph.filter(x=>x.jobId===p.jobId&&x.shotId===r.id):[];
- const metadata=p.type==='pin'?[r.station,r.size,r.material,r.depth?'Depth '+r.depth+' ft':'',r.fittingType,r.connectionType,r.dimensions,r.notes].filter(Boolean).join(' · '):p.type==='shot'?[r.feet?r.feet+' ft':'',r.status,r.address].filter(Boolean).join(' · '):p.type==='photo'?[r.stage,quality(r)].filter(Boolean).join(' · '):'Endpoint reference · not underground alignment';
+ const metadata=p.type==='pin'?[r.station,r.size,r.material,r.depth?'Depth '+r.depth+' ft':'',r.fittingType,r.connectionType,r.dimensions,r.notes].filter(Boolean).join(' · '):p.type==='shot'?[r.feet?r.feet+' ft':'',r.status,r.address].filter(Boolean).join(' · '):p.type==='photo'?[r.stage,quality(r)].filter(Boolean).join(' · '):p.type==='marker'?[r.label,window.BoreLabEdgeV22?.markerKind?.(r.kind),r.status,r.notes,quality(r)].filter(Boolean).join(' · '):p.type==='arrival'?['Manual arrival',quality(r)].join(' · '):'Endpoint reference · not underground alignment';
  return '<section class="atlas-selected" aria-label="Atlas selected location"><div class="between"><div><span class="eyebrow">'+esc(p.jobName)+'</span><h3>'+esc(p.title)+'</h3><small>'+esc(p.dates.join(', '))+'</small></div><button class="atlas-x" data-atlas-close aria-label="Close pin card">✕</button></div>'+
  '<p class="smalltext">'+esc(metadata)+'</p><p class="atlas-coords">⌖ '+(+p.lat).toFixed(6)+', '+(+p.lon).toFixed(6)+'</p>'+
  '<p class="atlas-quality">'+esc(quality(r))+'</p>'+
@@ -150,7 +150,7 @@ function renderAtlas(){
  '<div class="atlas-controls"><button data-atlas-zoom="1" aria-label="Zoom in">＋</button><button data-atlas-zoom="-1" aria-label="Zoom out">−</button><button data-atlas-fit aria-label="Fit locations">⌖</button></div>'+
  '</div><p class="atlas-attribution">'+(mode==='street'?'© OpenStreetMap contributors · ':'')+'Offline plot keeps saved coordinates · no survey accuracy implied</p>'+
  (members.length?clusterCard(members):selected?card(selected):'')+
- '<div class="atlas-legend"><span>⌁ Bores</span><span>📌 Installations</span><span>▣ Photos</span><span>◎ Endpoints</span></div>'+
+ '<div class="atlas-legend"><span>⌁ Bores</span><span>📌 Installations</span><span>▣ Photos</span><span>⚠ Field Markers</span><span>◎ Endpoints</span></div>'+
  '<p class="tiny muted">This atlas is for viewing and revisiting recorded work. Entry-to-exit lines show straight GPS references, not the actual underground drill trajectory.</p></section>';
 }
 function findPoint(id){return points().find(p=>p.key===id)}
@@ -166,6 +166,8 @@ function openRecord(p){
  if(p.type==='asbuiltStart'||p.type==='asbuiltEnd')return b.notify?.('These are recorded bore endpoints, not a surveyed drill trace.');
  if(p.jobId!==b.state().activeJobId){if(b.switchActiveJob?.(p.jobId)===false)return}
  if(p.type==='pin')window.BoreLabFieldPins?.open?.(p.record.id,'pin');
+ else if(p.type==='marker')window.BoreLabEdgeV22?.markerForm?.(p.record.id);
+ else if(p.type==='arrival')window.BoreLabEdgeV22?.navigateHub?.('arrival');
  else b.shotDetail?.(p.record.id);
 }
 function navigate(p){

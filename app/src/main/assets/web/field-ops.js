@@ -79,6 +79,7 @@ function createQuickBore(form){
  state.demo=false;
  journal('Quick Bore created',state.activeJobId,shot.id,null,shot);
  b.save();b.closeModal();b.render();b.notify('Quick Bore saved. Tap its name to add photos, depths or readiness.');
+ window.BoreLabEdgeV22?.offerSaveNext?.(state.activeJobId,shot.id,'created');
  if(address&&!gps)b.resolveShotAfterSave?.(shot.id);
 }
 function renderTimeline(shotId){
@@ -224,6 +225,7 @@ function completeBore(form,event){
    moveIds,reservationsBefore:prevReservations,reservationsAfter:clone(state.pipeReservations||[])});
  b.save();b.closeModal();b.render();
  b.notify('Shot completed'+(checked.runs.length?' · '+fmt(checked.runs.reduce((n,r)=>n+r.feet,0))+' ft logged on reels':' · Pipe log still needed')+'.');
+ window.BoreLabEdgeV22?.offerSaveNext?.(jobId,shotId,'completed');
 }
 function dayWarnings(job,day){
  if(!job)return[];
@@ -261,8 +263,9 @@ function openRecovery(){
  b.showModal('<div class="modal-head"><h2>Undo & Recovery</h2><button class="icon-btn" data-action="close-modal">✕</button></div>'+
  renderRecovery()+'<p class="tiny muted">This local history is limited to the latest 30 supported shot operations. It is not a substitute for exporting your BoreLab backup.</p>');
 }
-async function undo(id){
+async function undo(id,quick=false){
  const b=api(),state=b.state(),entry=(state.fieldRecovery||[]).find(x=>x.id===id&&!x.undone);
+ if(quick){const recent=(state.fieldRecovery||[]).filter(x=>!x.undone).slice(-1)[0];if(!entry||recent?.id!==id||Date.now()-Date.parse(entry.at)>12000)return b.notify('Quick Undo expired or newer work exists. Check Field Recovery before restoring.')}
  if(!entry)return b.notify('That recovery entry is no longer available.');
  const job=getJob(entry.jobId),current=shotIn(job,entry.shotId);
  if(!job)return b.notify('Original job is missing. Cannot restore safely.');
@@ -281,7 +284,7 @@ async function undo(id){
   if(entry.reservationsAfter&&JSON.stringify(state.pipeReservations||[])!==JSON.stringify(entry.reservationsAfter))
    return b.notify('Pipe reservations changed afterward; undo is blocked to protect newer work.');
  }
- if(!window.confirm('Undo "'+entry.kind+'"? This restores the previous shot and any pipe usage from that action.'))return;
+ if(!quick&&!window.confirm('Undo "'+entry.kind+'"? This restores the previous shot and any pipe usage from that action.'))return;
  if(entry.moveIds?.length){
   const map=new Map((state.reels||[]).map(r=>[r.id,r]));
   for(const v of entry.reelBefore||[]){const reel=map.get(v.id);if(reel)reel.remaining=v.remaining}

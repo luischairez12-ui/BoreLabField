@@ -10,6 +10,7 @@ const shortcuts=[
  {page:'home',icon:'⌂',name:'Home',detail:'Dashboard'},
  {page:'fieldhistory',icon:'▦',name:'Atlas & Calendar',detail:'Places and work history'},
  {page:'jobmap',icon:'⌖',name:'Job Map',detail:'GPS pins and bores'},
+ {page:'fieldhub',icon:'⚡',name:'Field Hub',detail:'Arrival, Markers, Inbox & Day Story'},
  {page:'planner',icon:'⌁',name:'Bores',detail:'Shot planner'},
  {page:'shotboard',icon:'☷',name:'Today’s Shot Board',detail:'Daily work'},
  {page:'photos',icon:'▣',name:'Photos',detail:'Jobsite evidence'},
@@ -72,11 +73,13 @@ function syncPage(page){
   if(active)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');
  });
  if(!enabled())close();
+ window.BoreLabEdgeV22?.sync?.();
 }
 function show(){
  mount();
  if(!enabled())return;
  if($('#modalRoot .modal-backdrop'))return;
+ window.BoreLabEdgeV22?.closePeek?.();
  if(open){close();return}
  lastFocus=document.activeElement;open=true;quick=false;
  const panel=$('#bfRightDrawer'),back=$('#bfDrawerBackdrop');
@@ -116,7 +119,7 @@ function act(kind){
 }
 document.addEventListener('click',e=>{
  const toggler=e.target.closest?.('[data-bf-drawer]');
- if(toggler){e.preventDefault();show();return}
+ if(toggler){e.preventDefault();if(toggler.classList?.contains('bf-edge-tab')&&window.BoreLabEdgeV22?.handleTabClick?.(e))return;show();return}
  if(e.target.closest?.('[data-bf-close]')){e.preventDefault();close();return}
  const action=e.target.closest?.('[data-bf-menu-action]');
  if(action){e.preventDefault();act(action.dataset.bfMenuAction);return}

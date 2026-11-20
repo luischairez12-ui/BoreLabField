@@ -7,7 +7,7 @@ for(const file of ['field-insights.js','field-insights.css','asbuilt-2.js','fiel
  assert.equal(read('web/'+file),read('app/src/main/assets/web/'+file),'Missing mirror: '+file);
 for(const name of ['field-insights.js','field-insights.css'])assert(html.includes('./'+name),'Missing new insight asset '+name);
 new Function(insights);new Function(asbuilt);new Function(atlas);new Function(html.split('<script>')[1]?.split('</script>')[0]);
-assert(html.includes('BoreLab Field · v0.21.0'),'New build version');
+assert(html.includes('BoreLab Field · v0.22.0'),'New build version');
 assert(html.includes('<script src="./field-insights.js"></script>')&&html.indexOf('<script src="./field-insights.js"></script>')>html.indexOf('<script src="./field-atlas.js"></script>'),'Insights load after Atlas and AsBuilt');
 assert(fab.includes('-webkit-tap-highlight-color:transparent!important'),'WebView blue tap overlay removed');
 assert(fab.includes('.bf-fab-trigger:focus-visible'),'Keyboard focus still visible after tap cleanup');
