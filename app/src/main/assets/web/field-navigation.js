@@ -8,17 +8,18 @@ const auth=()=>window.BoreLabLocalAccounts;
 let open=false,quick=false,lastFocus=null,gesture=null;
 const shortcuts=[
  {page:'home',icon:'⌂',name:'Home',detail:'Dashboard'},
+  {page:'fieldcommand',icon:'☷',name:'Field Command',detail:'Dispatch & review'},
  {page:'fieldhistory',icon:'▦',name:'Atlas & Calendar',detail:'Places and work history'},
  {page:'jobmap',icon:'⌖',name:'Job Map',detail:'GPS pins and bores'},
  {page:'fieldhub',icon:'⚡',name:'Field Hub',detail:'Arrival, Markers, Inbox & Day Story'},
  {page:'fieldproductivity',icon:'◈',name:'Field Productivity',detail:'Materials, Next Move & Photos'},
  {page:'reelcommand',icon:'◉',name:'Reel Command',detail:'Burn-down and return planning'},
  {page:'crossings',icon:'⚠',name:'Utility Crossings',detail:'Measured crossing records'},
- {page:'planner',icon:'⌁',name:'Bores',detail:'Cards, routes & pipe'},
+ {page:'planner',icon:'⌁',name:'Bores',detail:'Map-first Shot Planner'},
  {page:'shotboard',icon:'☷',name:'Today’s Shot Board',detail:'Daily work'},
  {page:'photos',icon:'▣',name:'Media Vault',detail:'Photos, videos & field evidence'},
  {page:'crew',icon:'♙',name:'Crew',detail:'Hours and attendance'},
- {page:'pipe',icon:'◈',name:'Pipe Inventory',detail:'Reels and material'},
+ {page:'pipe',icon:'◈',name:'Pipe Reels',detail:'Inventory, planner & usage'},
  {page:'closeout',icon:'✓',name:'Reports & Closeout',detail:'Review and export'},
  {page:'search',icon:'⌕',name:'Search',detail:'Find field records'},
  {page:'tools',icon:'▤',name:'All Field Tools',detail:'Browse every tool'},
@@ -46,7 +47,7 @@ function mount(){
  '<div class="bf-drawer-search-input"><span aria-hidden="true">⌕</span><input id="bfDrawerUniversalInput" type="search" maxlength="100" autocomplete="off" placeholder="Address, worker, bore, date…" aria-label="Search saved BoreLab records"></div>'+
  '<small>All saved jobs · Offline</small></div><div id="bfDrawerSearchResults" role="status" aria-live="polite" hidden></div>'+
  '<div class="bf-drawer-section-title"><span>SHORTCUTS</span><small>Tap to open</small></div>'+
- '<div class="bf-drawer-links">'+shortcuts.filter(v=>v.page!=='search').map(item).join('')+'</div>'+
+ '<div class="bf-drawer-links">'+shortcuts.filter(v=>['home','planner','fieldcommand','crew','jobmap','photos','pipe','closeout','settings'].includes(v.page)).map(item).join('')+'</div>'+
  '<div class="bf-drawer-bottom-spacer" aria-hidden="true"></div></div>'+
  '<div class="bf-drawer-quick"><button type="button" class="bf-quick-main" data-bf-menu-action="quick" aria-expanded="false" aria-controls="bfQuickChoices">'+icons.camera+
  '<span>Quick Photo & Pin</span><span class="bf-quick-arrow">⌄</span></button>'+
