@@ -160,6 +160,7 @@ function renderFieldCommand(){
  '<div class="bl29-command-links">'+
  homeTile('dispatch3','Dispatch Crew','Assign workers, roles and equipment','crew')+
  homeTile('readiness3','Bore Readiness','Pre-drill manual checks','bores')+
+ homeTile('safetycontacts','811 & Safety Contacts','Locate center and emergency numbers','command')+
  homeTile('evidence3','Evidence Review','Find missing field records','photos')+
  homeTile('dayassist','End-of-Day Review','Prepare the daily closeout','closeout')+
  '</div>'+

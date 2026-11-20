@@ -86,7 +86,7 @@ vault.onVideoImported(savedVideo);
 assert.equal(state.mediaVideos.length,1);
 assert.equal(state.mediaVideos[0].shotId,'sh1');
 assert.equal(vault.records().length,2,'Video and old photo appear together');
-assert(vault.render().includes('Photos & Videos'),'Unified media header');
+assert(vault.render().includes('Media Vault'),'Unified media header');
 vault.begin('record','sh1');assert.equal(nativeRecord,1);
 vault.onVideoImported(savedVideo);
 assert.equal(state.mediaVideos.length,1,'Duplicate native file callback cannot create duplicate record');

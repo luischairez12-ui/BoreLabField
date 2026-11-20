@@ -126,6 +126,14 @@ public class BoreLabActivity extends Activity {
             }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
+                if ("tel".equalsIgnoreCase(uri.getScheme())) {
+                    try {
+                        startActivity(new Intent(Intent.ACTION_DIAL, uri));
+                    } catch (ActivityNotFoundException e) {
+                        toast("No dialer app is available on this device.");
+                    }
+                    return true;
+                }
                 if (HOST.equalsIgnoreCase(uri.getHost())) return false;
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, uri));
@@ -155,16 +163,21 @@ public class BoreLabActivity extends Activity {
                 fileCallback = callback;
                 try {
                     String[] accepts = params.getAcceptTypes();
-                    boolean json = false;
+                    boolean json = false, pdf = false;
                     if (accepts != null) for (String a : accepts) {
+                        if (a == null) continue;
                         if (a.contains("json")) json = true;
+                        if (a.contains("pdf")) pdf = true;
                     }
-                    if (!json && params.isCaptureEnabled() && startCamera()) return true;
+                    if (!json && !pdf && params.isCaptureEnabled() && startCamera()) return true;
 
                     Intent pick = new Intent(Intent.ACTION_GET_CONTENT);
-                    pick.setType(json ? "application/json" : "image/*");
+                    pick.setType(json ? "application/json" : pdf ? "*/*" : "image/*");
+                    if (pdf) pick.putExtra(Intent.EXTRA_MIME_TYPES,
+                            new String[] {"application/pdf", "image/jpeg", "image/png", "image/webp"});
                     pick.addCategory(Intent.CATEGORY_OPENABLE);
-                    startActivityForResult(Intent.createChooser(pick, json ? "Restore BoreLab backup" : "Select jobsite photo"), REQ_FILE);
+                    startActivityForResult(Intent.createChooser(pick,
+                            json ? "Restore BoreLab backup" : pdf ? "Choose receipt photo or PDF" : "Select jobsite photo"), REQ_FILE);
                     return true;
                 } catch (Exception e) {
                     fileCallback = null;

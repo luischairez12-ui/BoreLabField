@@ -130,6 +130,7 @@ async function unlockAccount(id,attempt){
 function isAllowed(page){
  if(pinTestMode())return true;
  if(!configured()||!user)return false;
+ if(page==='safetycontacts')return true; // All signed-in roles may read safety numbers.
  if(page==='localaccounts')return isOwner();
  if(user.role==='owner'||user.role==='foreman')return true;
  return ROLE_PAGES[user.role]===page;

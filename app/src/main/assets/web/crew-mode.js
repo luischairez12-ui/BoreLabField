@@ -40,6 +40,7 @@ function pageTop(p,j){
  const hour=new Date().getHours(),greet=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
  const options=roster().map(x=>'<option value="'+esc(x.id)+'"'+(x.id===p?.id?' selected':'')+'>'+esc(x.name)+'</option>').join('');
  return '<div class="cm-hero"><div class="cm-hero-heading"><span>BORELAB FIELD · CREW MODE</span>'+
+ '<button type="button" data-page="safetycontacts" class="cm-safety-link">✚ 811 / Safety</button>'+ 
  '<button data-cm-exit>'+(pinRole()?'🔒 Switch User':'Exit Preview ↗')+'</button></div><div class="cm-hero-main"><div><h1>'+greet+', '+esc(name)+'!</h1>'+
  '<p>Your workday at a glance</p></div><span class="cm-helmet" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M11 39c1-14 9-23 21-23s20 9 21 23M29 16V9h6v7M9 39h46v8H9zM17 47h30M21 53h22" /><path d="M22 21v18M42 21v18"/></svg></span></div>'+
  '<div class="cm-identity">'+(pinRole()?
