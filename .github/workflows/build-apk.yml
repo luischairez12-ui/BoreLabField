@@ -105,6 +105,8 @@ jobs:
         run: node tests/field-productivity-v023.test.cjs
       - name: Test 0.24 reel workflow, utility crossings, companion import and bridge
         run: node tests/field-workflow-v024.test.cjs
+      - name: Test v0.26 As-Built Closeout Studio and Google Earth exports
+        run: node tests/closeout-studio-v026.test.cjs
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:

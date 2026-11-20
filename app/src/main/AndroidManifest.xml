@@ -26,6 +26,7 @@
         <provider android:name=".MiOsCompanionProvider"
             android:authorities="${applicationId}.companion" android:exported="true" />
         <activity android:name=".ManualReaderActivity" android:exported="false" />
+        <activity android:name=".PlanRedlineActivity" android:exported="false" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.manuals"

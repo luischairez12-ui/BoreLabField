@@ -77,6 +77,7 @@ public class BoreLabActivity extends Activity {
     private GeolocationPermissions.Callback pendingLocation;
     private String pendingLocationOrigin;
     private byte[] exportBytes;
+    private CloseoutFiles closeoutFiles;
     private String pendingManualSlot;
     private final ExecutorService manualSearchExecutor = Executors.newSingleThreadExecutor();
 
@@ -101,6 +102,7 @@ public class BoreLabActivity extends Activity {
         settings.setAllowFileAccessFromFileURLs(false);
         settings.setAllowUniversalAccessFromFileURLs(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        closeoutFiles = new CloseoutFiles(this, webView);
         webView.addJavascriptInterface(new FileExportBridge(), "BoreLabNative");
 
         webView.setWebViewClient(new WebViewClient() {
@@ -223,6 +225,7 @@ public class BoreLabActivity extends Activity {
 
     @Override protected void onActivityResult(int code, int resultCode, Intent data) {
         super.onActivityResult(code, resultCode, data);
+        if (closeoutFiles != null && closeoutFiles.onResult(code, resultCode, data)) return;
         if (code == REQ_FILE && fileCallback != null) {
             Uri[] selected = null;
             if (resultCode == RESULT_OK) {
@@ -727,6 +730,14 @@ public class BoreLabActivity extends Activity {
     }
 
     final class FileExportBridge {
+        @JavascriptInterface public void importCloseoutPlan(String jobId) { closeoutFiles.importPlan(jobId); }
+        @JavascriptInterface public String listCloseoutPlans(String jobId) { return closeoutFiles.listPlans(jobId); }
+        @JavascriptInterface public void openCloseoutPlan(String id) { closeoutFiles.openPlan(id); }
+        @JavascriptInterface public void deleteCloseoutPlan(String id) { closeoutFiles.deletePlan(id); }
+        @JavascriptInterface public void connectCloseoutFolder() { closeoutFiles.connectFolder(); }
+        @JavascriptInterface public String closeoutFolderName() { return closeoutFiles.folderName(); }
+        @JavascriptInterface public void exportCloseoutFolder(String name, String mime, String base64) { closeoutFiles.exportFolder(name,mime,base64); }
+        @JavascriptInterface public void exportCloseoutPdfFolder(String name, String reportJson) { closeoutFiles.exportPdfFolder(name,reportJson); }
         @JavascriptInterface public void importFieldVideo(){selectFieldVideo(false);}
         @JavascriptInterface public void recordFieldVideo(){selectFieldVideo(true);}
         @JavascriptInterface public boolean deleteFieldVideo(String id){return deleteFieldVideoFile(id);}
