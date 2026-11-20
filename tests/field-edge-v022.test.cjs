@@ -16,7 +16,7 @@ assert(html.includes('window.BoreLabEdgeV22?.isPeekOpen?.()'),'Back closes Peek'
 assert(html.includes('Field Hub / Photo Inbox'),'Photo library links to inbox');
 assert(css.includes('touch-action:none')&&css.includes('.be-peek')&&css.includes('.be-undo-toast'),'Edge dragging and Peek CSS');
 assert(nav.includes("handleTabClick?.(e)")&&nav.includes("page:'fieldhub'"),'Right-hand drawer exposes Field Hub');
-assert(fab.includes('contextActions=page=>window.BoreLabEdgeV22?.pageActions?.(page)||actions'),'Context-sensitive + actions');
+assert(fab.includes('window.BoreLabFieldCommand3?.fabActions?.(page)')&&fab.includes('window.BoreLabEdgeV22?.pageActions?.(page)||actions'),'Context-sensitive + actions and prior Edge fallback preserved');
 assert(ops.includes("offerSaveNext?.(jobId,shotId,'completed')"),'Bore completion offers next shot');
 assert(ops.includes('async function undo(id,quick=false)')&&ops.includes('recent?.id!==id'),'One-tap Undo preserves journal protections');
 assert(ab.includes('for(const marker of job.fieldMarkers||[])')&&ab.includes('for(const arrival of job.arrivalLog||[])'),'New records are part of daily history');
