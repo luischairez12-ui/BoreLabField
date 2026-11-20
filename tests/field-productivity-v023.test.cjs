@@ -16,7 +16,7 @@ assert(html.includes('fieldproductivity:()=>window.BoreLabProductivity?.render?.
 assert(nav.includes("page:'fieldproductivity'"),'Edge drawer offers Productivity');
 assert(home.includes('window.BoreLabProductivity?.homeLinks?.()'),'Home has 3 productivity shortcuts');
 assert(html.includes('window.BoreLabHomeCollapse?.sync?.()'),'Scroll mini-header sync runs after page render');
-assert(html.includes('BoreLab Field · v0.28.0'),'Expected v0.23 version');
+assert(html.includes('BoreLab Field · v0.29.0'),'Expected v0.23 version');
 assert(read('web/field-productivity-v023.css').includes('.bp-sticky-job'),'Compact hero header CSS is present');
 assert(read('web/home-collapse-v023.js').includes('getBoundingClientRect().bottom>top+8'),'Hero collapse responds to scroll visibility');
 const job={id:'j1',jobName:'South Glades',allowance:10,shots:[
