@@ -1,0 +1,42 @@
+/* BoreLab Field 0.26.2: compact orange-and-white Field Command navigation */
+.ux-command-deck{background:linear-gradient(150deg,#fff4e9,#fff 47%,#fffaf3);padding:15px;border:1px solid #f3cfad;border-radius:22px;margin:19px 0;box-shadow:0 8px 24px #a66b2115}
+.ux-command-heading{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;margin-bottom:13px}
+.ux-command-heading h2{font-size:22px;margin:3px 0 6px;color:#243541;letter-spacing:-.5px}
+.ux-command-heading p{font-size:12px;color:#687987;line-height:1.45}
+.ux-command-count{flex:none;border:1px solid #f1d2ae;border-radius:999px;padding:7px 8px;background:#fff;color:#b56a23;font-size:10px;font-weight:850}
+.ux-command-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:5px;border-radius:16px;background:#f0f1f2;border:1px solid #e3e6e9;margin-bottom:12px}
+.ux-command-tab{background:transparent;border:0;border-radius:12px;min-width:0;min-height:61px;padding:9px 4px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;color:#677584;font-size:11px;font-weight:850;line-height:1.15}
+.ux-command-tab span{font-size:19px;line-height:20px}
+.ux-command-tab strong{font-size:11px;text-align:center}
+.ux-command-tab[aria-selected="true"]{background:linear-gradient(130deg,#fa952c,#ec7018);color:#fff;box-shadow:0 4px 9px #e5762760}
+.ux-command-tab:focus-visible{outline:3px solid #f99731;outline-offset:2px}
+.ux-command-panel[hidden]{display:none!important}
+.ux-command-panel-intro{font-size:11px;color:#687986;line-height:1.45;margin:3px 1px 11px}
+.ux-command-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.ux-command-card{display:flex;align-items:center;gap:9px;padding:11px;min-width:0;min-height:82px;background:white;border:1px solid #e0e6eb;border-radius:15px;text-align:left;color:#223542;box-shadow:0 3px 9px #1a364711;transition:transform .12s ease}
+.ux-command-card:active{transform:scale(.98)}
+.ux-command-card:focus-visible{outline:3px solid #ff952d;outline-offset:2px}
+.ux-command-card .ux-command-card-icon{display:grid;place-items:center;flex:none;width:36px;height:38px;border-radius:12px;font-size:21px;font-weight:900;color:#d26c18;background:#fff0df}
+.ux-command-card:nth-child(4n+2) .ux-command-card-icon{color:#137e72;background:#e8f6f1}
+.ux-command-card:nth-child(4n+3) .ux-command-card-icon{color:#3878ae;background:#e8f1fd}
+.ux-command-card:nth-child(4n+4) .ux-command-card-icon{color:#795eaa;background:#f0edfa}
+.ux-command-card-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px}
+.ux-command-card-copy strong{font-size:12px;line-height:1.23;overflow-wrap:anywhere}
+.ux-command-card-copy small{font-size:10px;line-height:1.34;color:#71818c;overflow-wrap:anywhere}
+.ux-command-card-chevron{flex:none;font-size:17px;color:#adbac4}
+.ux-command-card.is-featured{grid-column:1/-1;background:linear-gradient(120deg,#fff0de,#fffaf6);border-color:#eec69b}
+.ux-command-card.is-featured .ux-command-card-icon{width:43px;height:43px;background:linear-gradient(135deg,#fb982d,#e97817);color:white}
+.ux-command-hint{font-size:10px;line-height:1.45;color:#81909b;margin:11px 2px 0}
+.blc-quicktabs{display:flex;overflow-x:auto;gap:7px;padding:2px 0 7px;scrollbar-width:none;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.blc-quicktabs::-webkit-scrollbar{display:none}
+.blc-quicktab{scroll-snap-align:start;display:flex;align-items:center;gap:6px;flex:none;min-height:42px;white-space:nowrap;border:1px solid #dfe5eb;border-radius:99px;background:#fff;color:#597083;padding:9px 13px;font-size:12px;font-weight:850}
+.blc-quicktab .blc-quick-icon{font-size:16px}
+.blc-quicktab[aria-current="page"]{background:linear-gradient(120deg,#fb922e,#eb701b);color:#fff;border-color:#ec7923;box-shadow:0 3px 9px #e6782960}
+.blc-quicktab:focus-visible{outline:3px solid #fa9a3b;outline-offset:2px}
+@media(min-width:710px){.ux-command-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.ux-command-card.is-featured{grid-column:span 2}.ux-command-deck{padding:19px}}
+@media(max-width:380px){.ux-command-deck{padding:10px}.ux-command-count{padding:6px;font-size:9px}.ux-command-card{gap:6px;padding:8px;min-height:80px}.ux-command-card .ux-command-card-icon{width:31px;height:33px;font-size:18px}.ux-command-card-copy strong{font-size:11px}.ux-command-card-copy small{font-size:9px}.ux-command-card-chevron{display:none}.ux-command-tab strong{font-size:10px}}
+html[data-field-mode="on"] .ux-command-card{min-height:104px}
+html[data-field-mode="on"] .ux-command-tab{min-height:72px}
+html[data-large-text="on"] .ux-command-card-copy strong{font-size:15px}
+html[data-large-text="on"] .ux-command-card-copy small{font-size:12px}
+@media(prefers-reduced-motion:reduce){.ux-command-card{transition:none}}
