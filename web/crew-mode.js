@@ -104,10 +104,11 @@ function hoursCard(p,full=false){
  hourList(p,full)+'<p class="cm-micro">Hours reflect existing saved time entries and unpaid lunches. Only a foreman can review or edit historical entries in this prototype.</p></section>';
 }
 function tasksCard(p,j){
- const a=chosenAssignment(p),pending=(j?.shots||[]).filter(s=>s.status!=='complete');
+ const a=chosenAssignment(p),pending=(j?.shots||[]).filter(s=>s.status!=='complete'),assignedEquipment=(st().equipment||[]).find(e=>e.id===a?.equipmentId);
  return '<section class="cm-card"><div class="cm-section-head"><span class="cm-section-icon">▦</span><div>'+
  '<strong>My Assignments</strong><small>'+esc(today())+' · '+esc(j?.jobName||'No job')+'</small></div></div>'+
  '<div class="cm-assignment-role"><span>'+(a?'Today’s Role':'Regular Role')+'</span><strong>'+esc(a?.role||p?.primaryRole||'Not assigned')+'</strong></div>'+
+ (assignedEquipment?'<div class="cm-work-note"><strong>Assigned Equipment</strong><p>'+esc(assignedEquipment.name)+'</p></div>':'')+
  (a?.notes?'<div class="cm-work-note"><strong>Work instructions</strong><p>'+esc(a.notes)+'</p></div>':
  '<p class="cm-muted">No personal task notes saved yet. Ask the foreman for today’s responsibilities.</p>')+
  '<div class="cm-shot-heading"><strong>Upcoming Bores</strong><small>'+pending.length+' pending</small></div>'+

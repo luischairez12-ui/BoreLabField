@@ -19,7 +19,7 @@ let query='';
 function searchRecords(value){
  const q=String(value||'').trim().toLowerCase().slice(0,100),result=[];
  if(q.length<2)return result;
- const match=(...text)=>text.some(x=>String(x||'').toLowerCase().includes(q));
+ const match=(...text)=>text.some(x=>{const value=String(x||'').toLowerCase();if(value.includes(q))return true;if(/^\d{4}-\d{2}-\d{2}/.test(value)){const d=new Date(value.length===10?value+'T12:00:00':value);return Number.isFinite(+d)&&d.toLocaleDateString('en-US').toLowerCase().includes(q)}return false});
  const push=(type,label,detail,jobId,id)=>result.push({type,label:String(label||'Unknown'),detail:String(detail||''),jobId:jobId||'',id:id||''});
  for(const j of jobs()){
   if(match(j.jobName,j.jobAddress,j.jobNotes,j.id))push('job',j.jobName,j.jobAddress||'Saved job',j.id,j.id);

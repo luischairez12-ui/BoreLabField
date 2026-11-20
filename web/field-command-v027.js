@@ -26,7 +26,7 @@ const badgeText=id=>{const c=count();return ({command:c.pending&&c.pending+' pen
  jobmap:c.gps&&c.gps+' GPS',crewmanager2:c.open&&c.open+' on shift',
  phototimeline2:c.after&&c.after+' After missing',photosmart:c.after&&c.after+' After missing',
  equipmentmanager2:c.issue&&c.issue+' issues',dayassist:c.after+c.open&&(c.after+c.open)+' to review'})[id]||''};
-let edit=false,timer=null,suppressUntil=0,drag=null;
+let edit=false,timer=null,suppressUntil=0,drag=null,pressAt=null;
 function items(group){
  const panel=document.getElementById('ux-command-panel-'+group);
  return panel?[...panel.querySelectorAll('.ux-command-card')].map(node=>({id:node.dataset.page||'lock',node})):[];
@@ -114,9 +114,9 @@ document.addEventListener('click',e=>{
 },{capture:true});
 document.addEventListener('pointerdown',e=>{
  const card=e.target.closest?.('.ux-command-card');if(!card||edit)return;
- clearTimeout(timer);timer=setTimeout(()=>{edit=true;suppressUntil=Date.now()+1000;api()?.render?.();api()?.notify?.('Edit mode: use arrows to move cards, or hide unused tools.');},600);
+ clearTimeout(timer);pressAt={x:e.clientX,y:e.clientY};timer=setTimeout(()=>{edit=true;suppressUntil=Date.now()+1000;api()?.render?.();api()?.notify?.('Edit mode: use arrows to move cards, or hide unused tools.');},600);
 });
-['pointerup','pointercancel','pointermove'].forEach(type=>document.addEventListener(type,e=>{if(type!=='pointermove'||Math.abs(e.movementX||0)+Math.abs(e.movementY||0)>12)clearTimeout(timer)}));
+['pointerup','pointercancel','pointermove'].forEach(type=>document.addEventListener(type,e=>{if(type!=='pointermove'||pressAt&&Math.hypot((e.clientX||0)-pressAt.x,(e.clientY||0)-pressAt.y)>12){clearTimeout(timer);pressAt=null}}));
 document.addEventListener('dragstart',e=>{const card=e.target.closest?.('.ux-command-card');if(edit&&card)drag={id:card.dataset.page||'lock',group:card.closest('.ux-command-panel')?.id?.replace('ux-command-panel-','')}});
 document.addEventListener('dragover',e=>{if(drag&&e.target.closest?.('.ux-command-card'))e.preventDefault()});
 document.addEventListener('drop',e=>{
