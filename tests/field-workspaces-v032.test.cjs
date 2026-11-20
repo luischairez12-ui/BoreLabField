@@ -1,0 +1,75 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const read=p=>fs.readFileSync(p,'utf8');
+const html=read('web/index.html');
+assert.equal(html,read('app/src/main/assets/web/index.html'),'HTML and Android assets mirror each other');
+for(const file of ['field-navigation.js','field-fab.js','field-workspaces-v032.js','field-workspaces-v032.css','unified-search-v028.js']){
+ assert.equal(read('web/'+file),read('app/src/main/assets/web/'+file),'Unmirrored asset '+file);
+ assert(html.includes('./'+file),'Missing page asset '+file);
+}
+const inline=html.split('<script>')[1].split('</script>')[0];
+for(const src of [inline,read('web/field-navigation.js'),read('web/field-fab.js'),read('web/field-workspaces-v032.js'),read('web/unified-search-v028.js')])new Function(src);
+assert(html.includes("const KEY='borelab-field-v0.1'"),'Existing offline storage key must not change');
+assert(html.includes("'pipe','equipment','toolinventory','mudhub'"),'New destinations are registered');
+assert(html.includes("p==='equipmentmanager2'||p==='manuals'"),'Legacy Equipment and manual links route into Equipment');
+assert(html.includes("p==='mud'||p==='mudstock'"),'Legacy Mixer and mud inventory links route into Mud');
+assert(html.includes('BoreLabWorkspacesV32?.renderEquipment')&&html.includes('BoreLabWorkspacesV32?.renderToolInventory')&&html.includes('BoreLabWorkspacesV32?.renderMud'));
+assert(!html.includes('♙ Crew Management 2.0 ›'),'Crew Hours duplicate shortcut removed');
+assert(!html.includes('BoreLab Field · v0.31.0'),'No version number in everyday app footer');
+const nav=read('web/field-navigation.js');
+for(const name of ['Equipment','Tool Inventory','Mud','Pipe Reels','Field Command'])assert(nav.includes("name:'"+name+"'"),'Sidebar missing '+name);
+assert(nav.includes("'pipe','equipment','toolinventory','mudhub','closeout'"),'All three independent tabs are visible');
+const state={equipment:[{id:'e1',name:'Vermeer D24x40',type:'Drill'},{id:'e2',name:'Crew Truck',type:'Truck'}],
+ equipmentIssuesV2:[{equipmentId:'e1',closedAt:''}],mudProducts:[{id:'m1',name:'Bentonite'}],
+ toolInventoryV1:[],toolIssuesV1:[],toolHistoryV1:[],
+ jobs:[{id:'j1',jobName:'North Glades',archived:false}],activeJobId:'j1'};
+let saves=0,renders=0,id=0;const docs={};
+const doc={addEventListener:(type,cb)=>(docs[type]??=[]).push(cb),querySelector:()=>null};
+const win={BoreLabAssistantBridge:{state:()=>state,save:()=>saves++,render:()=>renders++,currentPage:()=> 'toolinventory',uid:()=> 'gen-'+(++id),notify:()=>{},refreshManualFiles:()=>{}},
+ BoreLabConnectedOps3:{renderEquipment:()=>'<div>Existing fleet, repairs and maintenance records</div>'}};
+const storage={getItem:()=>null,setItem:()=>{}};
+vm.runInNewContext(read('web/field-workspaces-v032.js'),{window:win,document:doc,sessionStorage:storage,FormData,Date,Number,String,Object,JSON,Array,Math,console});
+const ws=win.BoreLabWorkspacesV32;
+assert(ws,'Workspaces module exported');
+let equip=ws.renderEquipment({manuals:()=>'<div>Drill PDFs</div>'});
+assert(equip.includes('Drills, trucks, repairs, service')&&equip.includes('Existing fleet, repairs and maintenance records'));
+assert(equip.includes('Fleet & Maintenance')&&equip.includes('Drill Manuals'));
+assert(ws.selectTab('equipment','manuals',false));
+equip=ws.renderEquipment({manuals:()=>'<div>Operator Manual and Parts</div>'});
+assert(equip.includes('Operator Manual and Parts'));
+assert(ws.renderMud({mixer:()=>'<div>Tank Top-Off Calculator</div>',stock:()=>'<div>Additive Stock</div>'}).includes('Tank Top-Off Calculator'));
+ws.selectTab('mud','stock',false);
+assert(ws.renderMud({mixer:()=>'<div>Tank Top-Off Calculator</div>',stock:()=>'<div>Additive Stock</div>'}).includes('Additive Stock'));
+assert(ws.renderToolInventory().includes('Your tool inventory is empty'),'Never invent starting quantities');
+let result=ws.addOrUpdateTool({name:'6-inch pulling head',category:'Pulling Heads',qty:3,size:'6 in',location:'Truck',condition:'Good'},'');
+assert(result.ok,'Add pulling head');let toolId=result.id;
+assert.equal(state.toolInventoryV1.length,1);
+assert(ws.renderToolInventory().includes('6-inch pulling head'));
+assert.equal(ws.available(state.toolInventoryV1[0]),3);
+result=ws.checkoutTool(toolId,2,'Juan','j1');assert(result.ok,'Check out two pulling heads');
+assert.equal(state.toolIssuesV1.length,1);
+assert.equal(state.toolIssuesV1[0].jobName,'North Glades');
+assert.equal(ws.available(state.toolInventoryV1[0]),1);
+assert(ws.renderToolInventory().includes('Juan'),'Active checkout shown in tool card');
+assert.equal(ws.checkoutTool(toolId,2,'Carlos').ok,false,'No over-issuing');
+assert.equal(ws.archiveTool(toolId).ok,false,'Cannot archive checked-out tooling');
+assert.equal(ws.addOrUpdateTool({name:'6-inch pulling head',category:'Pulling Heads',qty:1,location:'Truck',condition:'Good'},toolId).ok,false,'Cannot reduce owned count below outstanding');
+const issueId=state.toolIssuesV1[0].id;
+assert(ws.returnTool(issueId,1).ok);assert.equal(ws.available(state.toolInventoryV1[0]),2);
+assert.equal(ws.returnTool(issueId,2).ok,false,'Cannot over-return');
+assert(ws.returnTool(issueId,1).ok);
+assert.equal(ws.available(state.toolInventoryV1[0]),3);
+assert(ws.archiveTool(toolId).ok);
+assert.equal(state.toolInventoryV1.length,1,'Archiving does not delete records');
+assert.equal(ws.renderToolInventory().includes('6-inch pulling head'),false,'Archived items hidden');
+result=ws.addOrUpdateTool({name:'12-inch reamer',category:'Reamers',qty:1,location:'Shop',condition:'Out of Service'},'');
+assert(result.ok);assert.equal(ws.checkoutTool(result.id,1,'Juan').ok,false,'Out-of-service tools cannot be issued');
+result=ws.addOrUpdateTool({name:'Locator wand',category:'Locator Gear',qty:1,location:'Truck',condition:'Good'},'');
+assert(result.ok);
+win.BoreLabFieldInfo3={searchRecords:()=>[]};
+vm.runInNewContext(read('web/unified-search-v028.js'),{window:win});
+const search=win.BoreLabUnifiedSearchV28.search('locator wand');
+assert(search.some(r=>r.type==='tool'&&r.id===result.id),'Global search indexes tools');
+assert(win.BoreLabUnifiedSearchV28.search('Bentonite').some(r=>r.type==='mudproduct'),'Mud inventory remains searchable');
+assert(saves>=6&&renders>=6,'Inventory operations save to existing offline app state');
+console.log('BoreLab v0.32 sidebar hubs, version-free labels, offline tool quantities, check-outs/returns and search PASS');
