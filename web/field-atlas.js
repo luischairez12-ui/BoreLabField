@@ -42,6 +42,18 @@ function points(){
    }
   }
  }
+ // Full saved map: include endpoints even when the bore has no center GPS pin.
+ if(ab()?.getAtlasDayMode?.()!=='selected'){
+  const root=api()?.state?.()||{};
+  for(const j of root.jobs||[]){
+   if(ab()?.getScope?.()==='job'&&j.id!==root.activeJobId)continue;
+   for(const shot of j.shots||[])for(const [field,label] of [['asbuiltStart','Entry point'],['asbuiltEnd','Exit point']]){
+    const r=shot[field],id=key(j.id,field,shot.id);if(!valid(r)||indexed.has(id))continue;
+    indexed.set(id,{key:id,jobId:j.id,jobName:j.jobName||'Job',type:field,record:r,shot,
+     title:(shot.name||'Bore')+' · '+label,dates:['GPS reference'],events:[],lat:Number(r.lat),lon:Number(r.lon)});
+   }
+  }
+ }
  // Actual bore entry and exit positions are recorded endpoints, not inferred points on the underground line.
  const existing=new Set(indexed.keys());
  for(const job of api()?.state?.()?.jobs||[]){
@@ -108,10 +120,10 @@ function draw(){
  const w=el.clientWidth||350,h=el.clientHeight||430,c=proj(view.center.lat,view.center.lon,view.zoom),grouped=groups(all,w,h,c);
  const marks=grouped.map(g=>{
   const first=g.items[0],n=g.items.length,many=n>1,selected=g.items.some(x=>x.key===selectedKey);
-  const icon=many?String(n):first.type==='photo'?'▣':first.type==='pin'?({coupling:'C',box:'B','tie-in':'T'}[first.record.kind]||'📌'):first.type==='shot'?'⌁':first.type==='marker'?'⚠':first.type==='arrival'?'⌖':'◎';
+  const icon=many?String(n):first.type==='photo'?'▣':first.type==='pin'?(window.BoreLabFieldPins?.symbolFor?.(first.record)||'📌'):first.type==='shot'?'⌁':first.type==='marker'?'⚠':first.type==='arrival'?'⌖':'◎';
   return '<button class="atlas-marker atlas-'+esc(first.type)+(selected?' selected':'')+(many?' grouped':'')+'" data-atlas-point="'+esc(g.key)+'" style="left:'+Math.round(g.x)+'px;top:'+Math.round(g.y)+'px" aria-label="'+esc(many?n+' field records':first.title)+'"><b>'+esc(icon)+'</b></button>';
  }).join('');
- const lines=all.filter(p=>p.type==='shot'&&valid(p.record.asbuiltStart)&&valid(p.record.asbuiltEnd)).map(p=>{
+ const lines=(api()?.state?.()?.jobs||[]).filter(j=>ab()?.getScope?.()!=='job'||j.id===api()?.state?.()?.activeJobId).flatMap(j=>(j.shots||[]).filter(s=>valid(s.asbuiltStart)&&valid(s.asbuiltEnd)).map(s=>({record:s,jobId:j.id}))).filter(p=>all.some(x=>x.jobId===p.jobId&&(x.shot?.id===p.record.id||x.record?.id===p.record.id))).map(p=>{
   const a=proj(p.record.asbuiltStart.lat,p.record.asbuiltStart.lon,view.zoom),b=proj(p.record.asbuiltEnd.lat,p.record.asbuiltEnd.lon,view.zoom);
   return '<line x1="'+(a.x-c.x+w/2).toFixed(1)+'" y1="'+(a.y-c.y+h/2).toFixed(1)+'" x2="'+(b.x-c.x+w/2).toFixed(1)+'" y2="'+(b.y-c.y+h/2).toFixed(1)+'" stroke="#16ccbe" stroke-width="3" stroke-linecap="round"/>';
  }).join('');
@@ -150,7 +162,7 @@ function renderAtlas(){
  '<div class="atlas-controls"><button data-atlas-zoom="1" aria-label="Zoom in">＋</button><button data-atlas-zoom="-1" aria-label="Zoom out">−</button><button data-atlas-fit aria-label="Fit locations">⌖</button></div>'+
  '</div><p class="atlas-attribution">'+(mode==='street'?'© OpenStreetMap contributors · ':'')+'Offline plot keeps saved coordinates · no survey accuracy implied</p>'+
  (members.length?clusterCard(members):selected?card(selected):'')+
- '<div class="atlas-legend"><span>⌁ Bores</span><span>📌 Installations</span><span>▣ Photos</span><span>⚠ Field Markers</span><span>◎ Endpoints</span></div>'+
+ '<div class="atlas-legend"><span>⌁ Bores</span><span>📌 Installations</span><span>▣ Photos</span><span>⚠ Field Markers</span><span>◎ Endpoints</span><span>HH Handhole</span><span>C Coupling</span><span>B Box</span><span>★ Custom</span></div>'+
  '<p class="tiny muted">This atlas is for viewing and revisiting recorded work. Entry-to-exit lines show straight GPS references, not the actual underground drill trajectory.</p></section>';
 }
 function findPoint(id){return points().find(p=>p.key===id)}

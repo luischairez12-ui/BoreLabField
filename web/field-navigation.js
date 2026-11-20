@@ -16,7 +16,7 @@ const shortcuts=[
  {page:'crossings',icon:'⚠',name:'Utility Crossings',detail:'Measured crossing records'},
  {page:'planner',icon:'⌁',name:'Bores',detail:'Shot planner'},
  {page:'shotboard',icon:'☷',name:'Today’s Shot Board',detail:'Daily work'},
- {page:'photos',icon:'▣',name:'Photos',detail:'Jobsite evidence'},
+ {page:'photos',icon:'▣',name:'Media Vault',detail:'Photos, videos & field evidence'},
  {page:'crew',icon:'♙',name:'Crew',detail:'Hours and attendance'},
  {page:'pipe',icon:'◈',name:'Pipe Inventory',detail:'Reels and material'},
  {page:'closeout',icon:'✓',name:'Reports & Closeout',detail:'Review and export'},

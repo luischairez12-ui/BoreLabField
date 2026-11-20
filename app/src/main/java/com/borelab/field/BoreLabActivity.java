@@ -5,7 +5,10 @@ import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.ClipData;
 import android.database.Cursor;
+import java.util.UUID;
+import java.io.IOException;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -62,11 +65,15 @@ public class BoreLabActivity extends Activity {
     private static final int REQ_SAVE = 43;
     private static final int REQ_MANUAL = 44;
     private static final int REQ_VOICE = 45;
+    private static final int REQ_VIDEO = 46;
+    private static final long MAX_VIDEO_BYTES = 200L * 1024L * 1024L;
     private static final long MAX_MANUAL_BYTES = 80L * 1024L * 1024L;
 
     private WebView webView;
     private ValueCallback<Uri[]> fileCallback;
     private Uri capturedPhotoUri;
+    private Uri capturedVideoUri;
+    private File capturedVideoFile;
     private GeolocationPermissions.Callback pendingLocation;
     private String pendingLocationOrigin;
     private byte[] exportBytes;
@@ -228,6 +235,14 @@ public class BoreLabActivity extends Activity {
             fileCallback.onReceiveValue(selected);
             fileCallback = null;
             capturedPhotoUri = null;
+        } else if (code == REQ_VIDEO) {
+            Uri selected = resultCode == RESULT_OK && data != null ? data.getData() : null;
+            if (selected == null && resultCode == RESULT_OK && capturedVideoFile != null && capturedVideoFile.isFile()
+                    && capturedVideoFile.length() > 0L) selected = capturedVideoUri;
+            if (selected != null) copyFieldVideo(selected);
+            else toast("Video not added.");
+            capturedVideoUri = null;
+            capturedVideoFile = null;
         } else if (code == REQ_MANUAL) {
             final String slot = pendingManualSlot;
             pendingManualSlot = null;
@@ -620,7 +635,117 @@ public class BoreLabActivity extends Activity {
         });
     }
 
+    /** Videos are stored as private Android files rather than base64 strings in IndexedDB.
+     *  Camera clips and imported clips share the same 200MB per-file limit.
+     */
+    private void selectFieldVideo(boolean record) {
+        runOnUiThread(() -> {
+            try {
+                if(record) {
+                    File dir = new File(getCacheDir(), "captures");
+                    if(!dir.isDirectory() && !dir.mkdirs())throw new IOException("Camera cache unavailable");
+                    File tmp = new File(dir, "capture_" + UUID.randomUUID().toString() + ".mp4");
+                    capturedVideoFile = tmp;
+                    capturedVideoUri = FileProvider.getUriForFile(this, getPackageName() + ".manuals", tmp);
+                    Intent camera = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+                    camera.putExtra(MediaStore.EXTRA_OUTPUT, capturedVideoUri);
+                    camera.putExtra(MediaStore.EXTRA_DURATION_LIMIT, 60);
+                    camera.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                    camera.setClipData(ClipData.newRawUri("BoreLab field video", capturedVideoUri));
+                    startActivityForResult(camera, REQ_VIDEO);
+                } else {
+                    Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                    pick.addCategory(Intent.CATEGORY_OPENABLE);
+                    pick.setType("video/*");
+                    startActivityForResult(pick, REQ_VIDEO);
+                }
+            } catch(Exception e) {
+                capturedVideoUri = null;capturedVideoFile = null;
+                toast("Unable to open video capture/picker: " + e.getMessage());
+                reportFieldVideo("{\"error\":\"Video picker unavailable\"}");
+            }
+        });
+    }
+
+    private void reportFieldVideo(String resultJson) {
+        runOnUiThread(() -> {
+            if(webView != null)webView.evaluateJavascript(
+                "window.BoreLabMediaV25 && window.BoreLabMediaV25.onVideoImported(" +
+                resultJson + ");", null);
+        });
+    }
+
+    private void copyFieldVideo(Uri source) {
+        final File captureToClean=capturedVideoFile;
+        new Thread(() -> {
+            File target = null;
+            try {
+                String type = getContentResolver().getType(source);
+                if(type == null)type = "video/mp4";
+                if(!type.startsWith("video/"))throw new IOException("Selected file is not a video");
+                String extension = type.contains("webm") ? ".webm" : type.contains("quicktime") ? ".mov" :
+                    type.contains("3gpp") ? ".3gp" : ".mp4";
+                String id=UUID.randomUUID().toString();
+                File folder = new File(getFilesDir(), "field_videos");
+                if(!folder.isDirectory()&&!folder.mkdirs())throw new IOException("Video storage unavailable");
+                target = new File(folder, id+extension);
+                long total=0L;
+                try(InputStream in=getContentResolver().openInputStream(source);
+                    OutputStream out=new FileOutputStream(target)){
+                    if(in==null)throw new IOException("Selected video could not be read");
+                    byte[] buffer=new byte[64*1024];int count;
+                    while((count=in.read(buffer))!=-1){
+                        total+=count;
+                        if(total>MAX_VIDEO_BYTES)throw new IOException("Video exceeds 200 MB. Select a shorter clip.");
+                        out.write(buffer,0,count);
+                    }
+                }
+                if(total<=0L)throw new IOException("Selected video was empty");
+                Uri playable=FileProvider.getUriForFile(this,getPackageName()+".manuals",target);
+                JSONObject data=new JSONObject();
+                data.put("id",id);data.put("uri",playable.toString());data.put("mime",type);
+                data.put("bytes",total);data.put("addedAt",new java.util.Date().toInstant().toString());
+                reportFieldVideo(data.toString());
+                target=null;
+            }catch(Exception e){
+                try{JSONObject problem=new JSONObject();problem.put("error",e.getMessage()==null?"Unable to save video":e.getMessage());reportFieldVideo(problem.toString());}
+                catch(Exception ignored){reportFieldVideo("{\"error\":\"Unable to save video\"}");}
+            }finally{
+                if(target!=null && target.exists())target.delete();
+                if(captureToClean!=null && captureToClean.exists())captureToClean.delete();
+            }
+        },"BoreLab-video-copy").start();
+    }
+    private boolean deleteFieldVideoFile(String id){
+        if(id==null||!id.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"))return false;
+        File folder=new File(getFilesDir(),"field_videos");
+        for(String ext:new String[]{".mp4",".webm",".mov",".3gp"}){
+            File file=new File(folder,id+ext);
+            if(file.isFile())return file.delete();
+        }
+        return false;
+    }
+
     final class FileExportBridge {
+        @JavascriptInterface public void importFieldVideo(){selectFieldVideo(false);}
+        @JavascriptInterface public void recordFieldVideo(){selectFieldVideo(true);}
+        @JavascriptInterface public boolean deleteFieldVideo(String id){return deleteFieldVideoFile(id);}
+        @JavascriptInterface public void shareFieldVideo(String contentUri) {
+            runOnUiThread(()->{
+                try{
+                    Uri uri=Uri.parse(contentUri);
+                    if(!"content".equals(uri.getScheme()) ||
+                       !(getPackageName()+".manuals").equals(uri.getAuthority()))throw new SecurityException("Only saved BoreLab videos may be shared");
+                    Intent send=new Intent(Intent.ACTION_SEND);
+                    send.setType(getContentResolver().getType(uri));
+                    send.putExtra(Intent.EXTRA_STREAM,uri);
+                    send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    send.setClipData(ClipData.newRawUri("BoreLab field video",uri));
+                    startActivity(Intent.createChooser(send,"Export BoreLab video"));
+                }catch(Exception err){toast("Unable to share video: "+err.getMessage());}
+            });
+        }
+
         /** Mi OS Daily sends its own immutable daily-log IDs, never a direct pipe transaction. */
         @JavascriptInterface public String getLauncherLogs() {
             try (Cursor rows=getContentResolver().query(

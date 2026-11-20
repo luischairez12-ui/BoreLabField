@@ -1,0 +1,38 @@
+/* BoreLab Field v0.25 – mapping, marked locations, media and crew attribution */
+.v25-vault{display:grid;gap:14px;padding-bottom:92px!important}
+.v25-vault>h1{font-size:27px;margin:0;letter-spacing:-.6px}
+.v25-actions{display:flex;gap:7px;flex-wrap:wrap}
+.v25-actions button{flex:1 1 140px;min-height:44px}
+.v25-summary{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid #f0d7bd;border-radius:13px;background:linear-gradient(110deg,#fff8ef,#fff)}
+.v25-summary strong{font-size:14px;color:#9f530e}.v25-summary small{font-size:11px;color:#6b7985}
+.v25-filters{display:grid;grid-template-columns:120px minmax(0,1fr);gap:8px}
+.v25-filters label{display:grid;gap:4px;font-size:10px;font-weight:800;color:#626b72}
+.v25-filters select,.v25-filters input{width:100%;height:43px;border-radius:10px;border:1px solid #d1dce4;padding:0 8px;background:white;color:#273b4c;min-width:0}
+.v25-media-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.v25-media-card{display:flex;flex-direction:column;text-align:left;overflow:hidden;border-radius:14px;border:1px solid #d7e1e8;background:#fff;padding:0;min-height:170px;color:#223747;box-shadow:0 2px 10px #1426380c}
+.v25-media-card img,.v25-video-tile{width:100%;height:136px;object-fit:cover;background:#1a2d3b}
+.v25-video-tile{position:relative;overflow:hidden}
+.v25-video-tile video{height:100%;width:100%;object-fit:cover;pointer-events:none}
+.v25-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;background:#000b;color:#fff;font-size:19px;font-weight:900;width:43px;height:43px;display:grid;place-items:center;border:2px solid #fff9}
+.v25-media-info{display:grid;gap:4px;padding:9px 10px;min-width:0}
+.v25-media-info strong{font-size:12px;line-height:1.35;overflow-wrap:anywhere}
+.v25-media-info small{color:#768997;font-size:10px;line-height:1.4}
+.v25-video-player{display:block;width:100%;min-height:160px;max-height:60vh;background:#0c141c;border-radius:12px}
+.v25-warning{padding:12px 13px;border:1px solid #f1cfaa;background:#fff8ee;color:#8d521b;border-radius:12px;font-size:11px;line-height:1.55}
+.v25-empty{grid-column:1/-1;padding:22px;border-radius:13px;background:#f6f8fa;border:1px dashed #c9d7e1;font-size:12px;color:#657985}
+.v25-symbol-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.v25-symbol-grid button{min-height:65px;padding:10px;border:1px solid #e9cfad;background:#fff9f3;border-radius:13px;display:flex;align-items:center;gap:8px;color:#704315;text-align:left;font-weight:800}
+.v25-symbol-grid button b{width:36px;min-width:36px;height:36px;border-radius:9px;background:#de7619;color:#fff;display:grid;place-items:center;font-size:14px}
+.v25-symbol-grid button span{font-size:12px;line-height:1.4}
+.blmap-lines.ab-endpoint-lines{pointer-events:none}
+.blmap-lines.ab-endpoint-lines [data-v25-boreline]{pointer-events:stroke!important}
+.blmap-legend span b{display:inline-grid;place-items:center;min-width:19px;margin-right:4px;color:#cf6818}
+.blmap-bottom{display:flex;flex-wrap:wrap;gap:7px}
+.blmap-bottom button{flex:1 1 110px;min-height:43px}
+.v25-crew-box{padding:12px 13px;background:#fff8f0;border:1px solid #ebd6c0;border-radius:12px;margin:12px 0}
+.v25-crew-box h4{margin:0 0 8px;color:#9a4d11;font-size:13px}
+.v25-crew-box .field{margin:5px 0 9px}
+.v25-crew-box select,.v25-crew-box input{max-width:100%}
+.v25-crew-metrics{display:flex;gap:10px;flex-wrap:wrap}
+@media(min-width:650px){.v25-media-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:380px){.v25-filters{grid-template-columns:1fr 1fr}.v25-media-card img,.v25-video-tile{height:110px}}

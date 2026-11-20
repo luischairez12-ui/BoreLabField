@@ -4,7 +4,9 @@
 'use strict';
 const api=()=>window.BoreLabAssistantBridge;
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const kindLabels={'tie-in':'Tie-in',coupling:'Coupling',box:'Box'};
+const kindLabels={'tie-in':'Tie-in',coupling:'Coupling',box:'Box',handhole:'Handhole (HH)',pedestal:'Pedestal',utility:'Utility',custom:'Custom symbol'};
+const symbols={'tie-in':'T',coupling:'C',box:'B',handhole:'HH',pedestal:'P',utility:'U',custom:'★'};
+const symbolFor=r=>r?.kind==='custom'?String(r.symbol||'★').trim().slice(0,3)||'★':symbols[r?.kind]||'📍';
 const kindLabel=x=>kindLabels[x]||'Field marker';
 const currentJob=()=>api()?.activeJob?.();
 const pins=()=>Array.isArray(currentJob()?.fieldPins)?currentJob().fieldPins:[];
@@ -56,7 +58,7 @@ function renderBoresTools(){
  '<div class="fp-add-row"><button type="button" class="btn primary" data-fp-add="tie-in">＋ Tie-in</button><button type="button" class="btn ghost" data-fp-add="coupling">＋ Coupling</button><button type="button" class="btn ghost" data-fp-add="box">＋ Box</button></div>'+
  '<p class="tiny muted spaced">Saved locations get pins on the Jobsite Map. A date can be entered even for work recorded afterward.</p></section>';
 }
-function editPin(id='',initialKind='tie-in'){
+function editPin(id='',initialKind='tie-in',mapPosition=null){
  const current=pins().find(p=>p.id===id);
  const kind=kindLabels[current?.kind]?current.kind:(kindLabels[initialKind]?initialKind:'tie-in');
  const name=current?.name||'';
@@ -64,16 +66,17 @@ function editPin(id='',initialKind='tie-in'){
  api()?.showModal?.('<div class="modal-head"><h2>'+(current?'Edit':'Add')+' Field Pin</h2><button class="icon-btn" type="button" data-action="close-modal">✕</button></div>'+
  '<p class="smalltext muted">Log the actual installed location. GPS is required for a map pin, but the record can be saved without it and located later.</p>'+
  '<form data-fp-form data-fp-id="'+esc(id)+'"><label class="field">Type<select name="kind" data-fp-kind-select>'+Object.keys(kindLabels).map(k=>'<option value="'+k+'"'+(k===kind?' selected':'')+'>'+kindLabel(k)+'</option>').join('')+'</select></label>'+
- '<label class="field">Label<input name="name" maxlength="80" value="'+esc(name)+'" placeholder="e.g. Coupling at STA 3+50"></label>'+
+ '<label class="field">Label<input name="name" maxlength="80" value="'+esc(name)+'" placeholder="e.g. Coupling at STA 3+50"></label>'+ 
+ '<label class="field" data-fp-only="custom"'+(kind==='custom'?'':' hidden')+'>Custom map symbol (1-3 characters)<input name="symbol" maxlength="3" value="'+esc(current?.symbol||'★')+'" placeholder="S1"></label>'+
  '<label class="field">Work date<input type="date" name="occurredDay" required value="'+esc(date)+'"></label>'+
  '<label class="field">Address / landmark (optional)<input name="address" maxlength="250" value="'+esc(current?.address||'')+'" placeholder="Nearest access point or street"></label>'+
   '<div class="fp-install-details"><p class="eyebrow">SMART INSTALLATION DETAILS</p><div class="form-grid"><label class="field">Station / reference<input name="station" maxlength="70" value="'+esc(current?.station||'')+'" placeholder="STA 3+50"></label><label class="field">Pipe / fitting size<input name="size" maxlength="70" value="'+esc(current?.size||'')+'" placeholder="2 in"></label><label class="field">Material<input name="material" maxlength="90" value="'+esc(current?.material||'')+'" placeholder="HDPE / PVC"></label><label class="field">Depth (ft)<input name="depth" type="number" min="0" max="200" step="any" value="'+esc(current?.depth??'')+'" placeholder="Optional"></label></div>'+ 
   '<label class="field" data-fp-only="tie-in"'+(kind==='tie-in'?'':' hidden')+'>Connection type<input name="connectionType" maxlength="100" value="'+esc(current?.connectionType||'')+'" placeholder="Service / main / reducer"></label>'+ 
   '<label class="field" data-fp-only="coupling"'+(kind==='coupling'?'':' hidden')+'>Coupling / fitting style<input name="fittingType" maxlength="100" value="'+esc(current?.fittingType||'')+'" placeholder="Fusion / mechanical / transition"></label>'+ 
   '<label class="field" data-fp-only="box"'+(kind==='box'?'':' hidden')+'>Box type / dimensions<input name="dimensions" maxlength="100" value="'+esc(current?.dimensions||'')+'" placeholder="Handhole, 24 x 36"></label></div>'+
- '<div class="form-grid"><label class="field">Latitude<input name="lat" type="number" step="any" value="'+esc(current?.lat??'')+'" placeholder="GPS latitude"></label>'+
- '<label class="field">Longitude<input name="lon" type="number" step="any" value="'+esc(current?.lon??'')+'" placeholder="GPS longitude"></label></div>'+
- '<input type="hidden" name="gpsAccuracy" value="'+esc(current?.gpsAccuracy??'')+'"><input type="hidden" name="gpsSource" value="'+esc(current?.gpsSource??'')+'">'+
+ '<div class="form-grid"><label class="field">Latitude<input name="lat" type="number" step="any" value="'+esc(mapPosition?.lat??current?.lat??'')+'" placeholder="GPS latitude"></label>'+
+ '<label class="field">Longitude<input name="lon" type="number" step="any" value="'+esc(mapPosition?.lon??current?.lon??'')+'" placeholder="GPS longitude"></label></div>'+
+ '<input type="hidden" name="gpsAccuracy" value="'+esc(current?.gpsAccuracy??'')+'"><input type="hidden" name="gpsSource" value="'+esc(mapPosition?'map':current?.gpsSource??'')+'">'+
   '<button type="button" class="btn ghost" data-fp-gps>◎ Use current GPS</button><p class="tiny muted" data-fp-accuracy>'+(current?.gpsAccuracy?'Saved GPS accuracy ±'+esc(current.gpsAccuracy)+' m':'GPS accuracy not yet recorded · manual points are unverified')+'</p>'+
  '<label class="field spaced">Notes (optional)<textarea name="notes" maxlength="1500" rows="3" placeholder="Size, depth, station, nearby landmarks...">'+esc(current?.notes||'')+'</textarea></label>'+
  '<div class="modal-footer"><button type="button" class="btn ghost" data-action="close-modal">Cancel</button><button type="submit" class="btn primary">Save Field Pin</button></div></form>'+
@@ -103,7 +106,7 @@ function savePin(form){
  if((lat&&!lon)||(!lat&&lon))return api().notify('Enter both GPS coordinates or leave both blank.');
  if(lat&&(!Number.isFinite(+lat)||!Number.isFinite(+lon)||+lat < -90||+lat > 90||+lon < -180||+lon > 180))return api().notify('Check latitude and longitude before saving.');
  const now=new Date().toISOString();
- const record={id:old?.id||api().uid(),recordType:'fieldPin',jobId:api().state().activeJobId,kind,
+ const record={id:old?.id||api().uid(),recordType:'fieldPin',jobId:api().state().activeJobId,kind,symbol:kind==='custom'?(String(data.get('symbol')||'★').trim().slice(0,3)||'★'):'',
   name:String(data.get('name')||'').trim().slice(0,80)||kindLabel(kind),
   occurredDay:day,createdAt:old?.createdAt||now,updatedAt:now,
   lat,lon,address:String(data.get('address')||'').trim().slice(0,250),
@@ -173,5 +176,5 @@ document.addEventListener('submit',e=>{
  const form=e.target.closest?.('form[data-fp-form]');if(!form)return;
  e.preventDefault();savePin(form);
 });
-window.BoreLabFieldPins={pins,kindLabel,dateTerms,displayDate,localDay,renderBoresTools,renderResults,matching,editPin,open,ensurePins};
+window.BoreLabFieldPins={pins,kindLabel,symbolFor,kindLabels,dateTerms,displayDate,localDay,renderBoresTools,renderResults,matching,editPin,open,ensurePins};
 })();

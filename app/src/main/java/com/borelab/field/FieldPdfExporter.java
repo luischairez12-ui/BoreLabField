@@ -223,6 +223,7 @@ public final class FieldPdfExporter {
             label("Conduit size", str(shot, "pipeDiameter"));
             label("Product conduits / planned footage", str(shot, "conduitDetails"));
             label("Equipment", str(shot, "equipment"));
+            label("Performed By / Drill Crew", str(shot, "performedBy"));
             label("Rod count / entry / exit", str(shot, "rodCount") + " / " + str(shot, "entryDepth") + " / " + str(shot, "exitDepth"));
             label("Started / finished", str(shot, "startedAt") + " / " + str(shot, "completedAt"));
             label("Location", str(shot, "address"));

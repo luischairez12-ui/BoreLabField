@@ -65,7 +65,7 @@ function ensureView(data=model()){
   return;
  }
  currentJob=data.jobId;selected=null;selectedPhoto=null;pointerData.clear();gesture=null;
- const pos=fit(data.geocoded.map(point));
+ const pos=fit(mapBounds().map(point));
  view=pos||{center:null,zoom:15};
  const pref=st().jobsiteMapPreferences;
  mode=pref?.mode==='plot'?'plot':'street';

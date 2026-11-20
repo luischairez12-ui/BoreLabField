@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <files-path name="borelab_manuals" path="manuals/" />
+    <files-path name="borelab_field_videos" path="field_videos/" />
+    <cache-path name="borelab_field_capture" path="captures/" />
 </paths>

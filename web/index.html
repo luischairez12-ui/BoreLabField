@@ -502,6 +502,7 @@ html[data-large-text="on"] .ux-tile small,html[data-large-text="on"] .ux-next p{
   <link rel="stylesheet" href="./field-edge-v022.css">
   <link rel="stylesheet" href="./field-productivity-v023.css">
   <link rel="stylesheet" href="./field-workflow-v024.css">
+  <link rel="stylesheet" href="./field-mapping-media-v025.css">
   <title>BoreLab Field — HDD Crew Tools</title>
 </head>
 <body>
@@ -543,6 +544,7 @@ if(!Array.isArray(state.roster))state.roster=[];
 if(!Array.isArray(state.equipment))state.equipment=[];
 if(!Array.isArray(state.reels))state.reels=[];
 if(!Array.isArray(state.pipeMoves))state.pipeMoves=[];
+if(!Array.isArray(state.mediaVideos))state.mediaVideos=[];
 if(!Array.isArray(state.pipeReservations))state.pipeReservations=[];
 if(!Array.isArray(state.history))state.history=[];if(!Array.isArray(state.manualLinks))state.manualLinks=[];
 if(!Array.isArray(state.mudProducts))state.mudProducts=[];
@@ -647,7 +649,7 @@ function applyTheme(){
 }
 const notify=message=>{const el=$('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove('visible'),4200)};
 const kv=(label,value)=>`<div class="between" style="padding:8px 0"><span class="muted smalltext">${esc(label)}</span><strong style="font-size:13px">${value}</strong></div>`;
-const footnote=()=>`<div class="footer-note">BoreLab Field · v0.24.0 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
+const footnote=()=>`<div class="footer-note">BoreLab Field · v0.25.0 · Records stay on this device<br>Route distances are straight-line estimates, not driving times. No cloud account required.</div>`;
 const bottom=`<div style="height:3px"></div>`;
 function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('borelab-photos-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function photoDB(op,arg){const database=await db();return new Promise((resolve,reject)=>{const tx=database.transaction('photos',op==='list'?'readonly':'readwrite');const store=tx.objectStore('photos');let request;if(op==='list')request=store.getAll();if(op==='put')request=store.put(arg);if(op==='delete')request=store.delete(arg);if(op==='clear')request=store.clear();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);tx.oncomplete=()=>database.close();tx.onerror=()=>reject(tx.error)})}
@@ -959,7 +961,7 @@ function render(){
  if(auth&&!auth.isUnlocked()){auth.renderGate();return}
  if(auth&&!auth.isAllowed(page)){page=auth.role()==='crew'?'crewpreview':auth.role()==='supervisor'?'supervisorpreview':'home'}
  window.BoreLabNavigation?.syncPage?.(page);window.BoreLabFab?.sync?.();window.BoreLabEdgeV22?.sync?.();
- document.documentElement.dataset.crewPreview=page==='crewpreview'?'on':'off';document.documentElement.dataset.supervisorPreview=page==='supervisorpreview'?'on':'off';const navButton=$('#topNavButton');if(navButton){const home=page==='home';navButton.textContent=home?'☰':'‹';navButton.dataset.action=home?'open-tools':'nav-back';navButton.setAttribute('aria-label',home?'All field tools':'Back to previous screen');}const activeTab=['home','planner','crew','settings'].includes(page)?page:page==='jobs'?'home':'';document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===activeTab));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,job:renderJobWorkspace,jobs:renderJobs,dayassist:()=>window.BoreLabCloseoutPhotoV2?.renderEndDay()||renderDayAssistant(),dayassistlegacy:renderDayAssistant,phototimeline2:()=>window.BoreLabCloseoutPhotoV2?.renderPhotoTimeline()||renderPhotos(),shotboard:()=>window.BoreLabWorkday?.renderShotBoard()||'<div class="page">Shot Board unavailable</div>',search:renderSearch,command:()=>window.BoreLabCommand?.renderCommand()||'',reelcommand:()=>window.BoreLabReelCommand?.render?.()||'<div class="page">Reel Command unavailable.</div>',crossings:()=>window.BoreLabCrossings?.render?.()||'<div class="page">Utility Crossings unavailable.</div>',companion:()=>window.BoreLabCompanion?.show?.()||'<div class="page">Companion unavailable.</div>',fieldproductivity:()=>window.BoreLabProductivity?.render?.()||'<div class="page">Productivity tools unavailable</div>',fieldhub:()=>window.BoreLabEdgeV22?.renderHub?.()||'<div class="page">Field Hub unavailable</div>',fieldhistory:()=>window.BoreLabAsBuilt?.renderCalendar()||'<div class="page">Field History unavailable</div>',shotcards:()=>window.BoreLabCommand?.renderShotCards()||'',reelplan:()=>window.BoreLabCommand?.renderReelPlan()||'',photosmart:()=>window.BoreLabCommand?.renderPhotoOrganizer()||'',recovery:()=>window.BoreLabCommand?.renderRecovery()||'',scan3:()=>window.BoreLabCommand?.renderScannerHub()||'',jobmap:()=>window.BoreLabJobMap?.renderMap()||'<div class="page">Jobsite map not loaded.</div>',planner:renderPlanner,tools:renderTools,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:renderPhotos,crew:renderCrew,crewmanager2:()=>window.BoreLabConnectedOps3?.renderCrew()||renderCrew(),crewpreview:()=>window.BoreLabCrewMode?.renderCrew()||'<div class="page">Crew preview not loaded.</div>',supervisorpreview:()=>window.BoreLabSupervisorMode?.renderSupervisor()||'<div class="page">Supervisor preview not loaded.</div>',
+ document.documentElement.dataset.crewPreview=page==='crewpreview'?'on':'off';document.documentElement.dataset.supervisorPreview=page==='supervisorpreview'?'on':'off';const navButton=$('#topNavButton');if(navButton){const home=page==='home';navButton.textContent=home?'☰':'‹';navButton.dataset.action=home?'open-tools':'nav-back';navButton.setAttribute('aria-label',home?'All field tools':'Back to previous screen');}const activeTab=['home','planner','crew','settings'].includes(page)?page:page==='jobs'?'home':'';document.querySelectorAll('.nav-link[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===activeTab));$('#topDate').textContent=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('#main').innerHTML=({home:renderHome,job:renderJobWorkspace,jobs:renderJobs,dayassist:()=>window.BoreLabCloseoutPhotoV2?.renderEndDay()||renderDayAssistant(),dayassistlegacy:renderDayAssistant,phototimeline2:()=>window.BoreLabCloseoutPhotoV2?.renderPhotoTimeline()||renderPhotos(),shotboard:()=>window.BoreLabWorkday?.renderShotBoard()||'<div class="page">Shot Board unavailable</div>',search:renderSearch,command:()=>window.BoreLabCommand?.renderCommand()||'',reelcommand:()=>window.BoreLabReelCommand?.render?.()||'<div class="page">Reel Command unavailable.</div>',crossings:()=>window.BoreLabCrossings?.render?.()||'<div class="page">Utility Crossings unavailable.</div>',companion:()=>window.BoreLabCompanion?.show?.()||'<div class="page">Companion unavailable.</div>',fieldproductivity:()=>window.BoreLabProductivity?.render?.()||'<div class="page">Productivity tools unavailable</div>',fieldhub:()=>window.BoreLabEdgeV22?.renderHub?.()||'<div class="page">Field Hub unavailable</div>',fieldhistory:()=>window.BoreLabAsBuilt?.renderCalendar()||'<div class="page">Field History unavailable</div>',shotcards:()=>window.BoreLabCommand?.renderShotCards()||'',reelplan:()=>window.BoreLabCommand?.renderReelPlan()||'',photosmart:()=>window.BoreLabCommand?.renderPhotoOrganizer()||'',recovery:()=>window.BoreLabCommand?.renderRecovery()||'',scan3:()=>window.BoreLabCommand?.renderScannerHub()||'',jobmap:()=>window.BoreLabJobMap?.renderMap()||'<div class="page">Jobsite map not loaded.</div>',planner:renderPlanner,tools:renderTools,pipe:pipeInventoryView,mud:renderMudMixer,mudstock:renderMudInventory,manuals:renderManualLibrary,photos:()=>window.BoreLabMediaV25?.render?.()||renderPhotos(),crew:renderCrew,crewmanager2:()=>window.BoreLabConnectedOps3?.renderCrew()||renderCrew(),crewpreview:()=>window.BoreLabCrewMode?.renderCrew()||'<div class="page">Crew preview not loaded.</div>',supervisorpreview:()=>window.BoreLabSupervisorMode?.renderSupervisor()||'<div class="page">Supervisor preview not loaded.</div>',
  localaccounts:()=>window.BoreLabLocalAccounts?.renderManage()||'<div class="page">Account manager not loaded.</div>',fieldintelligence3:()=>window.BoreLabConnectedOps3?.renderIntelligence()||renderHome(),equipmentmanager2:()=>window.BoreLabConnectedOps3?.renderEquipment()||equipmentSettings(),tomorrowplanner:()=>window.BoreLabConnectedOps3?.renderTomorrow()||renderPlanner(),closeout:renderCloseout,history:renderHistory,settings:renderSettings})[page]?.()||renderHome();refreshLiveCrewClocks();enhanceNumericInputs($('#main'));window.BoreLabHomeCollapse?.sync?.();if(page==='mud')restoreFormDraft($('#main form[data-form="mud-batch"]'));}
 function section(title,right=''){return `<div class="section-title"><h2><span class="accentbar"></span>${esc(title)}</h2>${right}</div>`}
 function quick(label,icon,sub,action){return `<button class="quick" data-action="${action}"><div class="qicon">${icon}</div><strong>${esc(label)}</strong><small>${esc(sub)}</small></button>`}
@@ -2627,6 +2629,7 @@ function shotForm(id){
   <h3>Equipment on This Shot</h3>
   ${available.length?`<div class="equipment-checks">${available.map(e=>`<label class="equipment-choice"><input type="checkbox" name="equipmentId" value="${esc(e.id)}" ${assigned.has(e.id)?'checked':''}><span><strong>${esc(e.name)}</strong><small>${esc(e.type)}${e.serial?' · '+esc(e.serial):''}</small></span></label>`).join('')}</div>`:'<p class="muted smalltext">No saved machines. Add them in Settings → Equipment Garage.</p>'}
   <label class="field">Bore notes<textarea name="notes" placeholder="Utility crossings, pitch readings, obstacles, work notes...">${esc(s.notes||'')}</textarea></label>
+  ${window.BoreLabCrewV25?.formFields?.(s,state.roster)||''}
   <div class="action-row"><button type="button" class="btn micro ghost" data-action="geocode-shot">⌖ Find GPS from address</button><button type="button" class="btn micro ghost" data-action="gps-shot">◉ Use my current GPS</button></div>
   <div class="modal-footer"><button type="button" class="btn ghost" data-action="close-modal">Cancel</button><button type="submit" class="btn primary">Save Shot</button></div>
  </form>
@@ -2647,15 +2650,16 @@ function shotDetail(id){
  ${optional('Entry depth',shot.entryDepth!==''&&shot.entryDepth!=null?`${shot.entryDepth} ft`:'')}
  ${optional('Exit depth',shot.exitDepth!==''&&shot.exitDepth!=null?`${shot.exitDepth} ft`:'')}
  ${kv('Equipment',esc(equipmentSummary(shot)))}
+  ${kv('Performed By / Drill Crew',esc(window.BoreLabCrewV25?.summary?.(shot)||'Not recorded'))}
  ${kv('Location',esc(shot.address||coordsText(shot)||'No location set'))}
  ${shot.startedAt?kv('Started',esc(fullDate(shot.startedAt))):''}
  ${shot.completedAt?kv('Completed',esc(fullDate(shot.completedAt))):''}
  ${shot.notes?`<div class="lightline smalltext">${esc(shot.notes)}</div>`:''}</div>
- <div class="action-row"><button class="btn primary" data-action="edit-shot" data-id="${esc(shot.id)}">Edit Bore Log</button><button class="btn ghost" data-action="next-status" data-id="${esc(shot.id)}">${shot.status==='planned'?'Start Drilling':shot.status==='progress'?'Finish Shot':'Reopen Shot'}</button>
+ <div class="action-row"><button class="btn primary" data-action="edit-shot" data-id="${esc(shot.id)}">Edit Bore Log</button><button class="btn ghost" data-v25-edit-endpoints="${esc(shot.id)}">⌁ Entry / Exit GPS</button><button class="btn ghost" data-action="next-status" data-id="${esc(shot.id)}">${shot.status==='planned'?'Start Drilling':shot.status==='progress'?'Finish Shot':'Reopen Shot'}</button>
  ${mapsPinUrl(shot)?`<button class="btn ghost" data-action="open-map-pin" data-id="${esc(shot.id)}">↗ Google Maps</button>`:''}</div>
  ${typeof window!=='undefined'?window.BoreLabFieldOps?.renderReadiness(shot)||'':''}
  ${typeof window!=='undefined'?window.BoreLabFieldOps?.renderTimeline(shot.id)||'':''}
- <div class="action-row"><button class="btn ghost" data-action="capture-for-shot" data-id="${esc(shot.id)}">▣ Take Photo</button><button class="btn ghost" data-action="gallery-for-shot" data-id="${esc(shot.id)}">+ From Gallery</button></div>
+ <div class="action-row"><button class="btn ghost" data-action="capture-for-shot" data-id="${esc(shot.id)}">▣ Take Photo</button><button class="btn ghost" data-action="gallery-for-shot" data-id="${esc(shot.id)}">+ From Gallery</button><button class="btn ghost" data-v25-video-shot="${esc(shot.id)}">● Record Video</button></div>
  <p class="tiny muted spaced">Shot status, reel-logged pipe, crew hours, selected equipment, and linked photos feed the one-tap report. If pipe is logged from reels, it overrides manual footage shown for that shot.</p>`);
 }
 function nowLocal(d=new Date()){return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16)}
@@ -2827,9 +2831,9 @@ function downloadBlob(name,content,type){const blob=new Blob([content],{type});i
 async function exportBackup(){try{flushPendingDraft();persistGuidedDraft();await refreshPhotos();let pendingGuided=null;try{pendingGuided=JSON.parse(localStorage.getItem(GUIDED_DRAFT_KEY)||'null')}catch{}downloadBlob(`BoreLab_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({type:'borelab-backup',version:3,createdAt:new Date().toISOString(),state,photos,drafts:draftStore(),guidedDraft:pendingGuided},null,2),'application/json');notify('Backup downloaded — keep it somewhere safe.')}catch(e){notify('Could not export: '+e.message)}}
 async function importBackup(file){try{const obj=JSON.parse(await file.text());if(obj.type!=='borelab-backup'||!obj.state||!Array.isArray(obj.state.shots)||!Array.isArray(obj.photos))throw new Error('This is not a valid BoreLab backup.');if(obj.photos.some(p=>!p||typeof p.id!=='string'||typeof p.dataUrl!=='string'||!p.dataUrl.startsWith('data:image/')))throw new Error('Backup contains invalid photo data; nothing was changed.');
  const jobCount=Array.isArray(obj.state.jobs)?obj.state.jobs.length:1;
- if(!confirm('BACKUP PREVIEW: '+jobCount+' job(s), '+obj.state.shots.length+' active-job shot(s), '+obj.photos.length+' photo(s). This will replace your CURRENT local records. Export your current backup first. Continue?'))return;
+ if(!confirm('BACKUP PREVIEW: '+jobCount+' job(s), '+obj.state.shots.length+' active-job shot(s), '+obj.photos.length+' photo(s). JSON backup does not include local VIDEO FILES. Export important videos separately before moving phones. This will replace the current records. Continue?'))return;
  const previousState=JSON.parse(JSON.stringify(state)),previousPhotos=await photoDB('list');
- try{await photoDB('clear');for(const p of obj.photos){if(typeof p.dataUrl==='string'&&p.dataUrl.startsWith('data:image/'))await photoDB('put',p)}state=obj.state;if(!Array.isArray(state.roster))state.roster=[];if(!Array.isArray(state.equipment))state.equipment=[];if(!Array.isArray(state.reels))state.reels=[];if(!Array.isArray(state.pipeMoves))state.pipeMoves=[];if(!Array.isArray(state.pipeReservations))state.pipeReservations=[];if(!Array.isArray(state.history))state.history=[];if(!Array.isArray(state.manualLinks))state.manualLinks=[];if(typeof state.jobAddress!=='string')state.jobAddress='';if(typeof state.jobNotes!=='string')state.jobNotes='';if(!BORELAB_PAGES.has(state.lastScreen))state.lastScreen='home';if(state.uxMode!=='advanced'&&state.uxMode!=='simple')state.uxMode='simple';if(typeof state.fieldMode!=='boolean')state.fieldMode=false;if(typeof state.largeText!=='boolean')state.largeText=false;if(!Array.isArray(state.uxFavorites))state.uxFavorites=['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'];if(!Array.isArray(state.mudProducts))state.mudProducts=[];if(!Array.isArray(state.mudSelectedIds))state.mudSelectedIds=[];if(!Array.isArray(state.mudLogs))state.mudLogs=[];if(!Array.isArray(state.mudStockMoves))state.mudStockMoves=[];if(!state.mudTank||typeof state.mudTank!=='object')state.mudTank={capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'not-recorded',notes:''};if(!['today','job'].includes(state.reportScope))state.reportScope='today';if(!Array.isArray(state.selectedCrewIds))state.selectedCrewIds=[];initializeJobs();try{
+ try{await photoDB('clear');for(const p of obj.photos){if(typeof p.dataUrl==='string'&&p.dataUrl.startsWith('data:image/'))await photoDB('put',p)}state=obj.state;if(!Array.isArray(state.roster))state.roster=[];if(!Array.isArray(state.equipment))state.equipment=[];if(!Array.isArray(state.reels))state.reels=[];if(!Array.isArray(state.pipeMoves))state.pipeMoves=[];if(!Array.isArray(state.mediaVideos))state.mediaVideos=[];if(!Array.isArray(state.pipeReservations))state.pipeReservations=[];if(!Array.isArray(state.history))state.history=[];if(!Array.isArray(state.manualLinks))state.manualLinks=[];if(typeof state.jobAddress!=='string')state.jobAddress='';if(typeof state.jobNotes!=='string')state.jobNotes='';if(!BORELAB_PAGES.has(state.lastScreen))state.lastScreen='home';if(state.uxMode!=='advanced'&&state.uxMode!=='simple')state.uxMode='simple';if(typeof state.fieldMode!=='boolean')state.fieldMode=false;if(typeof state.largeText!=='boolean')state.largeText=false;if(!Array.isArray(state.uxFavorites))state.uxFavorites=['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'];if(!Array.isArray(state.mudProducts))state.mudProducts=[];if(!Array.isArray(state.mudSelectedIds))state.mudSelectedIds=[];if(!Array.isArray(state.mudLogs))state.mudLogs=[];if(!Array.isArray(state.mudStockMoves))state.mudStockMoves=[];if(!state.mudTank||typeof state.mudTank!=='object')state.mudTank={capacity:'',currentGallons:'0',targetGallons:'',mode:'topoff',soil:'not-recorded',notes:''};if(!['today','job'].includes(state.reportScope))state.reportScope='today';if(!Array.isArray(state.selectedCrewIds))state.selectedCrewIds=[];initializeJobs();try{
  localStorage.removeItem(DRAFTS_KEY);localStorage.removeItem(GUIDED_DRAFT_KEY);
  if(obj.drafts&&typeof obj.drafts==='object'&&!Array.isArray(obj.drafts)&&JSON.stringify(obj.drafts).length<150000)
   localStorage.setItem(DRAFTS_KEY,JSON.stringify(obj.drafts));
@@ -2873,16 +2877,16 @@ function buildPdfPayload(snapshot=null,requestedDay=''){
   checks:snapshot?.checks||[],
   summary:{shots:`${r.shots.length} (${complete.length} complete)`,
    completedFeet:`${fmt(complete.reduce((a,x)=>a+feet(x),0),1)} ft`,
-   plannedPipe:`${fmt(r.shots.reduce((a,x)=>a+feet(x)+Number(x.plannedAllowance??snapshot?.allowance??extra()),0),1)} ft`,
+   plannedPipe:`${fmt(r.shots.reduce((a,x)=>a+feet(x)+Number(x.allowanceOverride??x.plannedAllowance??snapshot?.allowance??extra()),0),1)} ft`,
    actualPipe:`${fmt(actualTotal,1)} ft (from records; check reel ledger)`,
    crewHours:`${fmt(r.crew.reduce((a,x)=>a+hours(x),0),2)} h`,
    photos:String(r.photos.length),mudBatches:String(r.mud.length),mudStockMoves:String(r.mudStock.length)},
   shots:r.shots.map(sh=>({
    name:sh.name||'Unnamed bore',status:sh.status||'',feet:fmt(sh.feet,1),
-   plannedPipe:fmt(Number(sh.feet||0)+Number(sh.plannedAllowance??snapshot?.allowance??extra()),1),
+   plannedPipe:fmt(Number(sh.feet||0)+Number(sh.allowanceOverride??sh.plannedAllowance??snapshot?.allowance??extra()),1),
    actualPipe:shotPipe(sh)!=null?fmt(shotPipe(sh),1):'Not entered',pipeDiameter:sh.pipeDiameter||'',
-   conduitDetails:(window.BoreLabConduits?.plan(sh,Number(sh.plannedAllowance??snapshot?.allowance??extra()))||[]).map(x=>x.quantity+' x '+x.size+' @ '+fmt(x.perRun,1)+' ft = '+fmt(x.total,1)+' ft').join('; '),
-   notes:sh.notes||'',address:sh.address||(sh.lat&&sh.lon?`${sh.lat}, ${sh.lon}`:'Unknown'),
+   conduitDetails:(window.BoreLabConduits?.plan(sh,Number(sh.allowanceOverride??sh.plannedAllowance??snapshot?.allowance??extra()))||[]).map(x=>x.quantity+' x '+x.size+' @ '+fmt(x.perRun,1)+' ft = '+fmt(x.total,1)+' ft').join('; '),
+   notes:sh.notes||'',performedBy:window.BoreLabCrewV25?.summary?.(sh)||'Not recorded',address:sh.address||(sh.lat&&sh.lon?`${sh.lat}, ${sh.lon}`:'Unknown'),
    equipment:(sh.equipmentIds||[]).map(id=>machines.find(x=>x.id===id)).filter(Boolean).map(x=>x.name).join(', ')||'Not recorded',
    rodCount:sh.rodCount??'',entryDepth:sh.entryDepth??'',exitDepth:sh.exitDepth??'',
    startedAt:formattedDate(sh.startedAt),completedAt:formattedDate(sh.completedAt)
@@ -2917,7 +2921,7 @@ async function exportRealPdf(snapshotId='',specificDay=''){
  <body><button class="print" onclick="window.print()">Print / Save as PDF</button><h1>${esc(payload.title)}</h1>
  ${row('Job',payload.job)}${row('Period',payload.period)}${row('Home Base',payload.homeBase)}
  ${Object.entries(payload.summary).map(([a,b])=>row(a,b)).join('')}
- <h2>Bore Logs</h2>${payload.shots.map(x=>`<h3>${esc(x.name)} — ${esc(x.status)}</h3>${['feet','plannedPipe','actualPipe','equipment','address','startedAt','completedAt','notes'].map(k=>row(k,x[k])).join('')}`).join('')}
+ <h2>Bore Logs</h2>${payload.shots.map(x=>`<h3>${esc(x.name)} — ${esc(x.status)}</h3>${['feet','plannedPipe','actualPipe','equipment','performedBy','address','startedAt','completedAt','notes'].map(k=>row(k,x[k])).join('')}`).join('')}
  <h2>Crew</h2>${payload.crew.map(x=>row(x.name,`${x.start} – ${x.end}; ${x.hours} h`)).join('')}
  <h2>Pipe Movements</h2>${payload.pipe.map(x=>row(x.reel,`${x.type} ${x.feet} ft · ${x.shot}`)).join('')}<h2>Mud Mixing</h2>${payload.mud.map(x=>row(x.date,`${x.waterAdded} gal added · ${x.mode}; ${x.products.map(p=>p.amount+' '+p.unit+' '+p.name).join(', ')}`)).join('')}
  <h2>Mud Product Stock Movements</h2>${payload.mudStock.map(x=>row(x.date,`${x.product}: ${x.kind} ${x.delta} ${x.units}; remaining ${x.after} ${x.units}`)).join('')}<h2>Photos</h2>${payload.photos.map(x=>`<div>${x.dataUrl?`<img src="${x.dataUrl}">`:''}${row(x.shot,x.date+' · '+x.location)}</div>`).join('')}
@@ -3183,7 +3187,8 @@ document.addEventListener('submit',e=>{const form=e.target.closest('form[data-fo
  const completedAt=status==='complete'?old?.completedAt||now:null;
  let conduits=null;try{conduits=window.BoreLabConduits?.parseEditor(form)??null;}catch(e){return notify(e.message)}
  if(conduits)values.pipeDiameter=conduits[0]?.size||'';
- const shot={...old,id:old?.id||uid(),name:String(values.name||'').trim().slice(0,70),feet:f,conduits:conduits||[],pipeDiameter:String(values.pipeDiameter||'').trim().slice(0,32),address,lat,lon,pipeUsed,rodCount,entryDepth,exitDepth,equipmentIds,notes:String(values.notes||'').trim(),status,startedAt,completedAt,updatedAt:now};
+ const performedBy=window.BoreLabCrewV25?.fromForm?.(form,state.roster)||old?.performedBy||null;
+  const shot={...old,id:old?.id||uid(),name:String(values.name||'').trim().slice(0,70),feet:f,performedBy,conduits:conduits||[],pipeDiameter:String(values.pipeDiameter||'').trim().slice(0,32),address,lat,lon,pipeUsed,rodCount,entryDepth,exitDepth,equipmentIds,notes:String(values.notes||'').trim(),status,startedAt,completedAt,updatedAt:now};
  if(old)state.shots=state.shots.map(x=>x.id===id?shot:x);else state.shots.push(shot);
  window.BoreLabFieldOps?.journal(old?'Bore log edited':'Bore added',state.activeJobId,shot.id,old||null,shot);
  state.demo=false;clearFormDraft(form);save();closeModal();render();notify('Bore shot and equipment saved.');
@@ -3269,5 +3274,8 @@ init();
 <script src="./field-reel-command-v024.js"></script>
 <script src="./field-crossings-v024.js"></script>
 <script src="./field-companion-v024.js"></script>
+<script src="./field-crew-v025.js"></script>
+<script src="./field-media-v025.js"></script>
+<script src="./field-map-tools-v025.js"></script>
 </body>
 </html>

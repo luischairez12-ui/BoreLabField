@@ -55,11 +55,20 @@ function snapshot(){
  Number(x.lat)>=-90&&Number(x.lat)<=90&&Number(x.lon)>=-180&&Number(x.lon)<=180;
  const shop=coordinates(base)?{id:'shop',jobId:'',name:s.shopName||'Shop',address:s.shopAddress||'',lat:Number(base.lat),lon:Number(base.lon),feet:0,status:'shop'}:null;
  const points=[];
+ const validEnd=p=>p&&p.lat!==''&&p.lon!==''&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lon))&&Math.abs(Number(p.lat))<=90&&Math.abs(Number(p.lon))<=180;
  for(const job of s.jobs||[]){
   for(const sh of job.shots||[]){
-   if(!coordinates(sh))continue;
-   points.push({id:sh.id,jobId:job.id,name:sh.name||'Bore',address:sh.address||'',lat:Number(sh.lat),lon:Number(sh.lon),feet:Number(sh.feet)||0,status:sh.status||'planned'});
+   if(coordinates(sh))points.push({id:sh.id,jobId:job.id,name:sh.name||'Bore',address:sh.address||'',lat:Number(sh.lat),lon:Number(sh.lon),feet:Number(sh.feet)||0,status:sh.status||'planned'});
+   if(validEnd(sh.asbuiltStart)&&validEnd(sh.asbuiltEnd)&&points.length<98){
+    points.push({id:'entry:'+sh.id,jobId:job.id,shotId:sh.id,name:(sh.name||'Bore')+' Entry',lat:Number(sh.asbuiltStart.lat),lon:Number(sh.asbuiltStart.lon),type:'entry',feet:Number(sh.feet)||0,status:sh.status||'planned'});
+    points.push({id:'exit:'+sh.id,jobId:job.id,shotId:sh.id,name:(sh.name||'Bore')+' Exit',lat:Number(sh.asbuiltEnd.lat),lon:Number(sh.asbuiltEnd.lon),type:'exit',feet:Number(sh.feet)||0,status:sh.status||'planned'});
+   }
    if(points.length>=100)break;
+  }
+  for(const pin of job.fieldPins||[]){
+   if(!validEnd(pin)||points.length>=100)continue;
+   points.push({id:pin.id,jobId:job.id,name:pin.name||pin.kind||'Field marker',lat:Number(pin.lat),lon:Number(pin.lon),type:pin.kind||'pin',
+    symbol:window.BoreLabFieldPins?.symbolFor?.(pin)||'📌',status:'installed'});
   }
   if(points.length>=100)break;
  }
