@@ -211,7 +211,7 @@ function renderPhotoOrganizer(){
  return '<div class="page blc-page"><div class="blc-heading"><span class="eyebrow">BORELAB / MEDIA</span><h1>Smart Photo Organization</h1><p>Sort photos by job, shot and field category without altering originals.</p></div>'+
  navlinks('photosmart')+'<div class="blc-grid">'+metric('Photos',String(all.length))+metric('Completed bores missing After',String(missing.length))+'</div>'+
  (missing.length?'<p class="blc-alert">⚠ After photo missing for '+esc(missing.slice(0,5).map(s=>s.name).join(', '))+'</p>':'')+
- '<div class="blc-buttons"><button class="blc-primary" data-page="phototimeline2">▣ Open Smart Timeline 2.0</button><button data-action="choose-photo">Camera</button><button data-action="choose-gallery">Add Gallery</button></div>'+
+ '<div class="blc-buttons"><button class="blc-primary" data-page="phototimeline2">▣ Open Photo Timeline</button><button data-action="choose-photo">Camera</button><button data-action="choose-gallery">Add Gallery</button></div>'+
  '<label class="field">Category<select data-blc-photofilter>'+categories.map(c=>'<option value="'+c+'"'+(c===photoFilter?' selected':'')+'>'+esc(c==='all'?'All photos':c)+'</option>').join('')+'</select></label>'+
  '<div class="blc-photos">'+visible.map(p=>'<article><img src="'+esc(p.dataUrl)+'" loading="lazy" alt="Jobsite photo"><strong>'+esc(shots().find(s=>s.id===p.shotId)?.name||'General photo')+'</strong>'+
  '<small>'+esc(new Date(p.addedAt).toLocaleDateString())+'</small><label class="field">Group<select data-blc-tag="'+esc(p.id)+'">'+categories.slice(1).map(c=>'<option value="'+c+'"'+(c===category(p)?' selected':'')+'>'+esc(c)+'</option>').join('')+'</select></label></article>').join('')+'</div>'+
@@ -228,7 +228,7 @@ function renderRecovery(){
  '<p class="tiny muted">Automatic unattended backups are not enabled. Save exported files to separate storage.</p></div>';
 }
 function renderScannerHub(){
- return '<div class="page blc-page"><div class="blc-heading"><span class="eyebrow">BORELAB / PAPERWORK</span><h1>Paperwork Scanner 3.0</h1><p>Scan paperwork and review work orders, addresses, footage and conduit quantities before import.</p></div>'+
+ return '<div class="page blc-page"><div class="blc-heading"><span class="eyebrow">BORELAB / PAPERWORK</span><h1>Paperwork Scanner</h1><p>Scan paperwork and review work orders, addresses, footage and conduit quantities before import.</p></div>'+
  '<section class="blc-panel"><h3>Scan → Review → Import</h3><p>The shot-sheet parser suggests records and leaves missing measurements blank for review.</p><button class="btn primary" data-sheet-action="open">▣ Scan Sheet</button></section>'+
  '<section class="blc-panel"><h3>Address only?</h3><p>Open Add Bore and use the address camera to scan only the jobsite location.</p><button class="btn ghost" data-action="new-shot">Add Bore</button></section></div>';
 }

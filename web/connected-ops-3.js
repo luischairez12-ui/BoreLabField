@@ -73,9 +73,9 @@ function renderCrew(){
   '<label>Role<select name="role">'+roleChoices('')+'</select></label>'+
   '<label>Assignment note<input name="notes" maxlength="160" placeholder="e.g. Locate shots 01–03"></label>'+
   '<button class="b3-primary" type="submit">✓ Save Assignment</button></form>':'';
- return '<div class="page b3-page">'+heading('FIELD / TEAM','Crew Management 2.0','Assignments, active shifts, and verified hours across jobs.')+
+ return '<div class="page b3-page">'+heading('FIELD / TEAM','Crew Management','Assignments, active shifts, and verified hours across jobs.')+
  stats([stat('Saved crew',String(people.length),'♙'),stat('On shift',String(active.length),'◷'),stat('Completed hours',fmt(jobs().reduce((n,j)=>n+(j.crew||[]).reduce((v,e)=>v+hour(e),0),0))+' hr','✓')])+
- '<div class="b3-actions"><button data-page="crewpreview" class="b3-primary">♙ Preview Crew Mode 1.0</button>'+
+ '<div class="b3-actions"><button data-page="crewpreview" class="b3-primary">♙ Preview Crew Mode</button>'+
  '<button data-page="supervisorpreview">▦ Supervisor Overview</button></div>'+
  panel('Crew & Attendance',(cards||empty('No saved crew yet. Add names using Crew Hours.'))+
  '<div class="b3-actions"><button data-b3-roster>＋ Manage People</button>'+action('crew','◷ Timesheets / Check In')+'</div>')+
@@ -119,7 +119,7 @@ function signalData(){
 }
 function renderIntelligence(){
  const all=signalData(),shown=all.filter(x=>insightFilter==='all'||x.level===insightFilter);
- return '<div class="page b3-page">'+heading('FIELD / INSIGHTS','Field Intelligence 3.0','Connected, rule-based alerts from your saved BoreLab records.')+
+ return '<div class="page b3-page">'+heading('FIELD / INSIGHTS','Field Intelligence','Connected, rule-based alerts from your saved BoreLab records.')+
  '<section class="b3-hero"><small>ACTIVE JOB</small><h2>'+esc(job().jobName)+'</h2><p>'+
  today()+' · '+all.length+' item(s) to consider</p></section>'+
  stats([stat('Critical',String(all.filter(x=>x.level==='critical').length),'⚠'),stat('Review',String(all.filter(x=>x.level==='review').length),'◷'),stat('Planning',String(all.filter(x=>x.level==='info').length),'✧')])+
@@ -170,7 +170,7 @@ function equipmentCard(e){
 function renderEquipment(){
  const shown=equipment().filter(x=>equipFilter==='archived'?x.archived:!x.archived);
  const down=openIssues().filter(x=>x.downtime).length;
- return '<div class="page b3-page">'+heading('FIELD / EQUIPMENT','Smart Equipment Manager 2.0',
+ return '<div class="page b3-page">'+heading('FIELD / EQUIPMENT','Equipment Manager',
  'Existing rigs, mixers, trucks, and trailers — with manually saved issues, repairs and service.')+
  stats([stat('Active units',String(equipment().filter(x=>!x.archived).length),'▣'),
  stat('Open issues',String(openIssues().length),'⚠'),stat('Downtime flags',String(down),'◷')])+

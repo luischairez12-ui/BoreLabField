@@ -252,7 +252,7 @@ function equipmentView(){
  '<p class="sm-good">✓ No unresolved equipment issues have been recorded.</p>')+'</section>'+
  '<section class="sm-panel">'+subheading('Equipment Manager','Review repairs and oil reminders')+
  '<p class="sm-muted">A lack of reported issues is not proof that machinery has been inspected or is safe to operate.</p>'+
- jump('equipmentmanager2','Open Equipment Manager 2.0 ›')+'</section></section>';
+ jump('equipmentmanager2','Open Equipment Manager ›')+'</section></section>';
 }
 function renderSupervisor(){
  const p=portfolio();
