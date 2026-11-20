@@ -139,14 +139,22 @@ function quality(record){
  const accuracy=Number(n);if(!Number.isFinite(accuracy))return 'GPS accuracy not documented';
  return 'GPS ±'+Math.round(accuracy)+' m'+(accuracy>25?' · Low accuracy — verify':accuracy>10?' · Approximate':'');
 }
+let selectedReplayDay='';
 function card(p){
  const r=p.record,ph=api()?.photos?.()||[],attached=p.type==='pin'?ph.filter(x=>x.jobId===p.jobId&&x.fieldPinId===r.id):p.type==='shot'?ph.filter(x=>x.jobId===p.jobId&&x.shotId===r.id):[];
  const metadata=p.type==='pin'?[r.station,r.size,r.material,r.depth?'Depth '+r.depth+' ft':'',r.fittingType,r.connectionType,r.dimensions,r.notes].filter(Boolean).join(' · '):p.type==='shot'?[r.feet?r.feet+' ft':'',r.status,r.address].filter(Boolean).join(' · '):p.type==='photo'?[r.stage,quality(r)].filter(Boolean).join(' · '):p.type==='marker'?[r.label,window.BoreLabEdgeV22?.markerKind?.(r.kind),r.status,r.notes,quality(r)].filter(Boolean).join(' · '):p.type==='arrival'?['Manual arrival',quality(r)].join(' · '):'Endpoint reference · not underground alignment';
+ const replayDays=[...new Set((p.events||[]).map(e=>e.day).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(String(d))))].sort();
+ const replayDay=replayDays.includes(selectedReplayDay)?selectedReplayDay:replayDays[replayDays.length-1];
+ const replayCard=replayDay?
+  '<div class="atlas-replay-region"><strong>Replay this workday</strong>'+
+  (replayDays.length>1?'<div class="atlas-replay-days" role="group" aria-label="Choose workday">'+replayDays.map(d=>
+  '<button type="button" data-atlas-replay-day="'+esc(d)+'" class="'+(d===replayDay?'active':'')+'" aria-pressed="'+(d===replayDay)+'">'+esc(d)+'</button>').join('')+'</div>':'')+
+  (window.BoreLabInsights?.renderReplayCard?.(replayDay)||'')+'</div>':'';
  return '<section class="atlas-selected" aria-label="Atlas selected location"><div class="between"><div><span class="eyebrow">'+esc(p.jobName)+'</span><h3>'+esc(p.title)+'</h3><small>'+esc(p.dates.join(', '))+'</small></div><button class="atlas-x" data-atlas-close aria-label="Close pin card">✕</button></div>'+
  '<p class="smalltext">'+esc(metadata)+'</p><p class="atlas-coords">⌖ '+(+p.lat).toFixed(6)+', '+(+p.lon).toFixed(6)+'</p>'+
  '<p class="atlas-quality">'+esc(quality(r))+'</p>'+
  (attached.length?'<div class="atlas-images">'+attached.slice(0,4).map(x=>'<button data-atlas-photo="'+esc(x.id)+'" aria-label="View linked photo"><img src="'+esc(x.dataUrl)+'" loading="lazy" alt="Linked photo"></button>').join('')+'</div>':'')+
- '<div class="atlas-card-actions"><button data-atlas-nav="'+esc(p.key)+'">⌖ Navigate</button><button data-atlas-open="'+esc(p.key)+'">Open record ›</button></div></section>';
+ '<div class="atlas-card-actions"><button data-atlas-nav="'+esc(p.key)+'">⌖ Navigate</button><button data-atlas-open="'+esc(p.key)+'">Open record ›</button></div>'+replayCard+'</section>';
 }
 function clusterCard(members){
  return '<section class="atlas-selected"><div class="between"><strong>📌 '+members.length+' records at this location</strong><button class="atlas-x" data-atlas-close>✕</button></div>'+
@@ -188,14 +196,15 @@ function navigate(p){
  b?.openMapUrl?.(url);
 }
 document.addEventListener('click',e=>{
- const el=e.target.closest?.('[data-atlas-point],[data-atlas-select],[data-atlas-close],[data-atlas-mode],[data-atlas-zoom],[data-atlas-fit],[data-atlas-open],[data-atlas-nav],[data-atlas-photo]');
+ const el=e.target.closest?.('[data-atlas-point],[data-atlas-select],[data-atlas-close],[data-atlas-mode],[data-atlas-zoom],[data-atlas-fit],[data-atlas-open],[data-atlas-nav],[data-atlas-photo],[data-atlas-replay-day]');
  if(!el||api()?.currentPage?.()!=='fieldhistory')return;
+ if(el.dataset.atlasReplayDay){selectedReplayDay=el.dataset.atlasReplayDay;window.BoreLabInsights?.pauseCard?.();api()?.render?.();return}
  if(el.dataset.atlasPoint){
   if(Date.now()<clickQuiet)return;
   const all=points();ensure(all),canvas=document.querySelector('[data-atlas-view]'),w=canvas?.clientWidth||350,h=canvas?.clientHeight||430,c=proj(view.center.lat,view.center.lon,view.zoom),g=groups(all,w,h,c).find(x=>x.key===el.dataset.atlasPoint);
-  if(!g)return;clusterKeys=g.items.length>1?g.items.map(x=>x.key):[];selectedKey=g.items.length===1?g.items[0].key:'';api()?.render?.();return;
+  if(!g)return;selectedReplayDay='';window.BoreLabInsights?.pauseCard?.();clusterKeys=g.items.length>1?g.items.map(x=>x.key):[];selectedKey=g.items.length===1?g.items[0].key:'';api()?.render?.();return;
  }
- if(el.dataset.atlasSelect){clusterKeys=[];selectedKey=el.dataset.atlasSelect;api()?.render?.();return}
+ if(el.dataset.atlasSelect){selectedReplayDay='';window.BoreLabInsights?.pauseCard?.();clusterKeys=[];selectedKey=el.dataset.atlasSelect;api()?.render?.();return}
  if(el.hasAttribute('data-atlas-close')){selectedKey='';clusterKeys=[];api()?.render?.();return}
  if(el.dataset.atlasMode){mode=el.dataset.atlasMode==='plot'?'plot':'street';api()?.render?.();return}
  if(el.dataset.atlasZoom){if(view?.center){view.zoom=zoomClamp(view.zoom+Number(el.dataset.atlasZoom));draw()}return}
