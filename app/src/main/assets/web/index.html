@@ -1554,7 +1554,6 @@ function mudLogDetail(id){
  ${x.notes?`<p class="smalltext muted spaced">${esc(x.notes)}</p>`:''}</div>`);
 }
 
-let fieldCommandTab='today'; // View-only category state; isolated from job records.
 const UX_ACTIONS=[
  {id:'new-shot',label:'Plan a Bore',sub:'Length & pipe needs',icon:'◎',group:'Planning'},
  {id:'go-photos',label:'Record Work',sub:'Jobsite photos',icon:'▣',group:'Daily work'},
@@ -1570,6 +1569,7 @@ const UX_ACTIONS=[
  {id:'export-report',label:'Daily Report',sub:'Generate PDF',icon:'▧',group:'Daily work'},
  {id:'go-mud-stock',label:'Mud Inventory',sub:'Products & stock',icon:'◉',group:'Materials'}
 ];
+let fieldCommandTab='today'; // View-only category state; no job mutations.
 const UX_DEFAULT_FAVORITES=['new-shot','go-photos','go-mud','go-manuals','go-pipe','go-crew'];
 function favoriteActions(){
  const ids=Array.isArray(state.uxFavorites)?state.uxFavorites:UX_DEFAULT_FAVORITES;
