@@ -19,7 +19,7 @@ assert(inline.includes('const KEY=\'borelab-field-v0.1\''),'Preserve offline dat
 const nav=read('web/field-navigation.js');
 new Function(nav);
 assert(nav.includes('bfDrawerUniversalInput')&&nav.includes('openSearch()'));
-assert(nav.includes("shortcuts.filter(v=>v.page!=='search')"),'Duplicate drawer search shortcut removed');
+assert(nav.includes("shortcuts.filter(v=>['home','planner','fieldcommand'"),'Focused drawer retains one search and dedicated Field Command');
 const pins=read('web/field-pins.js');
 assert(pins.includes('function renderBoresActions()'));
 const state={jobs:[{id:'j1',jobName:'Current job'}],reels:[{id:'r1',name:'4 inch HDPE',size:'4 in',remaining:250}],history:[{id:'h1',jobName:'North Glades',day:'2026-11-19'}],manualLinks:[{id:'m1',label:'Vermeer D24x40'}]};
