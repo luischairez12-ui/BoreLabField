@@ -24,7 +24,11 @@ assert(inline.includes("window.BoreLabStreamlineV29?.restore?.(p)"));
 assert(inline.includes("const KEY='borelab-field-v0.1'"),'Do not reset saved offline records');
 const nav=read('web/field-navigation.js');
 assert(nav.includes("page:'fieldcommand'"),'Sidebar has Field Command');
-assert(nav.includes("'fieldcommand','crew','jobmap','photos','pipe'"),'Compact sidebar uses core destinations');
+const shortcutsMatch=nav.match(/shortcuts\.filter\(v=>(\[[^\]]+\])\.includes\(v\.page\)\)/);
+assert(shortcutsMatch,'Primary sidebar filter exists');
+const sidebarPages=new Function('return '+shortcutsMatch[1])();
+for(const name of ['fieldcommand','safetycontacts','crew','jobmap','photos','pipe'])
+ assert(sidebarPages.includes(name),'Core sidebar destination missing: '+name);
 const fab=read('web/field-fab.js');
 assert(fab.includes("if(page==='bores')")&&fab.includes("if(page==='pipe')")&&fab.includes("if(page==='fieldcommand')"));
 const job={id:'j1',jobName:'HDD Test',jobAddress:'Route 80',shots:[
