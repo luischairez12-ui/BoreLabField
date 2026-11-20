@@ -29,5 +29,7 @@ for(const visible of ['Live Workday','blc-work-hero','blc-work-hero-actions','bl
 assert((out.match(/blc-work-tile-heading/g)||[]).length===4,'Must render four compact workday tiles');
 assert(!out.includes('NaN'),'No invalid numeric readings');
 assert(controller.renderShotCards().includes('Smart Shot Cards'),'Existing shot cards must still render');
+assert(out.includes('blc-quicktabs')&&out.includes('aria-current="page"'),'Live Workday has an accessible quick-tab bar');
+for(const [view,name] of [['renderShotCards','shotcards'],['renderReelPlan','reelplan'],['renderPhotoOrganizer','photosmart']])assert(controller[view]().includes('blc-quicktab')&&controller[view]().includes('data-page="'+name+'"'),view+' missing tab switcher');
 console.log('BoreLab Field command center and polished Live Workday 2.0 render: PASS');
 

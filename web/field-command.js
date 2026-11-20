@@ -17,7 +17,7 @@ let expanded='',filter='all',photoFilter='all',weather=null,weatherStamp=0,weath
 const cacheKey='borelab-weather-v1';
 try{const c=JSON.parse(localStorage.getItem(cacheKey)||'null');if(c?.data){weather=c.data;weatherStamp=c.at||0;weatherKey=c.key||''}}catch{}
 function metric(label,value,subtitle=''){return '<div class="blc-metric"><small>'+esc(label)+'</small><strong>'+esc(value)+'</strong>'+(subtitle?'<small>'+esc(subtitle)+'</small>':'')+'</div>'}
-function navlinks(){return '<div class="blc-linkgrid"><button data-page="command">◷ Live Workday</button><button data-page="shotcards">◎ Smart Shots</button><button data-page="reelplan">◈ Reel Planner</button><button data-page="photosmart">▣ Photo Organizer</button></div>'}
+function navlinks(active='command'){const links=[['command','◷','Workday'],['shotcards','◎','Smart Shots'],['reelplan','◈','Reels'],['photosmart','▣','Photos']];return '<nav class="blc-quicktabs" aria-label="Field Command quick tabs">'+links.map(([page,icon,label])=>'<button class="blc-quicktab" type="button" data-page="'+page+'"'+(active===page?' aria-current="page"':'')+'><span class="blc-quick-icon" aria-hidden="true">'+icon+'</span>'+label+'</button>').join('')+'</nav>'}
 function homeLinks(){return '<section class="blc-home"><strong>FIELD COMMAND CENTER</strong>'+navlinks()+'</section>'}
 function pill(s){return s.status==='complete'?'Complete':s.status==='progress'?'Drilling':'Pending'}
 function shotCard(s){
@@ -35,7 +35,7 @@ function renderShotCards(){
  const all=shots(),pending=all.filter(s=>s.status!=='complete');
  const visible=all.filter(s=>filter==='all'||s.status===filter);
  return '<div class="page blc-page"><div class="blc-heading"><span class="eyebrow">BORELAB / SMART SHOTS</span><h1>Every shot. One card.</h1><p>Footage, pipe, GPS, photos and drilling notes for your active job.</p></div>'+
- '<div class="blc-grid">'+metric('Pending',String(pending.length))+metric('Total planned',fmt(all.reduce((n,s)=>n+num(s.feet),0))+' ft')+'</div>'+
+ navlinks('shotcards')+'<div class="blc-grid">'+metric('Pending',String(pending.length))+metric('Total planned',fmt(all.reduce((n,s)=>n+num(s.feet),0))+' ft')+'</div>'+
  '<div class="between"><h2>Smart Shot Cards</h2><select data-blc-shotfilter><option value="all">All shots</option><option value="planned"'+(filter==='planned'?' selected':'')+'>Pending</option><option value="progress"'+(filter==='progress'?' selected':'')+'>Drilling</option><option value="complete"'+(filter==='complete'?' selected':'')+'>Complete</option></select></div>'+
  (visible.length?visible.map(shotCard).join(''):'<div class="card">No shots in this group.</div>')+
  '<div class="blc-buttons"><button data-action="new-shot" class="blc-primary">+ Add Bore</button><button data-page="shotboard">All Jobs Board</button></div></div>';
@@ -182,7 +182,7 @@ function renderCommand(){
   '<header class="blc-work-header"><div><span class="blc-work-eyebrow">FIELD / TODAY’S OPERATIONS</span><h1>Live Workday</h1>'+
   '<p>'+jobName+' <span>· '+new Date().toLocaleDateString(undefined,{month:'short',day:'numeric',weekday:'short'})+'</span></p></div>'+
   '<button data-page="jobs" class="blc-work-switch" aria-label="Switch active job">Jobs ▾</button></header>'+
-  shotHero+'<div class="blc-work-section-heading"><h2>Today at a Glance</h2><span>'+esc(day())+'</span></div>'+
+  navlinks('command')+shotHero+'<div class="blc-work-section-heading"><h2>Today at a Glance</h2><span>'+esc(day())+'</span></div>'+
   summary+timing+
   '<div class="blc-work-tile-grid">'+next+crewCard+reelCard+photoCard+'</div>'+
   weatherPanel()+footer+
@@ -192,7 +192,7 @@ function renderCommand(){
 function renderReelPlan(){
  const p=reelPlan(),r=p.simulation;
  return '<div class="page blc-page"><div class="blc-heading"><span class="eyebrow">BORELAB / MATERIALS</span><h1>Intelligent Reel Manager</h1><p>Plan each continuous conduit run using real reel footage and pipe size.</p></div>'+
- (window.BoreLabDailyReels?.renderSection?.()||'')+
+ navlinks('reelplan')+(window.BoreLabDailyReels?.renderSection?.()||'')+
  '<section class="blc-panel"><h3>Material fit simulation</h3><small>What-if only: nothing is deducted or reserved by this preview.</small>'+
  (r?'<div class="blc-grid">'+metric('Runs fitted',String(r.allocations.length))+metric('Runs short',String(r.shortages.length))+'</div>'+
  r.reels.map(x=>'<div class="blc-row"><strong>'+esc(x.name||'Reel')+' · '+esc(x.size||'Size unknown')+'</strong><span>'+fmt(x.remaining)+' / '+fmt(x.available)+' ft</span></div>').join('')+
@@ -209,7 +209,7 @@ function renderPhotoOrganizer(){
  const visible=all.filter(p=>photoFilter==='all'||category(p)===photoFilter);
  const missing=shots().filter(s=>s.status==='complete'&&!all.some(p=>p.shotId===s.id&&p.stage==='after'));
  return '<div class="page blc-page"><div class="blc-heading"><span class="eyebrow">BORELAB / MEDIA</span><h1>Smart Photo Organization</h1><p>Sort photos by job, shot and field category without altering originals.</p></div>'+
- '<div class="blc-grid">'+metric('Photos',String(all.length))+metric('Completed bores missing After',String(missing.length))+'</div>'+
+ navlinks('photosmart')+'<div class="blc-grid">'+metric('Photos',String(all.length))+metric('Completed bores missing After',String(missing.length))+'</div>'+
  (missing.length?'<p class="blc-alert">⚠ After photo missing for '+esc(missing.slice(0,5).map(s=>s.name).join(', '))+'</p>':'')+
  '<div class="blc-buttons"><button class="blc-primary" data-page="phototimeline2">▣ Open Smart Timeline 2.0</button><button data-action="choose-photo">Camera</button><button data-action="choose-gallery">Add Gallery</button></div>'+
  '<label class="field">Category<select data-blc-photofilter>'+categories.map(c=>'<option value="'+c+'"'+(c===photoFilter?' selected':'')+'>'+esc(c==='all'?'All photos':c)+'</option>').join('')+'</select></label>'+
