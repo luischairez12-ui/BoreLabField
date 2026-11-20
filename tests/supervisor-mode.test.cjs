@@ -9,7 +9,7 @@ assert.equal(css,fs.readFileSync('app/src/main/assets/web/supervisor-mode.css','
 for(const token of ['supervisor-mode.css','supervisor-mode.js',
  'supervisorpreview:()=>window.BoreLabSupervisorMode?.renderSupervisor()',
  "'crewpreview','supervisorpreview'",
- 'dataset.supervisorPreview=','Supervisor Mode 1.0 · Preview','Preview Supervisor UI'])
+ 'dataset.supervisorPreview=','Supervisor View · Preview','Preview Supervisor UI'])
  assert(html.includes(token),'missing Supervisor integration: '+token);
 assert(css.includes('html[data-supervisor-preview="on"] .bottom-nav{display:none!important}'));
 new Function(js);new Function(html.split('<script>')[1].split('</script>')[0]);
