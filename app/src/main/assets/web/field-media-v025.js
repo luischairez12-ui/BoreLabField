@@ -31,7 +31,7 @@ function records(){
   if(filter==='photos'&&x.mediaType!=='photo')return false;
   if(filter==='videos'&&x.mediaType!=='video')return false;
   if(filter==='receipts'&&x.mediaType!=='receipt')return false;
-  if(filter==='unlinked'&&(x.shotId||x.fieldPinId))return false;
+  if(filter==='unlinked'&&(x.mediaType==='receipt'||x.shotId||x.fieldPinId))return false;
   const sh=(job().shots||[]).find(q=>q.id===x.shotId),pin=(job().fieldPins||[]).find(q=>q.id===x.fieldPinId);
   return !search||[x.description,x.mediaType,sh?.name,pin?.name,day(x.date)].join(' ').toLowerCase().includes(search.toLowerCase());
  }).sort((a,b)=>String(b.sortKey).localeCompare(String(a.sortKey)));
