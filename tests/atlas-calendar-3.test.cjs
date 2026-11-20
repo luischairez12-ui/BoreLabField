@@ -39,7 +39,7 @@ const win={BoreLabAssistantBridge:bridge,BoreLabNative:{exportPdf:(name,data)=>{
 const ab=new Function('window','document',abjs+';return window.BoreLabAsBuilt;')(win,doc);
 const atlas=new Function('window','document',atlasjs+';return window.BoreLabAtlas;')(win,doc);
 assert(ab.renderCalendar().includes('📅 Calendar')&&ab.renderCalendar().includes('📍 Atlas Map'));
-assert(ab.renderCalendar().includes('Search All Jobs'));
+assert(!ab.renderCalendar().includes('Search All Jobs')&&!ab.renderCalendar().includes('Find records by job, date'),'Calendar uses sidebar search instead of duplicate controls');
 ab.setDay(date);
 assert.equal(ab.eventsOn(date).filter(e=>e.type==='pin').length,1,'calendar current job');
 assert.equal(ab.eventsOn(date).filter(e=>e.type==='photo').length,1,'local photo shown');

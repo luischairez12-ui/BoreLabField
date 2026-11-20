@@ -14,7 +14,7 @@ new Function(html.split('<script>')[1].split('</script>')[0]);
 assert(html.includes("photos:()=>window.BoreLabMediaV25?.render?.()||renderPhotos()"),'Photos page is unified vault');
 assert(html.includes('Performed By / Drill Crew'),'Bore detail includes performer attribution');
 assert(html.includes('field-mapping-media-v025.css'),'New field CSS loaded');
-assert(html.includes('BoreLab Field · v0.29.0'),'v0.25.0 footer');
+assert(html.includes('BoreLab Field · v0.30.0'),'v0.25.0 footer');
 assert(html.includes('performedBy:window.BoreLabCrewV25'),'Report snapshots include crew attribution');
 assert(html.includes('data-v25-video-shot'),'Record video attached to current bore');
 const nav=read('web/field-navigation.js');
