@@ -14,10 +14,10 @@ function pipeStatus(shot,j=job()){
  const stock=window.BoreLabPickup?.trackedReels?.()||[];
  for(const line of lines){
   const reels=stock.filter(r=>key(r.size)===key(line.size));
-  const total=reels.reduce((n,r)=>n+Math.max(0,Number(r.remaining)||0),0);
+  const total=reels.reduce((n,r)=>n+(window.BoreLabReelCommand?.available?.(r,[shot.id])??Math.max(0,Number(r.remaining)||0)),0);
   if(Number(line.total)>total+.001)
    return {state:'short',text:line.size+': '+fmt(line.total)+' ft needed; '+fmt(total)+' ft recorded'};
-  if(!reels.some(r=>Number(r.remaining)+.001>=Number(line.perRun)))
+  if(!reels.some(r=>(window.BoreLabReelCommand?.available?.(r,[shot.id])??Number(r.remaining))+.001>=Number(line.perRun)))
    return {state:'short',text:line.size+': no continuous '+fmt(line.perRun)+' ft reel'};
  }
  return {state:'ready',text:'Recorded footage and continuous reel lengths appear sufficient'};

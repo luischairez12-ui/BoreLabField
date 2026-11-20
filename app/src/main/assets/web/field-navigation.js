@@ -12,6 +12,8 @@ const shortcuts=[
  {page:'jobmap',icon:'⌖',name:'Job Map',detail:'GPS pins and bores'},
  {page:'fieldhub',icon:'⚡',name:'Field Hub',detail:'Arrival, Markers, Inbox & Day Story'},
  {page:'fieldproductivity',icon:'◈',name:'Field Productivity',detail:'Materials, Next Move & Photos'},
+ {page:'reelcommand',icon:'◉',name:'Reel Command',detail:'Burn-down and return planning'},
+ {page:'crossings',icon:'⚠',name:'Utility Crossings',detail:'Measured crossing records'},
  {page:'planner',icon:'⌁',name:'Bores',detail:'Shot planner'},
  {page:'shotboard',icon:'☷',name:'Today’s Shot Board',detail:'Daily work'},
  {page:'photos',icon:'▣',name:'Photos',detail:'Jobsite evidence'},

@@ -5,6 +5,8 @@ import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.database.Cursor;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Bitmap;
@@ -554,7 +556,7 @@ public class BoreLabActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
-        if (webView != null) sendManualStatus(null);
+        if (webView != null) { sendManualStatus(null); webView.evaluateJavascript("window.BoreLabCompanion && window.BoreLabCompanion.sync && window.BoreLabCompanion.sync()",null); }
     }
 
 
@@ -619,6 +621,35 @@ public class BoreLabActivity extends Activity {
     }
 
     final class FileExportBridge {
+        /** Mi OS Daily sends its own immutable daily-log IDs, never a direct pipe transaction. */
+        @JavascriptInterface public String getLauncherLogs() {
+            try (Cursor rows=getContentResolver().query(
+                Uri.parse("content://com.luis.mios.daily.borelab/logs"),
+                new String[]{"json"},null,null,null)) {
+                if(rows!=null&&rows.moveToFirst()){
+                    String payload=rows.getString(rows.getColumnIndexOrThrow("json"));
+                    return payload!=null&&payload.length()<=2000000?payload:"{\"entries\":[]}";
+                }
+            } catch (Exception ignored) { /* Companion not installed, not paired, or not authorized. */ }
+            return "{\"entries\":[]}";
+        }
+        @JavascriptInterface public boolean isMiOsEnabled() {
+            return getSharedPreferences(MiOsCompanionProvider.PREFS,Context.MODE_PRIVATE).getBoolean("enabled",false);
+        }
+        @JavascriptInterface public void setMiOsEnabled(boolean enabled) {
+            getSharedPreferences(MiOsCompanionProvider.PREFS,Context.MODE_PRIVATE)
+                .edit().putBoolean("enabled",enabled).apply();
+        }
+        @JavascriptInterface public void publishMiOsSnapshot(String raw) {
+            if(!isMiOsEnabled()||raw==null||raw.length()>250000)return;
+            try {
+                JSONObject obj=new JSONObject(raw);
+                if(obj.optInt("version")!=1||!obj.has("points"))return;
+                getSharedPreferences(MiOsCompanionProvider.PREFS,Context.MODE_PRIVATE)
+                    .edit().putString("snapshot",obj.toString()).apply();
+            } catch (Exception ignored) {}
+        }
+
         /** The user's speech-recognition app handles one requested voice command. */
         @JavascriptInterface public void startVoiceCommand() {
             runOnUiThread(() -> {

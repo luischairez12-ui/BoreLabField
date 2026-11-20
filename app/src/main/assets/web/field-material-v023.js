@@ -27,10 +27,12 @@ function requirements(j=job()){
   }
  }
  const stock=new Map(),known=(st().reels||[]).length>0;
+ const pendingIds=new Set((j?.shots||[]).filter(x=>x.status!=='complete').map(x=>x.id));
  for(const reel of trackedReels()){
   const k=key(reel.size);if(!k)continue;
   const rec=stock.get(k)||{amount:0,longest:0};
-  rec.amount+=n(reel.remaining);rec.longest=Math.max(rec.longest,n(reel.remaining));stock.set(k,rec);
+  const free=window.BoreLabReelCommand?.available?.(reel,[...pendingIds])??n(reel.remaining);
+  rec.amount+=free;rec.longest=Math.max(rec.longest,free);stock.set(k,rec);
  }
  return {known,missing,reelCount:trackedReels().length,
   todayOnly:!!(window.BoreLabDailyReels?.activeIds?.(st())||[]).length,
@@ -44,7 +46,7 @@ function checklistText(){
  const data=requirements(),out=['BORELAB FIELD — MATERIAL PICKUP','Job: '+(job()?.jobName||'Current Job'),
  'Printed: '+new Date().toLocaleString(),'Planning only — not an inventory transaction',''];
  for(const line of data.lines)
-  out.push('[ ] '+line.size+' — '+fmt(line.needed)+' ft required; '+(line.shortage===null?'Stock by size unknown':line.shortage>0?fmt(line.shortage)+' ft additional needed':'Gross footage on truck sufficient')+
+  out.push('[ ] '+line.size+' — '+fmt(line.needed)+' ft required; '+(line.shortage===null?'Stock by size unknown':line.shortage>0?fmt(line.shortage)+' ft additional needed':'Unreserved footage sufficient')+
     (line.longRisk?' — VERIFY continuous reel length ('+fmt(line.longest)+' ft required)':''));
  for(const name of data.missing)out.push('[ ] Check missing conduit size: '+name);
  if(!data.lines.length)out.push('No unfinished shots with known conduit material.');
@@ -60,7 +62,7 @@ function render(){
  '<p class="bp-note">Using '+(data.todayOnly?'today’s selected truck reels':'all non-archived reels marked Truck')+'. Verify what is physically available.</p>')+
  (data.lines.length?'<div class="bp-material-list">'+data.lines.map(line=>
  '<article class="bp-material"><div class="bp-material-title"><strong>'+esc(line.size)+'</strong>'+
- '<span class="'+(line.shortage!==null&&line.shortage>0?'bp-short':'')+'">'+esc(line.shortage===null?'Unknown stock':line.shortage>0?'Short '+fmt(line.shortage)+' ft':'Gross balance OK')+'</span></div>'+
+ '<span class="'+(line.shortage!==null&&line.shortage>0?'bp-short':'')+'">'+esc(line.shortage===null?'Unknown stock':line.shortage>0?'Short '+fmt(line.shortage)+' ft':'Available footage OK')+'</span></div>'+
  '<small>'+line.shots+' pending bore(s) · '+line.runs+' conduit run(s)</small>'+
  '<div class="bp-dual"><span>Required <b>'+fmt(line.needed)+' ft</b></span><span>Truck <b>'+(line.available===null?'Unknown':fmt(line.available)+' ft')+'</b></span></div>'+
  (line.longRisk?'<p class="bp-warning">⚠ Longest single run '+fmt(line.longest)+' ft; largest available matching reel '+fmt(line.longestReel)+' ft.</p>':'')+
@@ -68,7 +70,7 @@ function render(){
  '<p class="bp-empty">No size-specific requirements yet. Add conduits to planned bores.</p>')+
  (data.missing.length?'<p class="bp-warning">Conduit sizes not recorded for: '+esc(data.missing.join(', '))+'.</p>':'')+
  '<div class="bp-actions"><button class="bp-primary" data-bp-copy-list>▤ Copy Pickup Checklist</button><button data-page="pipe">Pipe Inventory</button><button data-page="planner">Bores</button></div>'+
- '<p class="tiny muted">Totals may include reserved pipe; confirm reservations, reel continuity and field conditions before pickup.</p></section>';
+ '<p class="tiny muted">Available footage excludes reservations for unrelated work. Confirm reel continuity and field conditions before pickup.</p></section>';
 }
 function mark(keyValue,done){
  if(!allowed()||!requirements().lines.some(x=>x.key===keyValue))return;

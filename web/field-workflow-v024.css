@@ -1,0 +1,48 @@
+/* BoreLab 0.24 — one integrated field workflow, consistent white/orange palette. */
+.br-page,.bx-page,.bc-page{display:grid;gap:13px;padding-bottom:90px!important}
+.br-page>h1,.bx-page>h1,.bc-page>h1{font-size:26px;letter-spacing:-.5px;margin:0}
+.br-reels,.bx-list{display:grid;gap:11px}
+.br-card,.bx-crossing,.bc-card{border:1px solid #e3e7ea;border-radius:16px;background:#fff;padding:14px;display:grid;gap:12px;box-shadow:0 3px 12px #2031400c}
+.br-card h2,.bc-card h3{margin:0;font-size:18px}
+.br-card h3{margin:5px 0 0;font-size:14px}
+.br-card strong,.bx-crossing strong{font-size:14px}
+.br-sub,.bx-crossing small{display:block;font-size:10px;color:#7a8791;line-height:1.5;margin-top:3px}
+.br-big{color:#cd6b13;font-weight:900;font-size:20px;white-space:nowrap}
+.br-meter{height:13px;border:1px solid #eccfae;background:#fff1e2;border-radius:30px;overflow:hidden}
+.br-meter>div{height:100%;border-radius:30px;background:linear-gradient(90deg,#f5a039,#d56b0f)}
+.br-stats,.bx-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.br-stats span,.bx-metrics span{display:grid;gap:4px;min-width:0;padding:9px 10px;background:#fff8ef;border:1px solid #f1dfcb;border-radius:10px;font-size:10px;color:#7d654e}
+.br-stats strong,.bx-metrics b{font-size:14px;color:#a65215}
+.br-reel-row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #ede8e3;padding:8px 0;font-size:12px}
+.br-reel-row strong{color:#b35d13}
+.br-warning,.bc-warning{padding:10px 12px;font-size:11px;line-height:1.45;color:#904b11;background:#fff0df;border:1px solid #f0c698;border-left:3px solid #d96b0e;border-radius:9px;margin:0}
+.br-hint{padding:10px 12px;font-size:11px;background:#f6f7f8;border:1px solid #e4e8eb;border-radius:10px;color:#526679;margin:0}
+.br-result{padding:11px;background:#fff5e9;border-radius:12px;font-size:12px;color:#915015}
+.br-order{display:grid;gap:8px}
+.br-order>div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #eee;padding:9px 0;font-size:12px}
+.br-order small{color:#8c7561;text-align:right}
+.br-buttons,.bx-actions{display:flex;gap:8px;flex-wrap:wrap}
+.br-buttons button,.bx-actions button{flex:1;min-height:43px;border:1px solid #e8c399;border-radius:11px;background:#fff8f0;color:#9a4b11;font-size:12px;font-weight:800;padding:9px}
+.br-empty,.bx-empty,.bc-empty{font-size:12px;line-height:1.5;color:#7f746a;padding:15px;background:#fff9f2;border:1px dashed #e9c9a8;border-radius:12px;margin:0}
+.bx-crossing{gap:8px}
+.bx-crossing>button{justify-self:start;min-height:40px;border:1px solid #f0c8a0;color:#ad5714;border-radius:10px;background:#fff7eb;font-size:11px}
+.bx-crossing .between>div{min-width:0}
+.bx-crossing p{margin:0}
+.bc-card h3{font-size:17px}
+.bc-card small{font-size:10px;color:#758591}
+.bc-toggle{display:flex;gap:6px;align-items:center;font-weight:850;color:#ad5714;font-size:11px}
+.bc-toggle input{width:20px;height:20px;accent-color:#d96a10}
+.bc-entry{display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,1fr);gap:8px;align-items:start;padding:10px 2px;border-bottom:1px solid #eae6e1}
+.bc-entry strong{display:block;font-size:12px;overflow-wrap:anywhere}
+.bc-entry small{display:block;font-size:10px;color:#7b8992;margin-top:4px}
+.bc-entry-right{display:flex;align-items:center;justify-content:end;gap:5px;flex-wrap:wrap}
+.bc-entry-right b{font-size:10px;color:#965019;width:100%;text-align:right;overflow-wrap:anywhere}
+.bc-entry-right button{min-height:40px}
+.bc-import-row{display:grid;gap:8px;background:#fff8ef;border:1px solid #ead4bd;border-radius:12px;padding:12px;margin:9px 0}
+.bc-import-row strong{font-size:13px}
+.bc-import-row small{font-size:11px;color:#705e51;line-height:1.5}
+.bc-import-row select{min-height:45px;width:100%}
+.bc-confirm{display:flex;gap:9px;align-items:start;padding:12px;font-size:12px;line-height:1.5;color:#634c37;background:#fff8ee;border-radius:11px}
+.bc-confirm input{width:20px;height:20px;accent-color:#d97318;flex:none}
+.bc-notes{font-size:11px;color:#566572;overflow-wrap:anywhere}
+@media(max-width:360px){.bc-entry{grid-template-columns:1fr}.bc-entry-right{justify-content:start}.bc-entry-right b{text-align:left}}

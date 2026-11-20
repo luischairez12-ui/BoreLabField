@@ -26,7 +26,7 @@ function normalized(shot){
  return legacy?[{size:legacy,quantity:1,perRunFeet:''}]:[];
 }
 function plan(shot,allowance=10){
- const base=Math.max(0,sane(shot?.feet))+Math.max(0,sane(allowance));
+ const base=Math.max(0,sane(shot?.feet))+Math.max(0,sane(shot?.allowanceOverride??allowance));
  return normalized(shot).map(x=>({...x,perRun:x.perRunFeet!==''?Number(x.perRunFeet):base,total:(x.perRunFeet!==''?Number(x.perRunFeet):base)*x.quantity}));
 }
 function summary(shot){
