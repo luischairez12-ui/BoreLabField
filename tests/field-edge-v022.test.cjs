@@ -11,7 +11,7 @@ for(const code of [edge,fab,nav,ops,ab,atlas])new Function(code);
 new Function(html.split('<script>')[1].split('</script>')[0]);
 assert(html.includes("fieldhub:()=>window.BoreLabEdgeV22?.renderHub?.()"),'Field Hub route');
 assert(html.includes("'localaccounts','fieldhub'"),'Field Hub is whitelisted');
-assert(html.includes('BoreLab Field · v0.27.0'));
+assert(html.includes('BoreLab Field · v0.28.0'));
 assert(html.includes('window.BoreLabEdgeV22?.isPeekOpen?.()'),'Back closes Peek');
 assert(html.includes('Field Hub / Photo Inbox'),'Photo library links to inbox');
 assert(css.includes('touch-action:none')&&css.includes('.be-peek')&&css.includes('.be-undo-toast'),'Edge dragging and Peek CSS');

@@ -11,7 +11,7 @@ for(const file of scripts) {
  new Function(read('web/'+file));
 }
 new Function(html.split('<script>')[1].split('</script>')[0]);
-assert(html.includes('BoreLab Field · v0.27.0'),'Version v0.24 footer');
+assert(html.includes('BoreLab Field · v0.28.0'),'Version v0.24 footer');
 for(const page of ['reelcommand','crossings','companion'])assert(html.includes(page+':()=>window.BoreLab'),'Page route '+page);
 assert(read('web/conduits.js').includes('shot?.allowanceOverride??allowance'),'Per-shot zero allowance honors imported actuals');
 assert(html.includes('s.allowanceOverride??extra()'),'Per-shot override propagates to generic planner');
