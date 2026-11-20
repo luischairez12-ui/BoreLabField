@@ -176,13 +176,14 @@ function renderMap(){
  const html='<div class="page blmap-page"><header class="blmap-header"><div>'+
  '<span class="eyebrow">BORELAB FIELD / GPS PLANNING</span><h1>Interactive Jobsite Map</h1>'+
  '<p>'+esc(data.jobName)+'</p></div>'+weatherChip()+'</header>'+
- (window.BoreLabMapCalendarV31?.render?.(mapDay)||'')+
-  '<div class="blmap-filters" role="group" aria-label="Filter bore shot status">'+statusTabs(data)+'</div>'+ 
+ box+
+ '<div class="blmap-filters" role="group" aria-label="Filter bore shot status">'+statusTabs(data)+'</div>'+ 
   '<div class="blmap-type-filters" role="group" aria-label="Filter pin type">'+typeTabs(data)+'</div>'+
- box+unlocatedSection(data)+
+ unlocatedSection(data)+
  '<div class="blmap-bottom"><button data-page="shotcards">◎ Smart Shot Cards</button>'+
  '<button data-action="new-shot" class="blmap-orange">＋ Add Bore</button><button data-blmap-new-pin>📌 Add Field Pin</button><button data-blmap-endpoints>⌁ Entry / Exit</button></div>'+
- '<p class="ab-map-note">Cyan/orange endpoint lines are straight GPS references only, not surveyed underground bore alignment.</p><p class="blmap-disclaimer">Map tiles are online-only. Bore and installed-location pins, dated records and the site plot remain usable offline. Check the actual jobsite before digging.</p></div>';
+ '<p class="ab-map-note">Cyan/orange endpoint lines are straight GPS references only, not surveyed underground bore alignment.</p><p class="blmap-disclaimer">Map tiles are online-only. Bore and installed-location pins, dated records and the site plot remain usable offline. Check the actual jobsite before digging.</p>'+
+ (window.BoreLabMapCalendarV31?.render?.(mapDay)||'')+'</div>';
  if(typeof requestAnimationFrame==='function')requestAnimationFrame(draw);
  return html;
 }
