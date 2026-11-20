@@ -101,6 +101,8 @@ jobs:
         run: node tests/field-insights-v021.test.cjs
       - name: Test Edge Tab, Peek, field markers, Photo Inbox, Save & Next and Field Story
         run: node tests/field-edge-v022.test.cjs
+      - name: Test Material Pickup, Next Move, Photo Comparison and collapsible Home header
+        run: node tests/field-productivity-v023.test.cjs
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -128,6 +130,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BoreLab-Field-v0.22.0-Debug-APK
+          name: BoreLab-Field-v0.23.0-Debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

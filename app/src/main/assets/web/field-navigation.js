@@ -11,6 +11,7 @@ const shortcuts=[
  {page:'fieldhistory',icon:'▦',name:'Atlas & Calendar',detail:'Places and work history'},
  {page:'jobmap',icon:'⌖',name:'Job Map',detail:'GPS pins and bores'},
  {page:'fieldhub',icon:'⚡',name:'Field Hub',detail:'Arrival, Markers, Inbox & Day Story'},
+ {page:'fieldproductivity',icon:'◈',name:'Field Productivity',detail:'Materials, Next Move & Photos'},
  {page:'planner',icon:'⌁',name:'Bores',detail:'Shot planner'},
  {page:'shotboard',icon:'☷',name:'Today’s Shot Board',detail:'Daily work'},
  {page:'photos',icon:'▣',name:'Photos',detail:'Jobsite evidence'},

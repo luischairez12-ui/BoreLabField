@@ -11,7 +11,7 @@ for(const path of ['field-navigation.js','field-navigation.css','home-dashboard.
 new Function(script);new Function(home);new Function(html.split('<script>')[1].split('</script>')[0]);
 assert(html.indexOf('field-navigation.css')>html.indexOf('local-accounts.css'),'Unified field skin loads after older CSS');
 assert(html.indexOf('field-navigation.js')>html.indexOf('local-accounts.js'),'Drawer loads after role guards');
-assert(html.includes('id="bfMenuButton"')&&html.includes('data-bf-drawer')&&html.includes('aria-haspopup="dialog"'),'Accessible right-side hamburger is present');
+assert(!html.includes('id="bfMenuButton"')&&html.includes('class="bf-edge-tab" data-bf-drawer')&&html.includes('aria-controls="bfRightDrawer"'),'Edge launcher replaces redundant top hamburger');
 assert(html.includes('class="bf-edge-tab"'),'Right-thumb slide-out handle is present');
 assert(html.includes('data-page="crew" aria-label="Crew and time"'),'Crew now has a bottom-nav shortcut');
 assert(html.includes('data-page="planner"')&&html.includes('aria-label="Add a bore shot"'),'Existing Bore and Add shot shortcuts remain');
@@ -20,7 +20,7 @@ assert(html.includes('window.BoreLabNavigation?.isOpen?.()'),'Android Back close
 assert(html.includes('window.BoreLabNavigation?.syncPage?.(page)'),'Drawer tracks actual app page');
 assert(html.includes("const mode='daylight';")&&html.includes("state.theme='daylight';"),'White and orange is a single current default');
 assert(!html.includes('data-theme-select>'),'Unused night theme selector must not offer an inconsistent second skin');
-assert(html.includes('BoreLab Field · v0.22.0'),'New design ships as v0.19');
+assert(html.includes('BoreLab Field · v0.23.0'),'New design ships as v0.19');
 assert(home.includes('bf-home-jobline')&&home.includes('data-bf-menu-action="quick"'),'Dashboard has job and thumb-friendly photo shortcut');
 assert(home.includes('data-page="fieldhistory"'),'Home links to the existing Calendar | Atlas page');
 assert(css.includes('.bf-right-drawer')&&css.includes('right:max(0px'),'Drawer slides from right');
