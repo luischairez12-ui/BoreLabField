@@ -619,7 +619,6 @@ let manualFiles={},manualStatusKnown=false,selectedManualMachine='vermeer-d24x40
 let manualSearchSeq=0,activeManualSearch=null;
 let guidedStep=1,guidedDraft=null;
 let screenStack=[];
-let fieldCommandTab='today'; // Field Command categories are view-only; do not affect saved jobs.
 let universalQuery='';
 if(typeof state.jobAddress!=='string')state.jobAddress='';
 if(typeof state.jobNotes!=='string')state.jobNotes='';
@@ -1555,6 +1554,7 @@ function mudLogDetail(id){
  ${x.notes?`<p class="smalltext muted spaced">${esc(x.notes)}</p>`:''}</div>`);
 }
 
+let fieldCommandTab='today'; // View-only category state; isolated from job records.
 const UX_ACTIONS=[
  {id:'new-shot',label:'Plan a Bore',sub:'Length & pipe needs',icon:'◎',group:'Planning'},
  {id:'go-photos',label:'Record Work',sub:'Jobsite photos',icon:'▣',group:'Daily work'},
