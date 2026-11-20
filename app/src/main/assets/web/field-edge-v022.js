@@ -301,8 +301,8 @@ async function arrivalGps(){
 function storyEvents(dayValue){
  const scope=ab()?.getScope?.()||'job';
  if(!ab()?.allEvents)return[];
- ab.setScope?.('all');
- let list=[];try{list=ab.allEvents().filter(e=>e.day===dayValue&&e.jobId===active()?.id)}finally{ab.setScope?.(scope)}
+ ab()?.setScope?.('all');
+ let list=[];try{list=(ab()?.allEvents?.()||[]).filter(e=>e.day===dayValue&&e.jobId===active()?.id)}finally{ab()?.setScope?.(scope)}
  return list.sort((a,z)=>String(a.when||'').localeCompare(String(z.when||'')));
 }
 function storyData(dayValue=storyDay){
