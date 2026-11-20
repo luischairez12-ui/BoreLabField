@@ -9,6 +9,7 @@ let open=false,quick=false,lastFocus=null,gesture=null;
 const shortcuts=[
  {page:'home',icon:'⌂',name:'Home',detail:'Dashboard'},
   {page:'fieldcommand',icon:'☷',name:'Field Command',detail:'Dispatch & review'},
+ {page:'safetycontacts',icon:'✚',name:'811 & Safety',detail:'Locates and emergency contacts'},
  {page:'fieldhistory',icon:'▦',name:'Atlas & Calendar',detail:'Places and work history'},
  {page:'jobmap',icon:'⌖',name:'Job Map',detail:'GPS pins and bores'},
  {page:'fieldhub',icon:'⚡',name:'Field Hub',detail:'Arrival, Markers, Inbox & Day Story'},
@@ -50,7 +51,7 @@ function mount(){
  '<div class="bf-drawer-search-input"><span aria-hidden="true">⌕</span><input id="bfDrawerUniversalInput" type="search" maxlength="100" autocomplete="off" placeholder="Address, worker, bore, date…" aria-label="Search saved BoreLab records"></div>'+
  '<small>All saved jobs · Offline</small></div><div id="bfDrawerSearchResults" role="status" aria-live="polite" hidden></div>'+
  '<div class="bf-drawer-section-title"><span>SHORTCUTS</span><small>Tap to open</small></div>'+
- '<div class="bf-drawer-links">'+shortcuts.filter(v=>['home','planner','fieldcommand','crew','jobmap','photos','pipe','equipment','toolinventory','mudhub','closeout','settings'].includes(v.page)).map(item).join('')+'</div>'+
+ '<div class="bf-drawer-links">'+shortcuts.filter(v=>['home','planner','fieldcommand','safetycontacts','crew','jobmap','photos','pipe','equipment','toolinventory','mudhub','closeout','settings'].includes(v.page)).map(item).join('')+'</div>'+
  '<div class="bf-drawer-bottom-spacer" aria-hidden="true"></div></div>'+
  '<div class="bf-drawer-quick"><button type="button" class="bf-quick-main" data-bf-menu-action="quick" aria-expanded="false" aria-controls="bfQuickChoices">'+icons.camera+
  '<span>Quick Photo & Pin</span><span class="bf-quick-arrow">⌄</span></button>'+
