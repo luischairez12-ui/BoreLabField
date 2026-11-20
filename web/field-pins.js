@@ -58,6 +58,12 @@ function renderBoresTools(){
  '<div class="fp-add-row"><button type="button" class="btn primary" data-fp-add="tie-in">＋ Tie-in</button><button type="button" class="btn ghost" data-fp-add="coupling">＋ Coupling</button><button type="button" class="btn ghost" data-fp-add="box">＋ Box</button></div>'+
  '<p class="tiny muted spaced">Saved locations get pins on the Jobsite Map. A date can be entered even for work recorded afterward.</p></section>';
 }
+function renderBoresActions(){
+ return '<section class="card fp-bores-tools fp-bores-actions"><div class="between"><div><span class="eyebrow">FIELD MARKERS</span><h3>Add Installed Features</h3></div>'+
+ '<div class="fp-quick-nav"><button type="button" class="btn micro ghost" data-page="fieldhistory">Calendar</button><button type="button" class="btn micro ghost" data-page="jobmap">Map</button></div></div>'+
+ '<div class="fp-add-row"><button type="button" class="btn primary" data-fp-add="tie-in">＋ Tie-in</button><button type="button" class="btn ghost" data-fp-add="coupling">＋ Coupling</button><button type="button" class="btn ghost" data-fp-add="box">＋ Box</button></div>'+
+ '<p class="tiny muted spaced">Search saved bores and pins from the sidebar.</p></section>';
+}
 function editPin(id='',initialKind='tie-in',mapPosition=null){
  const current=pins().find(p=>p.id===id);
  const kind=kindLabels[current?.kind]?current.kind:(kindLabels[initialKind]?initialKind:'tie-in');
@@ -176,5 +182,5 @@ document.addEventListener('submit',e=>{
  const form=e.target.closest?.('form[data-fp-form]');if(!form)return;
  e.preventDefault();savePin(form);
 });
-window.BoreLabFieldPins={pins,kindLabel,symbolFor,kindLabels,dateTerms,displayDate,localDay,renderBoresTools,renderResults,matching,editPin,open,ensurePins};
+window.BoreLabFieldPins={pins,kindLabel,symbolFor,kindLabels,dateTerms,displayDate,localDay,renderBoresTools,renderBoresActions,renderResults,matching,editPin,open,ensurePins};
 })();
