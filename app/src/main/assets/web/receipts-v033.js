@@ -70,7 +70,7 @@ function readPdf(file){return new Promise((resolve,reject)=>{const reader=new Fi
 async function pickFile(file){
  if(!editable())return notify('This action requires an authorized field account.');
  if(!file)return;
- const mime=String(file.type||'').toLowerCase(),isPdf=mime==='application/pdf'||/\.pdf$/i.test(file.name||''),isImage=mime.startsWith('image/');
+ const mime=String(file.type||'').toLowerCase(),isPdf=mime==='application/pdf'||/\.pdf$/i.test(file.name||''),isImage=mime.startsWith('image/')||/\.(?:jpe?g|png|webp)$/i.test(String(file.name||''));
  if(!isPdf&&!isImage)return notify('Choose a JPG, PNG, WebP or PDF receipt.');
  if(file.size>(isPdf?maxPdf:maxImage))return notify(isPdf?'PDF too large (8 MB max).':'Photo too large (25 MB max).');
  if(cache.length>=400)return notify('Receipt library limit reached. Export a backup and archive elsewhere.');
