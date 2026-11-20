@@ -2582,7 +2582,7 @@ function saveGuidedBore(){
  state.shots.push(shot);
  state.demo=false;save();clearGuidedDraft();closeModal();render();
  notify('Bore saved ✓ You can add details any time.');
- window.BoreLabEdgeV22?.offerSaveNext?.(state.activeJobId,shot.id,'created');
+ if(typeof window!=='undefined')window.BoreLabEdgeV22?.offerSaveNext?.(state.activeJobId,shot.id,'created');
  if(shot.address)resolveShotAfterSave(shot.id);
 }
 function showFirstRunTour(){
