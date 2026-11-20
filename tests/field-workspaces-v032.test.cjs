@@ -10,7 +10,17 @@ for(const file of ['field-navigation.js','field-fab.js','field-workspaces-v032.j
 const inline=html.split('<script>')[1].split('</script>')[0];
 for(const src of [inline,read('web/field-navigation.js'),read('web/field-fab.js'),read('web/field-workspaces-v032.js'),read('web/unified-search-v028.js')])new Function(src);
 assert(html.includes("const KEY='borelab-field-v0.1'"),'Existing offline storage key must not change');
-assert(html.includes("'pipe','equipment','toolinventory','mudhub'"),'New destinations are registered');
+const pagesMatch=inline.match(/const BORELAB_PAGES=new Set\((\[[^;]+\])\);/);
+assert(pagesMatch,'Navigation validation set exists');
+const allowedPages=new Function('return '+pagesMatch[1])();
+for(const p of ['equipment','toolinventory','mudhub'])
+ assert(allowedPages.includes(p),'Sidebar destination is missing from actual navigation allowlist: '+p);
+const startMatch=inline.match(/let page=(\[[^;]+\])\.includes\(state\.lastScreen\)/);
+assert(startMatch,'Restart screen allowlist exists');
+const restorePages=new Function('return '+startMatch[1])();
+for(const p of ['equipment','toolinventory','mudhub'])
+ assert(restorePages.includes(p),'Restart cannot restore '+p);
+assert(inline.includes("if(!BORELAB_PAGES.has(p))return;"),'Runtime validates pages against BORELAB_PAGES');
 assert(html.includes("p==='equipmentmanager2'||p==='manuals'"),'Legacy Equipment and manual links route into Equipment');
 assert(html.includes("p==='mud'||p==='mudstock'"),'Legacy Mixer and mud inventory links route into Mud');
 assert(html.includes('BoreLabWorkspacesV32?.renderEquipment')&&html.includes('BoreLabWorkspacesV32?.renderToolInventory')&&html.includes('BoreLabWorkspacesV32?.renderMud'));
