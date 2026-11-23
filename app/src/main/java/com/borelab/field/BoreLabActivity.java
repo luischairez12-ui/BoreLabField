@@ -70,6 +70,7 @@ public class BoreLabActivity extends Activity {
     private static final long MAX_MANUAL_BYTES = 80L * 1024L * 1024L;
 
     private WebView webView;
+    private String pendingGoExchange;
     private ValueCallback<Uri[]> fileCallback;
     private Uri capturedPhotoUri;
     private Uri capturedVideoUri;
@@ -83,6 +84,7 @@ public class BoreLabActivity extends Activity {
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
+        pendingGoExchange = extractGoShare(getIntent());
         getWindow().setStatusBarColor(Color.WHITE);
         getWindow().setNavigationBarColor(Color.WHITE);
         webView = new WebView(this);
@@ -106,6 +108,9 @@ public class BoreLabActivity extends Activity {
         webView.addJavascriptInterface(new FileExportBridge(), "BoreLabNative");
 
         webView.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView view, String url) {
+                if (HOME.equals(url)) dispatchGoShare();
+            }
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 if (!HOST.equalsIgnoreCase(uri.getHost())) return null;
@@ -188,6 +193,31 @@ public class BoreLabActivity extends Activity {
             }
         });
         webView.loadUrl(HOME);
+    }
+
+    private String extractGoShare(Intent intent) {
+        if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction())) return null;
+        if (!"text/plain".equals(intent.getType())) return null;
+        String raw = intent.getStringExtra(Intent.EXTRA_TEXT);
+        if (raw == null || raw.length() > 300000 || !raw.contains("\"borelab-go-exchange/v1\"")) return null;
+        return raw;
+    }
+
+    private void dispatchGoShare() {
+        if (webView == null || pendingGoExchange == null) return;
+        String raw = pendingGoExchange;
+        pendingGoExchange = null;
+        webView.evaluateJavascript(
+            "window.BoreLabGOImport&&window.BoreLabGOImport.receive(" + JSONObject.quote(raw) + ")",
+            null
+        );
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        pendingGoExchange = extractGoShare(intent);
+        dispatchGoShare();
     }
 
     private static String mime(String p) {
