@@ -21,6 +21,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Explicit owner-confirmed GO exchange, not broad external storage access. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
         <!-- Read-only, opt-in map summary for the owner-approved Mi OS Daily launcher. -->
         <provider android:name=".MiOsCompanionProvider"
