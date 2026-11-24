@@ -1880,7 +1880,7 @@ function renderJobs(){
 function jobRecordsForDay(job,day,all=false){
  const inDay=x=>x&&localDay(x)===day;
  return {
-  shots:(job.shots||[]).filter(sh=>all||[sh.startedAt,sh.completedAt,sh.updatedAt].some(inDay)),
+  shots:(job.shots||[]).filter(sh=>all||(sh.scheduledDay?(sh.status==='complete'&&sh.completedAt?inDay(sh.completedAt):sh.scheduledDay===day||inDay(sh.startedAt)):[sh.startedAt,sh.completedAt,sh.updatedAt].some(inDay))),
   crew:(job.crew||[]).filter(e=>all||[e.start,e.end].some(inDay)),
   pipe:(state.pipeMoves||[]).filter(m=>belongsToJob(m,job.id)&&(all||inDay(m.at))),
   mud:(state.mudLogs||[]).filter(m=>belongsToJob(m,job.id)&&(all||inDay(m.at))),
@@ -3367,5 +3367,6 @@ init();
 <script src="./field-workspaces-v032.js"></script>
 <script src="./safety-contacts-v033.js"></script>
 <script src="./receipts-v033.js"></script>
+<script src="./connect-calendar-v1.js"></script>
 </body>
 </html>
