@@ -1057,7 +1057,7 @@ function renderCloseout(){
  const labels=['Crew hours reviewed','Bore logs reviewed','Reel/pipe inventory reviewed','Photos and notes reviewed'];
  return `<div class="page">
  <div class="between"><div><span class="eyebrow">FIELD / END OF DAY</span><h1>Daily Closeout</h1></div><button class="btn micro ghost" data-page="history">History</button></div>
- <p class="muted smalltext spaced">Review <strong>${esc(state.jobName)}</strong> for this date. Saving never checks out crew or completes bores automatically.</p>
+ ${window.BoreLabSmartReportingV1?.card?.()||''}<p class="muted smalltext spaced">Review <strong>${esc(state.jobName)}</strong> for this date. Saving never checks out crew or completes bores automatically.</p>
  <div class="action-row spaced"><button class="btn ghost" data-page="dayassistlegacy">Review All Jobs for Today</button>
   <button class="btn ghost" data-page="jobs">Switch Job</button></div>
  <div class="card spaced"><label class="field">Work date<input type="date" data-closeout-day value="${esc(date)}"></label>
@@ -1880,7 +1880,7 @@ function renderJobs(){
 function jobRecordsForDay(job,day,all=false){
  const inDay=x=>x&&localDay(x)===day;
  return {
-  shots:(job.shots||[]).filter(sh=>all||[sh.startedAt,sh.completedAt,sh.updatedAt].some(inDay)),
+  shots:(job.shots||[]).filter(sh=>all||(sh.scheduledDay?(sh.status==='complete'&&sh.completedAt?inDay(sh.completedAt):sh.scheduledDay===day||inDay(sh.startedAt)):[sh.startedAt,sh.completedAt,sh.updatedAt].some(inDay))),
   crew:(job.crew||[]).filter(e=>all||[e.start,e.end].some(inDay)),
   pipe:(state.pipeMoves||[]).filter(m=>belongsToJob(m,job.id)&&(all||inDay(m.at))),
   mud:(state.mudLogs||[]).filter(m=>belongsToJob(m,job.id)&&(all||inDay(m.at))),
@@ -2141,7 +2141,8 @@ ${section('Plan My Route')}<div class="card">
   ${window.BoreLabWorkday?.renderGpsPanel(plan)||''}${window.BoreLabWorkday?.renderRouteTools()||''}${routeMap(order)}<div class="section-title"><h2 style="font-size:15px">${usable?'Suggested Shot Order':'Shot Order — GPS Needed for Optimization'}</h2><span class="hint">${order.length} pending</span></div>${order.length?order.map((s,i)=>`<div class="route-item"><span class="bubble">${i+1}</span><div style="min-width:0;flex:1"><strong>${esc(s.name)}</strong><div><small>${esc(s.address||coordsText(s)||'Location needed')}</small></div></div><div class="right"><strong>${feet(s)} ft</strong><div><small>${pipeNeed(s)} ft incl. extra</small></div>${mapPoint(s)?`<button class="btn micro ghost" data-action="open-map-pin" data-id="${esc(s.id)}" style="margin-top:6px">Navigate</button>`:''}</div></div>`).join(''):`<p class="muted smalltext">All shots are complete, or no shots have been created.</p>`}
 ${mapsLink(order)?`<div class="action-row"><button class="btn cyan full" data-action="open-full-route">↗ Google Maps: shop → shots → shop</button></div>`:''}</div>
 ${window.BoreLabWorkday?.renderFinishBy()||''}
-${window.BoreLabDailyReels?.renderSection()||''}
+${window.BoreLabInventoryV1?.card?.()||''}
+ ${window.BoreLabDailyReels?.renderSection()||''}
 ${window.BoreLabWorkday?.renderReelOptimizer()||''}
 ${window.BoreLabConduits?.renderPlannerSummary()||''}
 ${section('Pipe Inventory')}<div class="card"><div class="form-grid">${reelMode()?`<div class="field"><span>Pipe on truck (from reels)</span><strong style="font-size:22px">${fmt(pipeOnTruck(),1)} ft</strong></div>`:`<label class="field">Pipe on hand (ft)<input type="number" min="0" step="1" value="${esc(state.pipeAvailable)}" data-setting="pipeAvailable"></label>`}<label class="field">Extra per shot (ft)<input type="number" min="0" step="1" value="${esc(state.allowance)}" data-setting="allowance"></label></div><div class="table-wrap spaced"><table><thead><tr><th>Shot</th><th>Bore</th><th>Extra</th><th>Pipe needed</th><th>Actual used</th></tr></thead><tbody>${state.shots.map(s=>`<tr><td>${esc(s.name)}</td><td>${feet(s)} ft</td><td>+${extra()} ft</td><td><b>${pipeNeed(s)} ft</b></td><td>${pipeOnShot(s)!=null?`${fmt(pipeOnShot(s),1)} ft`:'—'}</td></tr>`).join('')}</tbody></table></div><div class="action-row"><button class="btn primary" data-action="go-pipe">◈ Manage Reels</button></div>${kv('Pending shots require',`${fmt(state.shots.filter(s=>s.status!=='complete').reduce((n,s)=>n+pipeNeed(s),0))} ft`)}${kv('Pipe available',`${fmt(available)} ft`)}<div class="note ${short<=0?'good':'error'}" style="margin-top:8px">${short>0?`Legacy one-run plan is short ${fmt(short)} ft. Review size-specific conduit requirements above before drilling.`:`Legacy one-run estimate leaves ${fmt(-short)} ft. For multiple conduits, use the per-size totals above — this figure does not verify all product pipe.`}</div><p class="tiny muted spaced">Per-shot baseline and multi-conduit material totals are different: use the size-specific breakdown for product pipe. Reel totals change only when you record actual use or adjustments. Confirm continuous footage before a pull.</p></div>${footnote()}</div>`}
@@ -3367,5 +3368,11 @@ init();
 <script src="./field-workspaces-v032.js"></script>
 <script src="./safety-contacts-v033.js"></script>
 <script src="./receipts-v033.js"></script>
+<script src="./connect-calendar-v1.js"></script>
+<script src="./inventory-connect-v1.js"></script>
+<script src="./crew-teams-v1.js"></script>
+<script src="./master-calendar-v1.js"></script>
+<script src="./smart-reporting-v1.js"></script>
+<script src="./folder-sync-v1.js"></script>
 </body>
 </html>
