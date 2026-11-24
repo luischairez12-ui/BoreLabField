@@ -59,5 +59,5 @@ if(name==='save'){s.crewTeamsV1=C.saveTeam(s,{id:editId,name:val('bct-name'),mem
 if(name==='archive'){if(!confirm('Archive this crew? Existing dispatches and timecards remain.'))return;s.crewTeamsV1=C.archive(s,id);a.save();a.render();open();return}
 if(name==='apply'){const d=val('bct-dispatch-date'),result=C.dispatch(s,{teamId:dispatchId,jobId:val('bct-job'),date:d,notes:val('bct-notes')},a.uid);if(!confirm('Save these crew assignments for '+d+'? Existing same-project assignments for these members may be updated.'))return;Object.assign(s,result);date=d;a.save();a.render();open();a.notify('Crew dispatched. Timecards unchanged.');}}
 document.addEventListener('click',e=>{const b=e.target.closest?.('[data-bct]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();try{act(b.dataset.bct,b.dataset.bctId)}catch(err){api()?.notify?.(err.message)}},true);
-window.BoreLabCrewTeamsV1={card,open,core:C};
+window.BoreLabCrewTeamsV1={card,open,openForDate:d=>{if(C.day(d)){date=d;open()}},core:C};
 })(C);})();
