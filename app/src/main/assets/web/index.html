@@ -1057,7 +1057,7 @@ function renderCloseout(){
  const labels=['Crew hours reviewed','Bore logs reviewed','Reel/pipe inventory reviewed','Photos and notes reviewed'];
  return `<div class="page">
  <div class="between"><div><span class="eyebrow">FIELD / END OF DAY</span><h1>Daily Closeout</h1></div><button class="btn micro ghost" data-page="history">History</button></div>
- <p class="muted smalltext spaced">Review <strong>${esc(state.jobName)}</strong> for this date. Saving never checks out crew or completes bores automatically.</p>
+ ${window.BoreLabSmartReportingV1?.card?.()||''}<p class="muted smalltext spaced">Review <strong>${esc(state.jobName)}</strong> for this date. Saving never checks out crew or completes bores automatically.</p>
  <div class="action-row spaced"><button class="btn ghost" data-page="dayassistlegacy">Review All Jobs for Today</button>
   <button class="btn ghost" data-page="jobs">Switch Job</button></div>
  <div class="card spaced"><label class="field">Work date<input type="date" data-closeout-day value="${esc(date)}"></label>
@@ -3372,5 +3372,6 @@ init();
 <script src="./inventory-connect-v1.js"></script>
 <script src="./crew-teams-v1.js"></script>
 <script src="./master-calendar-v1.js"></script>
+<script src="./smart-reporting-v1.js"></script>
 </body>
 </html>
