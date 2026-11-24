@@ -246,7 +246,7 @@ function renderHome(){
  Promise.resolve().then(()=>window.BoreLabCommand?.loadWeather?.()).catch(()=>{});
  const currentJob='<button class="bf-home-jobline" data-page="job" aria-label="Open current job"><span class="bf-home-pin" aria-hidden="true">⌖</span><span><small>ACTIVE JOB</small><strong>'+esc(state().jobName||'Current job')+'</strong></span><span class="bf-job-arrow" aria-hidden="true">›</span></button>';
  const fast='<div class="bf-home-fast" aria-label="Quick access"><button data-page="fieldhistory">▦ Atlas & Calendar</button><button data-bf-menu-action="quick">▣ Quick Photo & Pin</button></div>';
- return '<div class="page bh-home'+(c.density==='compact'?' bh-dense':'')+'">'+hero+currentJob+fast+(window.BoreLabProductivity?.homeLinks?.()||'')+(window.BoreLabEdgeV22?.homeArrival?.()||'')+profile+
+ return '<div class="page bh-home'+(c.density==='compact'?' bh-dense':'')+'">'+hero+currentJob+fast+(window.BoreLabCalendarConnect?.homeCard?.()||'')+(window.BoreLabProductivity?.homeLinks?.()||'')+(window.BoreLabEdgeV22?.homeArrival?.()||'')+profile+
  (editing?editorCard(c,p):'<div class="bh-custom-tip"><span>Long-press a card to customize.</span><button data-bh-edit>Customize Widgets ›</button></div>')+
  widgets+
  '<div class="bh-footer"><button data-bh-edit>▦ Edit Dashboard</button><button data-bh-classic>Classic Home</button></div>'+
