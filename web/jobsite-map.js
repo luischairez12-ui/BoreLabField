@@ -15,7 +15,7 @@ const activeShots=()=>st().shots||[];
 const activePins=()=>window.BoreLabFieldPins?.pins?.()||[];
 const activeRecords=()=>[...activeShots(),...activePins(),...(selectedPhoto?[selectedPhoto]:[])];
 const isPhoto=s=>s?.recordType==='fieldPhoto';
-const inMapDay=s=>!mapDay||[s.occurredDay,s.addedAt,s.startedAt,s.completedAt,s.createdAt,s.updatedAt].some(v=>window.BoreLabAsBuilt?.dayOf?.(v)===mapDay);
+const inMapDay=s=>!mapDay||(s.scheduledDay&&s.recordType!=='fieldPin'?[s.scheduledDay,s.startedAt,s.completedAt]:[s.occurredDay,s.addedAt,s.startedAt,s.completedAt,s.createdAt,s.updatedAt]).some(v=>window.BoreLabAsBuilt?.dayOf?.(v)===mapDay);
 const isPin=s=>s?.recordType==='fieldPin';
 const pinLabel=s=>window.BoreLabFieldPins?.kindLabel?.(s?.kind)||'Field marker';
 const recordDate=s=>window.BoreLabFieldPins?.displayDate?.(s)||'Date not recorded';

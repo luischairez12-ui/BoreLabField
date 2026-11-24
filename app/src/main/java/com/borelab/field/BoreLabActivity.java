@@ -58,6 +58,7 @@ import java.util.Map;
 
 /** Standalone HDD crew app. Web app assets are local; records use WebView storage. */
 public class BoreLabActivity extends Activity {
+    private final SyncFolderBridge syncFolder=new SyncFolderBridge(this);
     private static final String HOST = "appassets.androidplatform.net";
     private static final String HOME = "https://" + HOST + "/assets/index.html";
     private static final int REQ_LOCATION = 41;
@@ -104,6 +105,7 @@ public class BoreLabActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         closeoutFiles = new CloseoutFiles(this, webView);
         webView.addJavascriptInterface(new FileExportBridge(), "BoreLabNative");
+        webView.addJavascriptInterface(syncFolder, "BoreLabSyncFolder");
 
         webView.setWebViewClient(new WebViewClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
@@ -238,6 +240,7 @@ public class BoreLabActivity extends Activity {
 
     @Override protected void onActivityResult(int code, int resultCode, Intent data) {
         super.onActivityResult(code, resultCode, data);
+        if(syncFolder.result(code,resultCode,data))return;
         if (closeoutFiles != null && closeoutFiles.onResult(code, resultCode, data)) return;
         if (code == REQ_FILE && fileCallback != null) {
             Uri[] selected = null;

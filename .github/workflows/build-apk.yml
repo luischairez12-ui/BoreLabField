@@ -3,6 +3,8 @@ name: Build BoreLab Field Android APK
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -121,6 +123,16 @@ jobs:
         run: node tests/field-workspaces-v032.test.cjs
       - name: Test Safety Contacts and Receipt Vault
         run: node tests/safety-receipts-v033.test.cjs
+      - name: Test Connect Calendar and Crew Time bridge
+        run: node --test tests/connect-calendar.test.cjs
+      - name: Test crew truck inventory snapshots
+        run: node --test tests/inventory-connect.test.cjs
+      - name: Test named crews and dated dispatch
+        run: node --test tests/crew-teams.test.cjs
+      - name: Test all-project Master Calendar
+        run: node --test tests/master-calendar.test.cjs
+      - name: Test Smart Reporting and timesheet export
+        run: node --test tests/smart-reporting.test.cjs
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -150,6 +162,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BoreLab-Field-v0.33.0-Debug-APK
+          name: BoreLab-Field-v0.39.0-Debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
