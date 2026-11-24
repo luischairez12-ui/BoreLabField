@@ -44,7 +44,7 @@ function render(date=''){
  return '<section class="blcal-panel" aria-label="Field Calendar">'+
   '<button type="button" class="blcal-heading" data-blcal-toggle aria-expanded="'+expanded+'" aria-controls="blcalGrid">'+
   '<span class="blcal-icon">▦</span><span><strong>Field Calendar</strong><small>'+(date?esc(nice(date)):'All recorded dates')+'</small></span><b aria-hidden="true">'+(expanded?'⌃':'⌄')+'</b></button>'+
-  '<div id="blcalGrid"'+(expanded?'':' hidden')+'>'+grid+'</div>'+selected+'<div class="blcal-actions"><button type="button" data-blc="open">⇄ BoreLab Connect · Assign / Exchange</button></div></section>';
+  '<div id="blcalGrid"'+(expanded?'':' hidden')+'>'+grid+'</div>'+selected+'<div class="blcal-actions"><button type="button" data-blc="open">⇄ BoreLab Connect · Assign / Exchange</button><button type="button" data-bmc="open">▦ Master Calendar</button></div></section>';
 }
 function select(date){
  if(!validDay(date))return;
