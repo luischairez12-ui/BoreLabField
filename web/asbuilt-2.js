@@ -31,9 +31,10 @@ function allEvents(){
   for(const sh of job.shots||[]){
    if(sh.startedAt)push(job,'shot',sh,sh.startedAt,sh.name||'Bore shot',sh.startedAt,'Drilling started');
    if(sh.completedAt)push(job,'shot',sh,sh.completedAt,sh.name||'Bore shot',sh.completedAt,'Bore completed');
-   if(!sh.startedAt&&!sh.completedAt&&(sh.createdAt||sh.updatedAt))push(job,'shot',sh,sh.createdAt||sh.updatedAt,sh.name||'Bore shot',sh.createdAt||sh.updatedAt,'Bore record');
+   if(sh.scheduledDay&&sh.scheduledDay!==dayOf(sh.startedAt)&&sh.scheduledDay!==dayOf(sh.completedAt))push(job,'shot',sh,sh.scheduledDay,sh.name||'Bore shot',sh.scheduledDay,sh.status==='complete'?'Completed (assigned work date)':sh.status==='progress'?'In progress (assigned work date)':'Scheduled bore');
+   if(!sh.scheduledDay&&!sh.startedAt&&!sh.completedAt&&(sh.createdAt||sh.updatedAt))push(job,'shot',sh,sh.createdAt||sh.updatedAt,sh.name||'Bore shot',sh.createdAt||sh.updatedAt,'Bore record');
   }
-  for(const pin of job.fieldPins||[])push(job,'pin',pin,pin.occurredDay||pin.occurredAt||pin.createdAt,pin.name||kinds[pin.kind]||'Installation',pin.occurredAt||pin.createdAt,'Installed '+(kinds[pin.kind]||'field marker'));
+  for(const pin of job.fieldPins||[])push(job,'pin',pin,pin.occurredDay||pin.occurredAt||pin.createdAt,pin.name||kinds[pin.kind]||'Installation',pin.occurredAt||pin.createdAt,(pin.connectMarker?.status==='planned'?'Planned ':'Installed ')+(kinds[pin.kind]||'field marker'));
   for(const note of job.quickNotes||[]){if(note.at)push(job,'note',note,note.at,'Quick field note',note.at,String(note.text||'').slice(0,500));}
   for(const marker of job.fieldMarkers||[]){if(marker.occurredAt)push(job,'marker',marker,marker.occurredAt,marker.label||'Field marker',marker.occurredAt,(window.BoreLabEdgeV22?.markerKind?.(marker.kind)||marker.kind||'Marker')+' · '+(marker.status==='resolved'?'Resolved':'Open'));}
   for(const arrival of job.arrivalLog||[]){if(arrival.at)push(job,'arrival',arrival,arrival.at,'Jobsite arrival',arrival.at,'Manual arrival'+(valid(arrival)?' · GPS saved':''));}
@@ -186,7 +187,7 @@ function onPinPhotoSaved(photo){
 async function exportAsBuilt(day=''){
  const b=api(),s=st(),job=(s.jobs||[]).find(j=>j.id===s.activeJobId);if(!job)return b?.notify?.('Select a job first.');
  const wanted=(x)=>!day||dayOf(x)===day;
- const shots=(job.shots||[]).filter(x=>!day||[x.startedAt,x.completedAt,x.createdAt,x.updatedAt].some(wanted));
+ const shots=(job.shots||[]).filter(x=>!day||[x.scheduledDay,x.startedAt,x.completedAt,x.createdAt,x.updatedAt].some(wanted));
  const pins=(job.fieldPins||[]).filter(x=>wanted(x.occurredDay||x.createdAt));
  const photoRows=(b.photos?.()||[]).filter(p=>(p.jobId||s.legacyJobId||s.activeJobId)===job.id&&wanted(p.addedAt)).slice(0,75);
  const asbuilt=pins.map(p=>({name:p.name||kinds[p.kind]||'Marker',kind:kinds[p.kind]||'Field marker',date:dayOf(p.occurredDay||p.createdAt),lat:valid(p)?String(p.lat):'',lon:valid(p)?String(p.lon):'',accuracy:String(p.gpsAccuracy??''),station:p.station||'',size:p.size||'',material:p.material||'',depth:p.depth||'',details:[p.connectionType,p.fittingType,p.dimensions,p.notes].filter(Boolean).join(' · ')}));
